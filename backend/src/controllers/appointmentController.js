@@ -1,0 +1,450 @@
+import mongoose from "mongoose";
+import Appointment from "../models/Appointment.js";
+import Patient from "../models/clinical/Patient.js";
+import TimeBlock from "../models/TimeBlock.js";
+import Treatment from "../models/clinical/Treatment.js";
+import Coupon from "../models/marketing/Coupon.js";
+import Waitlist from "../models/clinical/Waitlist.js";
+import AppError from "../utils/appError.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { sendResponse } from "../utils/responseHandler.js";
+import { deductInventoryFEFO } from "../services/inventoryService.js";
+
+// --- HELPERS DE COLISIÓN (Internos) ---
+
+const checkBlockCollision = async (doctorId, startTime, durationMinutes) => {
+  const newStart = new Date(startTime);
+  const newEnd = new Date(newStart.getTime() + durationMinutes * 60000);
+
+  const block = await TimeBlock.findOne({
+    doctorId,
+    startTime: { $lt: newEnd },
+    endTime: { $gt: newStart },
+  });
+
+  return block;
+};
+
+const checkTimeCollision = async (
+  performerId,
+  roomId,
+  newStartTime,
+  durationMinutes,
+  excludeAppointmentId = null,
+) => {
+  const newStart = new Date(newStartTime);
+  const newEnd = new Date(newStart.getTime() + durationMinutes * 60000);
+  const startOfDay = new Date(newStart).setHours(0, 0, 0, 0);
+  const endOfDay = new Date(newStart).setHours(23, 59, 59, 999);
+
+  const dailyAppointments = await Appointment.find({
+    status: { $ne: "CANCELLED" },
+    appointmentDate: { $gte: startOfDay, $lte: endOfDay },
+    $or: [{ doctorId: performerId }, { roomId: roomId }],
+  });
+
+  for (let appt of dailyAppointments) {
+    if (
+      excludeAppointmentId &&
+      appt._id.toString() === excludeAppointmentId.toString()
+    )
+      continue;
+
+    const existingStart = new Date(appt.appointmentDate);
+    const existingEnd = new Date(
+      existingStart.getTime() + appt.duration * 60000,
+    );
+
+    if (newStart < existingEnd && newEnd > existingStart) {
+      if (
+        appt.roomId === roomId &&
+        appt.doctorId.toString() !== performerId.toString()
+      ) {
+        return {
+          collision: true,
+          reason: `La habitación/cabina ${roomId} ya está ocupada en ese horario.`,
+        };
+      }
+      return {
+        collision: true,
+        reason: "El personal ya tiene una cita asignada en ese horario.",
+      };
+    }
+  }
+  return { collision: false };
+};
+
+// --- CONTROLADORES CRUD ---
+
+const createAppointment = asyncHandler(async (req, res, next) => {
+  const { doctorId, roomId, appointmentDate, duration = 30 } = req.body;
+
+  const block = await checkBlockCollision(doctorId, appointmentDate, duration);
+  if (block)
+    return next(new AppError(`Personal no disponible: ${block.type}`, 400));
+
+  const collisionCheck = await checkTimeCollision(
+    doctorId,
+    roomId,
+    appointmentDate,
+    duration,
+  );
+  if (collisionCheck.collision)
+    return next(new AppError(collisionCheck.reason, 400));
+
+  const appointment = new Appointment({ ...req.body, createdBy: req.user._id });
+  const savedAppointment = await appointment.save();
+
+  const populated = await Appointment.findById(savedAppointment._id)
+    .populate("patientId", "name phone")
+    .populate("doctorId", "name");
+
+  sendResponse(res, 201, populated, "Cita agendada correctamente");
+});
+
+const getAppointments = asyncHandler(async (req, res, next) => {
+  const { doctorId, date, status, roomId } = req.query;
+  const query = {};
+
+  if (doctorId) query.doctorId = doctorId;
+  if (roomId) query.roomId = roomId;
+  if (status) query.status = status;
+  if (date && typeof date === "string") {
+    const searchDate = new Date(date);
+    if (!isNaN(searchDate)) {
+      query.appointmentDate = {
+        $gte: new Date(searchDate.setHours(0, 0, 0, 0)),
+        $lte: new Date(searchDate.setHours(23, 59, 59, 999)),
+      };
+    }
+  }
+
+  const appointments = await Appointment.find(query)
+    .populate("patientId", "name phone")
+    .populate("doctorId", "name")
+    .sort({ appointmentDate: 1 });
+
+  sendResponse(res, 200, appointments);
+});
+
+const getAppointmentById = asyncHandler(async (req, res, next) => {
+  const appointment = await Appointment.findById(req.params.id)
+    .populate("patientId", "name phone email")
+    .populate("doctorId", "name role")
+    .populate("createdBy", "name");
+
+  if (!appointment) return next(new AppError("Cita no encontrada", 404));
+  sendResponse(res, 200, appointment);
+});
+
+const updateAppointment = asyncHandler(async (req, res, next) => {
+  const appointment = await Appointment.findById(req.params.id);
+  if (!appointment) return next(new AppError("Cita no encontrada", 404));
+
+  // 1. Bloqueo de seguridad para citas ya completadas
+  if (
+    appointment.status === "COMPLETED" &&
+    req.body.status &&
+    req.body.status !== "COMPLETED"
+  ) {
+    return next(
+      new AppError(
+        "No se puede alterar una cita completada. El registro está bloqueado.",
+        400,
+      ),
+    );
+  }
+
+  // 2. Validación de colisiones (Personal y Cabina)
+  if (
+    req.body.appointmentDate ||
+    req.body.doctorId ||
+    req.body.duration ||
+    req.body.roomId
+  ) {
+    const newDoctorId = req.body.doctorId || appointment.doctorId;
+    const newRoomId = req.body.roomId || appointment.roomId;
+    const newDate = req.body.appointmentDate || appointment.appointmentDate;
+    const newDuration = req.body.duration || appointment.duration;
+
+    const block = await checkBlockCollision(newDoctorId, newDate, newDuration);
+    if (block)
+      return next(new AppError(`Colisión con bloqueo: ${block.type}`, 400));
+
+    const collisionCheck = await checkTimeCollision(
+      newDoctorId,
+      newRoomId,
+      newDate,
+      newDuration,
+      appointment._id,
+    );
+    if (collisionCheck.collision)
+      return next(new AppError(collisionCheck.reason, 400));
+  }
+
+  let safeCouponCode = req.body.couponCode?.toString().toUpperCase() || null;
+  const isCompletingNow =
+    req.body.status === "COMPLETED" && appointment.status !== "COMPLETED";
+
+  let session = null;
+
+  try {
+    // Intentamos iniciar sesión si vamos a completar la cita (Checkout)
+    if (isCompletingNow) {
+      try {
+        session = await mongoose.startSession();
+        session.startTransaction();
+      } catch (sessionErr) {
+        // Si falla por falta de Replica Set, trabajamos sin sesión (Modo Local)
+        console.warn(
+          "⚠️ Ejecutando sin transacciones (Entorno Local detectado).",
+        );
+        session = null;
+      }
+    }
+
+    // 3. Mapeo de campos permitidos
+    const allowedFields = [
+      "appointmentDate",
+      "duration",
+      "status",
+      "treatmentName",
+      "originalQuote",
+      "isReminderSent",
+      "nextFollowUpDate",
+      "doctorId",
+      "treatmentId",
+      "consumedSupplies",
+      "roomId",
+      "isTouchUp",
+      "touchUpDate",
+    ];
+
+    allowedFields.forEach((field) => {
+      if (req.body[field] !== undefined) appointment[field] = req.body[field];
+    });
+
+    // 4. Actualización de expediente de consulta
+    if (req.body.consultationRecord) {
+      appointment.consultationRecord = {
+        ...appointment.consultationRecord,
+        ...req.body.consultationRecord,
+        vitalSigns: {
+          ...appointment.consultationRecord?.vitalSigns,
+          ...req.body.consultationRecord?.vitalSigns,
+        },
+        physicalExam: {
+          ...appointment.consultationRecord?.physicalExam,
+          ...req.body.consultationRecord?.physicalExam,
+        },
+      };
+    }
+
+    // 5. Lógica de Checkout (Solo si pasa a COMPLETED)
+    if (isCompletingNow) {
+      let treatment = appointment.treatmentId
+        ? await Treatment.findById(appointment.treatmentId).session(session)
+        : null;
+
+      // Descuento de Inventario FEFO
+      if (appointment.consumedSupplies?.length > 0) {
+        for (const item of appointment.consumedSupplies) {
+          await deductInventoryFEFO(item.productId, item.quantity, session);
+        }
+      }
+
+      let dictatedAmount = appointment.originalQuote || 0;
+      let totalDiscount = 0;
+
+      // Promo automática por tratamiento
+      const hasActivePromo =
+        treatment?.promotionalPrice && treatment?.promoExpiresAt > new Date();
+      if (
+        hasActivePromo &&
+        (dictatedAmount === 0 || dictatedAmount > treatment.promotionalPrice)
+      ) {
+        totalDiscount =
+          dictatedAmount > 0 ? dictatedAmount - treatment.promotionalPrice : 0;
+        dictatedAmount = treatment.promotionalPrice;
+      }
+
+      // Aplicación de Cupón Manual
+      if (safeCouponCode && totalDiscount === 0) {
+        const coupon = await Coupon.findOne({
+          code: safeCouponCode,
+          isActive: true,
+          expiresAt: { $gte: new Date() },
+        }).session(session);
+
+        if (coupon) {
+          totalDiscount =
+            coupon.discountType === "PERCENTAGE"
+              ? dictatedAmount * (coupon.discountValue / 100)
+              : coupon.discountValue;
+
+          dictatedAmount -= totalDiscount;
+          appointment.appliedCoupon = coupon._id;
+          coupon.usedCount += 1;
+
+          if (coupon.usedCount >= coupon.maxRedemptions)
+            coupon.isActive = false;
+          await coupon.save({ session });
+
+          // Recompensa por referido si aplica
+          if (coupon.referredBy) {
+            const rewardCoupon = new Coupon({
+              code: `REWARD-${Math.random().toString(36).substring(7).toUpperCase()}`,
+              discountType: "PERCENTAGE",
+              discountValue: 10,
+              expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+              maxRedemptions: 1,
+            });
+            await rewardCoupon.save({ session });
+            await Patient.findByIdAndUpdate(
+              coupon.referredBy,
+              { $push: { walletCoupons: rewardCoupon._id } },
+              { session },
+            );
+          }
+        }
+      }
+
+      appointment.discountApplied = totalDiscount;
+      appointment.finalAmount = dictatedAmount;
+
+      // Cupón de Bienvenida (Si es su primera cita completada)
+      const pastCompleted = await Appointment.countDocuments({
+        patientId: appointment.patientId,
+        status: "COMPLETED",
+        _id: { $ne: appointment._id },
+      }).session(session);
+
+      if (pastCompleted === 0) {
+        const welcome = new Coupon({
+          code: `WELCOME-${Math.random().toString(36).substring(7).toUpperCase()}`,
+          discountType: "PERCENTAGE",
+          discountValue: 10,
+          expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+          maxRedemptions: 1,
+        });
+        await welcome.save({ session });
+        await Patient.findByIdAndUpdate(
+          appointment.patientId,
+          { $push: { walletCoupons: welcome._id } },
+          { session },
+        );
+      }
+
+      // Fecha de retoque sugerida
+      if (treatment?.suggestedTouchUpDays) {
+        appointment.touchUpDate = new Date(
+          Date.now() + treatment.suggestedTouchUpDays * 24 * 60 * 60 * 1000,
+        );
+      }
+    }
+
+    // 6. Guardado y Commit
+    await appointment.save({ session });
+
+    if (session) {
+      await session.commitTransaction();
+      session.endSession();
+    }
+
+    const finalApp = await Appointment.findById(appointment._id)
+      .populate("patientId", "name phone walletCoupons")
+      .populate("doctorId", "name")
+      .populate("treatmentId", "name")
+      .populate("appliedCoupon", "code discountValue");
+
+    sendResponse(
+      res,
+      200,
+      finalApp,
+      "Cita actualizada y procesada correctamente.",
+    );
+  } catch (error) {
+    // Si la transacción falla al final, intentamos abortar
+    if (session) {
+      await session.abortTransaction();
+      session.endSession();
+    }
+
+    // Manejo específico del error de Replica Set en medio del proceso
+    if (
+      error.message.includes("replica set") ||
+      error.message.includes("Transaction numbers")
+    ) {
+      console.warn(
+        "❌ Falló la transacción en tiempo de ejecución. Reintentando guardado simple...",
+      );
+      await appointment.save(); // Intento final sin sesión
+      return sendResponse(
+        res,
+        200,
+        appointment,
+        "Cita guardada (Sin Transacciones)",
+      );
+    }
+
+    return next(new AppError(`Error en el proceso: ${error.message}`, 400));
+  }
+});
+
+const cancelAppointment = asyncHandler(async (req, res, next) => {
+  const appointment = await Appointment.findById(req.params.id);
+  if (!appointment || appointment.status === "CANCELLED")
+    return next(new AppError("Cita no encontrada o ya cancelada", 404));
+
+  appointment.status = "CANCELLED";
+  await appointment.save();
+
+  const canceledDate = new Date(appointment.appointmentDate);
+  const startOfDay = new Date(canceledDate).setHours(0, 0, 0, 0);
+  const endOfDay = new Date(canceledDate).setHours(23, 59, 59, 999);
+
+  const waitlistCandidates = await Waitlist.find({
+    doctorId: appointment.doctorId,
+    desiredDate: { $gte: startOfDay, $lte: endOfDay },
+    status: "WAITING",
+  }).populate("patientId", "name phone");
+
+  let notificationMessage = null;
+
+  if (waitlistCandidates.length > 0) {
+    const nextInLine = waitlistCandidates[0];
+    const patientWaitlist = nextInLine.patientId;
+    const existingFuture = await Appointment.findOne({
+      patientId: patientWaitlist._id,
+      status: { $in: ["PENDING", "CONFIRMED"] },
+      appointmentDate: { $gte: new Date() },
+    });
+
+    notificationMessage = existingFuture
+      ? `Hola ${patientWaitlist.name}, se liberó un espacio a las ${canceledDate.getHours()}:${canceledDate.getMinutes().toString().padStart(2, "0")}. ¿Deseas adelantar tu cita del ${existingFuture.appointmentDate.toLocaleDateString()}?`
+      : `Hola ${patientWaitlist.name}, ¡buenas noticias! Se liberó un espacio hoy. ¿Deseas tomarlo?`;
+
+    nextInLine.status = "NOTIFIED";
+    await nextInLine.save();
+  }
+
+  sendResponse(
+    res,
+    200,
+    {
+      appointment,
+      waitlistTriggered: waitlistCandidates.length > 0,
+      simulatedMessage: notificationMessage,
+    },
+    "Cita cancelada correctamente.",
+  );
+});
+
+// --- EXPORTACIÓN AGRUPADA AL FINAL ---
+export {
+  createAppointment,
+  getAppointments,
+  getAppointmentById,
+  updateAppointment,
+  cancelAppointment,
+};

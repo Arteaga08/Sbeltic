@@ -1,0 +1,128 @@
+import express from "express";
+import dotenv from "dotenv";
+import helmet from "helmet";
+import cors from "cors";
+import morgan from "morgan";
+
+// 🛠️ Configuraciones y Conexión
+dotenv.config();
+import connectDB from "./config/db.js";
+import initCronJobs from "./services/cronJobs.js";
+import { apiLimiter } from "./middlewares/rateLimiter.js";
+import { errorHandler } from "./middlewares/errorMiddleware.js";
+import mongoSanitize from "./middlewares/mongoSanitize.js";
+
+// 🛤️ Importación de Rutas
+import userRoutes from "./routes/userRoutes.js";
+import patientRoutes from "./routes/patientRoutes.js";
+import appointmentRoutes from "./routes/appointmentRoutes.js";
+import waitlistRoutes from "./routes/waitlistRoutes.js";
+import treatmentRoutes from "./routes/treatmentRoutes.js";
+import productRoutes from "./routes/productRoutes.js";
+import batchRoutes from "./routes/batchRoutes.js";
+import supplierRoutes from "./routes/supplierRoutes.js";
+import couponRoutes from "./routes/couponRoutes.js";
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// ==========================================
+// 1. MIDDLEWARES GLOBALES DE SEGURIDAD
+// ==========================================
+app.use(helmet()); // Blindaje de headers HTTP
+app.use(cors()); // Control de acceso de dominios
+app.use(express.json({ limit: "15kb" })); // Límite de carga para evitar ataques DoS
+app.use(express.urlencoded({ extended: true, limit: "15kb" }));
+app.use(mongoSanitize);
+
+// Logger para desarrollo
+if (process.env.NODE_ENV === "development") {
+  app.use(morgan("dev"));
+}
+
+// ==========================================
+// 2. LIMITADOR DE TRÁFICO (Rate Limiting)
+// ==========================================
+app.use("/api", apiLimiter);
+
+// ==========================================
+// 3. RUTAS DE LA API (Endpoints)
+// ==========================================
+
+// Health Check
+app.get("/health", (req, res) =>
+  res.json({ status: "Sbeltic API Online", date: new Date() }),
+);
+
+// Módulo de Usuarios y Auth
+app.use("/api/users", userRoutes);
+
+// Módulo Clínico
+app.use("/api/patients", patientRoutes);
+app.use("/api/appointments", appointmentRoutes);
+app.use("/api/waitlist", waitlistRoutes);
+app.use("/api/treatments", treatmentRoutes);
+
+// Módulo de Logística (Inventario)
+app.use("/api/products", productRoutes);
+app.use("/api/batches", batchRoutes);
+app.use("/api/suppliers", supplierRoutes);
+
+// Módulo de Marketing y Recompensas
+app.use("/api/coupons", couponRoutes);
+
+// 🛡️ Manejador de rutas inexistentes (404)
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    status: "fail",
+    message: `La ruta ${req.originalUrl} no existe en este servidor Sbeltic`,
+  });
+});
+
+// ==========================================
+// 4. MANEJADOR DE ERRORES GLOBAL
+// ==========================================
+// Este captura todos los next(new AppError(...))
+app.use(errorHandler);
+
+// ==========================================
+// 5. INICIALIZACIÓN DE SERVIDORES
+// ==========================================
+const startServer = async () => {
+  try {
+    // Conectar a la base de datos primero
+    await connectDB();
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Sbeltic Server running at http://localhost:${PORT}`);
+
+      // Iniciar Cron Jobs (Recordatorios, Limpieza de Cupones, etc.)
+      try {
+        initCronJobs();
+        console.log("⏱️ Cron jobs initialized successfully");
+      } catch (err) {
+        console.error("❌ Error initializing cron jobs:", err);
+      }
+    });
+  } catch (error) {
+    console.error("❌ Failed to start server:", error.message);
+    process.exit(1);
+  }
+};
+
+startServer();
+
+// ====== PROCESOS DE EMERGENCIA ======
+// Para atrapar errores que no fueron capturados por try/catch
+process.on("unhandledRejection", (err) => {
+  console.log("💥 UNHANDLED REJECTION! Shutting down...");
+  console.log(err.name, err.message);
+  process.exit(1);
+});
+
+process.on("uncaughtException", (err) => {
+  console.log("💥 UNCAUGHT EXCEPTION! Shutting down...");
+  console.log(err.name, err.message);
+  process.exit(1);
+});
