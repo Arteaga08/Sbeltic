@@ -7,9 +7,9 @@ import generateToken from "../utils/generateToken.js";
 const login = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email: email.toLowerCase() }).select(
-    "+password",
-  );
+  const safeEmail = typeof email === "string" ? email.toLowerCase().trim() : "";
+
+  const user = await User.findOne({ email: safeEmail }).select("+password");
 
   if (!user || !(await user.comparePassword(password))) {
     return next(new AppError("Correo o contraseña incorrectos", 401));
@@ -26,17 +26,26 @@ const login = asyncHandler(async (req, res, next) => {
 });
 
 const registerUser = asyncHandler(async (req, res, next) => {
-  const { email } = req.body;
 
-  const userExists = await User.findOne({ email: email.toLowerCase() });
+  const { email } = req.body;
+  const safeEmail = typeof email === "string" ? email.toLowerCase().trim() : "";
+
+  const userExists = await User.findOne({ email: safeEmail });
   if (userExists) {
     return next(new AppError("Ya existe un usuario con este correo", 400));
   }
 
-  const user = new User({ ...req.body, createdBy: req.user._id });
-  await user.save();
+  // Creamos la instancia
+  const user = new User({
+    ...req.body,
+    email: safeEmail,
+    createdBy: req.user?._id, // Usamos el ? para que no truene si es undefined
+  });
 
-  sendResponse(res, 201, user, "Miembro del equipo registrado exitosamente");
+  console.log("Intentando guardar en MongoDB...");
+  const savedUser = await user.save();
+
+  sendResponse(res, 201, savedUser, "Miembro registrado correctamente");
 });
 
 const getUsers = asyncHandler(async (req, res, next) => {

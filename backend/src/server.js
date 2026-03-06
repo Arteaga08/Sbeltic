@@ -8,6 +8,7 @@ import morgan from "morgan";
 dotenv.config();
 import connectDB from "./config/db.js";
 import initCronJobs from "./services/cronJobs.js";
+import corsOptions from "./config/corsOptions.js";
 import { apiLimiter } from "./middlewares/rateLimiter.js";
 import { errorHandler } from "./middlewares/errorMiddleware.js";
 import mongoSanitize from "./middlewares/mongoSanitize.js";
@@ -25,13 +26,13 @@ import couponRoutes from "./routes/couponRoutes.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-
 // ==========================================
 // 1. MIDDLEWARES GLOBALES DE SEGURIDAD
 // ==========================================
-app.use(helmet()); // Blindaje de headers HTTP
-app.use(cors()); // Control de acceso de dominios
-app.use(express.json({ limit: "15kb" })); // Límite de carga para evitar ataques DoS
+app.use(helmet());
+app.use(cors(corsOptions));
+app.use(cors(corsOptions));
+app.use(express.json({ limit: "15kb" }));
 app.use(express.urlencoded({ extended: true, limit: "15kb" }));
 app.use(mongoSanitize);
 

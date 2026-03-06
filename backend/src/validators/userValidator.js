@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // Regex para E.164 (Ej. +526181234567)
-const phoneRegex = /^\+?[1-9]\d{7,14}$/;
+const phoneRegex = /^[0-9]{10}$/;
 
 // 1. Esquema para Login
 const loginSchema = z
@@ -35,8 +35,9 @@ const createUserSchema = z
     role: z.enum(["ADMIN", "RECEPTIONIST", "DOCTOR"]).default("RECEPTIONIST"),
     phone: z
       .string()
-      .regex(phoneRegex, "Formato de teléfono inválido (E.164)")
-      .optional(),
+      .regex(phoneRegex, "El número debe tener exactamente 10 dígitos") // 👈 Mensaje claro
+      .optional()
+      .or(z.literal("")),
   })
   .strict();
 

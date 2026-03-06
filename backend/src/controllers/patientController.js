@@ -15,19 +15,29 @@ const sanitizePatientList = (p) => ({
 const createPatient = asyncHandler(async (req, res, next) => {
   const { phone, name } = req.body;
 
-  const patientExists = await Patient.findOne({
-    phone: phone.replace(/[^\d+]/g, ""),
-  });
+  // 1. Validamos y limpiamos el teléfono de forma segura
+  const safePhone =
+    typeof phone === "string" ? phone.replace(/[^\d+]/g, "") : "";
+
+  if (!safePhone) {
+    return next(new AppError("El formato del teléfono es inválido", 400));
+  }
+
+  const patientExists = await Patient.findOne({ phone: safePhone });
   if (patientExists)
     return next(new AppError("El teléfono ya está registrado", 400));
 
-  // Generación de código de referido
-  const firstName = name.split(" ")[0].toUpperCase();
+  // 2. Generación segura del código de referido
+  // Validamos que 'name' sea string para usar .split()
+  const safeName = typeof name === "string" ? name.trim() : "PACIENTE";
+  const firstName = safeName.split(" ")[0].toUpperCase();
+
   const randomDigits = Math.floor(1000 + Math.random() * 9000);
   const referralCode = `${firstName}-${randomDigits}`;
 
   const patient = new Patient({
     ...req.body,
+    phone: safePhone,
     referralCode,
     createdBy: req.user._id,
   });

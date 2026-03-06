@@ -1,26 +1,24 @@
 @import "tailwindcss";
 
+@theme {
+  /* Colores Identidad Sbeltic */
+  --color-primary: #0d9488; /* Teal Médico: Confianza y limpieza */
+  --color-secondary: #f5ebe0; /* Champagne: Calidez y estética */
+  --color-accent: #e11d48; /* Rosa Intenso: Para alertas o botones de acción */
+
+  /* Escala de grises para el Dashboard */
+  --color-bg-main: #f8fafc;
+  --color-text-main: #1e293b;
+  --color-border-soft: #e2e8f0;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: var(--color-bg-main);
+  --foreground: var(--color-text-main);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04"; /* Mejoras de legibilidad */
 }

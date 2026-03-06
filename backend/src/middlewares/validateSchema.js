@@ -1,42 +1,31 @@
-import { ZodError } from "zod";
-
-/**
- * 🛡️ VALIDADOR DE ESQUEMAS (ZOD)
- * Centraliza la validación de Body, Params y Query.
- */
 export const validateSchema = (schemas) => (req, res, next) => {
   try {
-    // 1. Validar Body
     if (schemas.body) {
       req.body = schemas.body.parse(req.body);
     }
 
-    // 2. Validar Params
+    // Validar params y query si existen
     if (schemas.params) {
       req.params = schemas.params.parse(req.params);
     }
 
-    // 3. Validar Query (Añadimos esto para filtros de búsqueda)
-    if (schemas.query) {
-      req.query = schemas.query.parse(req.query);
-    }
-
-    return next(); // 👈 IMPORTANTE: Aseguramos el return para cortar ejecución
+    return next();
   } catch (error) {
     if (error instanceof ZodError) {
-      // Si es error de Zod, respondemos 400 directamente
+      const humanErrors = error.errors?.map((err) => {
+        // 🛡️ Blindaje extra para el join
+        const field = err.path ? err.path.join(".") : "campo desconocido";
+        return `${field}: ${err.message}`;
+      }) || ["Error de validación desconocido"];
+
       return res.status(400).json({
         success: false,
         status: "fail",
-        message: "Error de validación de datos",
-        errors: error.errors.map((err) => ({
-          path: err.path.join("."),
-          message: err.message,
-        })),
+        message: "Errores de validación",
+        errors: humanErrors,
       });
     }
-
-    // Si es otro tipo de error, se lo pasamos al errorHandler global
+    console.log("Error no identificado en middleware:", error);
     return next(error);
   }
 };

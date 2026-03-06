@@ -37,6 +37,14 @@ const checkTimeCollision = async (
   const startOfDay = new Date(newStart).setHours(0, 0, 0, 0);
   const endOfDay = new Date(newStart).setHours(23, 59, 59, 999);
 
+  // 1. Normalizamos los IDs a String usando el constructor seguro String()
+  // Esto evita errores si el valor es null o undefined.
+  const targetPerformerId = String(performerId);
+  const targetRoomId = String(roomId);
+  const idToExclude = excludeAppointmentId
+    ? String(excludeAppointmentId)
+    : null;
+
   const dailyAppointments = await Appointment.find({
     status: { $ne: "CANCELLED" },
     appointmentDate: { $gte: startOfDay, $lte: endOfDay },
@@ -44,27 +52,33 @@ const checkTimeCollision = async (
   });
 
   for (let appt of dailyAppointments) {
-    if (
-      excludeAppointmentId &&
-      appt._id.toString() === excludeAppointmentId.toString()
-    )
+    // 2. Comparación segura de IDs omitiendo la cita actual si existe
+    if (idToExclude && String(appt._id) === idToExclude) {
       continue;
+    }
 
     const existingStart = new Date(appt.appointmentDate);
     const existingEnd = new Date(
       existingStart.getTime() + appt.duration * 60000,
     );
 
+    // 3. Lógica de traslape de tiempos
     if (newStart < existingEnd && newEnd > existingStart) {
+      const currentApptRoomId = String(appt.roomId);
+      const currentApptDoctorId = String(appt.doctorId);
+
+      // Si la habitación es la misma pero el profesional es distinto -> Choque de cuarto
       if (
-        appt.roomId === roomId &&
-        appt.doctorId.toString() !== performerId.toString()
+        currentApptRoomId === targetRoomId &&
+        currentApptDoctorId !== targetPerformerId
       ) {
         return {
           collision: true,
           reason: `La habitación/cabina ${roomId} ya está ocupada en ese horario.`,
         };
       }
+
+      // Si el profesional es el mismo -> Choque de agenda del personal
       return {
         collision: true,
         reason: "El personal ya tiene una cita asignada en ese horario.",
@@ -182,9 +196,10 @@ const updateAppointment = asyncHandler(async (req, res, next) => {
       return next(new AppError(collisionCheck.reason, 400));
   }
 
-  let safeCouponCode = req.body.couponCode?.toString().toUpperCase() || null;
-  const isCompletingNow =
-    req.body.status === "COMPLETED" && appointment.status !== "COMPLETED";
+  let safeCouponCode = null;
+  if (typeof req.body.couponCode === "string") {
+    safeCouponCode = req.body.couponCode.toUpperCase();
+  }
 
   let session = null;
 
