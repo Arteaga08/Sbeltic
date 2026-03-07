@@ -7,7 +7,7 @@ import morgan from "morgan";
 // 🛠️ Configuraciones y Conexión
 dotenv.config();
 import connectDB from "./config/db.js";
-import initCronJobs from "./services/cronJobs.js";
+import initCronJobs from "./jobs/cronJobs.js";
 import corsOptions from "./config/corsOptions.js";
 import { apiLimiter } from "./middlewares/rateLimiter.js";
 import { errorHandler } from "./middlewares/errorMiddleware.js";
@@ -23,6 +23,7 @@ import productRoutes from "./routes/productRoutes.js";
 import batchRoutes from "./routes/batchRoutes.js";
 import supplierRoutes from "./routes/supplierRoutes.js";
 import couponRoutes from "./routes/couponRoutes.js";
+import categoryRoutes from "./routes/categoryRoutes.js"
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -66,6 +67,7 @@ app.use("/api/treatments", treatmentRoutes);
 
 // Módulo de Logística (Inventario)
 app.use("/api/products", productRoutes);
+app.use("/api/categories", categoryRoutes)
 app.use("/api/batches", batchRoutes);
 app.use("/api/suppliers", supplierRoutes);
 

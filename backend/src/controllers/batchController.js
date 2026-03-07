@@ -10,33 +10,42 @@ import { sendResponse } from "../utils/responseHandler.js";
  * - Crea el Batch
  * - Suma la cantidad al 'currentStock' del Product automáticamente
  */
+
 const createBatch = asyncHandler(async (req, res, next) => {
   const session = await mongoose.startSession();
+  const { productId, initialQuantity } = req.body;
 
   try {
-    // Intentamos iniciar la transacción
+    let savedBatch;
     await session.withTransaction(async () => {
+      // 1. Crear el Lote
       const newBatch = new Batch({
         ...req.body,
-        currentQuantity: req.body.initialQuantity, // Aseguramos que inicie lleno
+        currentQuantity: initialQuantity,
         createdBy: req.user._id,
       });
-      await newBatch.save({ session });
+      savedBatch = await newBatch.save({ session });
+
+      // 2. ⚡ ACTUALIZAR STOCK GLOBAL (Lo que faltaba)
+      const product = await Product.findById(productId).session(session);
+      if (!product) throw new AppError("Producto no encontrado", 404);
+
+      product.currentStock += initialQuantity;
+      await product.save({ session });
     });
 
-    // Si llegamos aquí, todo bien
-    const savedBatch = await Batch.findOne({
-      batchNumber: req.body.batchNumber,
-    });
-    sendResponse(res, 201, savedBatch);
+    sendResponse(res, 201, savedBatch, "Lote registrado y stock actualizado");
   } catch (error) {
-    // 🛡️ BYPASS: Si el error es por el Replica Set, lo hacemos sin transacción
+    // ... tu lógica de bypass para local ...
     if (error.message.includes("Transaction numbers")) {
-      console.warn("⚠️ Modo Local: Creando lote sin transacción.");
       const newBatch = await Batch.create({
         ...req.body,
-        currentQuantity: req.body.initialQuantity,
+        currentQuantity: initialQuantity,
         createdBy: req.user._id,
+      });
+      // También hay que actualizar el stock en el bypass
+      await Product.findByIdAndUpdate(productId, {
+        $inc: { currentStock: initialQuantity },
       });
       return sendResponse(res, 201, newBatch);
     }
@@ -45,7 +54,6 @@ const createBatch = asyncHandler(async (req, res, next) => {
     session.endSession();
   }
 });
-
 const getBatches = asyncHandler(async (req, res, next) => {
   const { productId, status } = req.query;
   const query = { isActive: true };

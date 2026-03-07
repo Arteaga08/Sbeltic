@@ -1,4 +1,6 @@
 import Product from "../models/inventory/Product.js";
+import Category from "../models/inventory/Category.js";
+import Batch from "../models/inventory/Batch.js";
 import AppError from "../utils/appError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendResponse } from "../utils/responseHandler.js";
@@ -12,7 +14,18 @@ import { getUniqueSKU } from "../services/inventoryService.js";
 const createProduct = asyncHandler(async (req, res, next) => {
   let { sku, category } = req.body;
 
-  // 🛡️ CWE-1287 Fix: Validar que sea un string antes de usar métodos de texto
+  // 1. Validar que la categoría seleccionada exista y esté activa
+  const categoryExists = await Category.findOne({
+    _id: category,
+    isActive: true,
+  });
+  if (!categoryExists) {
+    return next(
+      new AppError("La categoría seleccionada no es válida o no existe", 400),
+    );
+  }
+
+  // 🛡️ CWE-1287 Fix: Seguridad en el SKU
   if (sku && typeof sku === "string") {
     sku = sku.trim().toUpperCase();
   } else if (sku && typeof sku !== "string") {
@@ -20,17 +33,13 @@ const createProduct = asyncHandler(async (req, res, next) => {
   }
 
   if (!sku || sku === "") {
-    // Generación interna segura
-    sku = await getUniqueSKU(category);
+    // Usamos el nombre de la categoría para el prefijo del SKU automático
+    sku = await getUniqueSKU(categoryExists.name);
   } else {
-    // Validamos duplicado
     const existingSku = await Product.findOne({ sku });
     if (existingSku) {
       return next(
-        new AppError(
-          "Este código de barras/SKU ya está registrado en otro producto",
-          400,
-        ),
+        new AppError("Este código de barras/SKU ya está registrado", 400),
       );
     }
   }
@@ -43,7 +52,10 @@ const createProduct = asyncHandler(async (req, res, next) => {
 
   await product.save();
 
-  sendResponse(res, 201, product, "Producto creado exitosamente");
+  // Devolvemos el producto con la categoría populada para el frontend
+  const populatedProduct = await product.populate("category", "name type");
+
+  sendResponse(res, 201, populatedProduct, "Producto creado exitosamente");
 });
 
 /**
@@ -53,7 +65,6 @@ const createProduct = asyncHandler(async (req, res, next) => {
  */
 const getProducts = asyncHandler(async (req, res, next) => {
   const { category, search, isTrackable } = req.query;
-
   const query = { isActive: true };
 
   if (category && typeof category === "string") {
@@ -64,16 +75,44 @@ const getProducts = asyncHandler(async (req, res, next) => {
     query.isTrackable = isTrackable === "true";
   }
 
-  // 🛡️ CWE-1287 Fix: Validar que la búsqueda sea estrictamente un string
   if (search && typeof search === "string") {
     query.$text = { $search: search.trim() };
   }
 
   const products = await Product.find(query)
+    .populate("category", "name type")
     .populate("supplierId", "name contactPerson")
     .sort({ name: 1 });
 
-  sendResponse(res, 200, products);
+  // 🛡️ LÓGICA DE ICONOS PARA LA INTERFAZ
+  const productsWithAlerts = await Promise.all(
+    products.map(async (product) => {
+      const productObj = product.toObject();
+
+      // 1. Alerta de Stock Bajo
+      productObj.isLowStock = product.currentStock <= product.minStockAlert;
+
+      // 2. Alerta de Caducidad (Próximos 30 días)
+      if (product.isTrackable) {
+        const thresholdDate = new Date();
+        thresholdDate.setDate(thresholdDate.getDate() + 30);
+
+        const expiringBatch = await Batch.exists({
+          productId: product._id,
+          status: "AVAILABLE",
+          expiryDate: { $lte: thresholdDate, $gte: new Date() },
+        });
+
+        productObj.hasExpiringBatch = !!expiringBatch;
+      } else {
+        productObj.hasExpiringBatch = false;
+      }
+
+      return productObj;
+    }),
+  );
+
+  sendResponse(res, 200, productsWithAlerts);
 });
 
 /**
@@ -83,6 +122,7 @@ const getProducts = asyncHandler(async (req, res, next) => {
  */
 const getProductById = asyncHandler(async (req, res, next) => {
   const product = await Product.findById(req.params.id)
+    .populate("category", "name type description")
     .populate("supplierId", "name contactPerson phone email")
     .populate("createdBy", "name");
 
@@ -105,31 +145,38 @@ const updateProduct = asyncHandler(async (req, res, next) => {
     return next(new AppError("Producto no encontrado", 404));
   }
 
-  // 🛡️ CWE-1287 Fix: Seguridad en la actualización del SKU
+  // Si se actualiza la categoría, validamos que exista
+  if (req.body.category && req.body.category !== product.category.toString()) {
+    const categoryExists = await Category.findOne({
+      _id: req.body.category,
+      isActive: true,
+    });
+    if (!categoryExists) {
+      return next(new AppError("La nueva categoría no es válida", 400));
+    }
+  }
+
+  // 🛡️ CWE-1287 Fix: Seguridad en el SKU
   if (req.body.sku) {
     if (typeof req.body.sku === "string") {
       req.body.sku = req.body.sku.trim().toUpperCase();
+
+      if (req.body.sku !== product.sku) {
+        const existingSku = await Product.findOne({ sku: req.body.sku });
+        if (existingSku) {
+          return next(new AppError("Este nuevo SKU ya está en uso", 400));
+        }
+      }
     } else {
-      return next(new AppError("El formato del nuevo SKU es inválido", 400));
+      return next(new AppError("El formato del SKU es inválido", 400));
     }
   }
 
-  // Seguridad: SKU único
-  if (req.body.sku && req.body.sku !== product.sku) {
-    const existingSku = await Product.findOne({ sku: req.body.sku });
-    if (existingSku) {
-      return next(
-        new AppError("Este nuevo SKU ya está en uso por otro producto", 400),
-      );
-    }
-  }
-
-  // Zod ya limpió req.body con .strict(), es seguro hacer el merge
   Object.assign(product, req.body);
-
   await product.save();
 
-  sendResponse(res, 200, product, "Producto actualizado correctamente");
+  const updatedProduct = await product.populate("category", "name type");
+  sendResponse(res, 200, updatedProduct, "Producto actualizado correctamente");
 });
 
 /**

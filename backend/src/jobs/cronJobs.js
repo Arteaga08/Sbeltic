@@ -2,18 +2,24 @@ import cron from "node-cron";
 import {
   sendReferralInvitations,
   sendTouchUpReminders,
-  sendHourlyReminders, // 🔥 El nuevo servicio rápido
+  sendHourlyReminders,
 } from "../services/automationService.js";
+import { startInventoryCron } from "./inventoryCron.js"; // 🔥 Importamos el de Inventario
 
 const initCronJobs = () => {
-  // ⏰ RELOJ DIARIO: Se ejecuta todos los días a las 08:00 AM
+  // --- 📦 CRONS DE INVENTARIO ---
+  // Ejecuta la lógica delegada en su propio archivo (Alertas Telegram)
+  startInventoryCron();
+
+  // --- ⏰ CRONS DE MARKETING Y CITAS ---
+  // RELOJ DIARIO: Se ejecuta todos los días a las 08:00 AM
   cron.schedule("0 8 * * *", async () => {
     console.log("🌅 [CRON] Iniciando tareas diarias de marketing (8:00 AM)...");
     await sendReferralInvitations();
     await sendTouchUpReminders();
   });
 
-  // ⏱️ RELOJ RÁPIDO: Se ejecuta cada 15 minutos (ej. 10:00, 10:15, 10:30)
+  // RELOJ RÁPIDO: Se ejecuta cada 15 minutos
   cron.schedule("*/15 * * * *", async () => {
     console.log("⚡ [CRON] Revisando citas próximas (1 hora antes)...");
     await sendHourlyReminders();

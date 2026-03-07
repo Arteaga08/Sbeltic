@@ -8,23 +8,30 @@ const productSchema = new mongoose.Schema(
       unique: true,
       uppercase: true,
       trim: true,
-    }, // Aquí va el código del escáner o el QR generado
+    },
     description: { type: String, trim: true },
     currentStock: { type: Number, default: 0 },
+
+    // 🔗 CAMBIO CLAVE: Referencia dinámica a la colección de Categorías
     category: {
-      type: String,
-      enum: ["RETAIL", "INSUMO", "EQUIPO"], // Retail = cremas para vender, Insumo = jeringas
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
       required: true,
     },
+
+    // 💰 PRECIOS: Esenciales para la rentabilidad de la clínica
+    purchasePrice: { type: Number, default: 0 }, // Lo que le cuesta a Sbeltic
+    salePrice: { type: Number, default: 0 }, // PVP (Solo para RETAIL)
+
     supplierId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Supplier",
     },
     minStockAlert: { type: Number, default: 5 },
-    unit: { type: String, default: "pza", trim: true }, // pza, ml, caja
+    unit: { type: String, default: "pza", trim: true }, // pza, ml, caja, vial
 
-    // 🔥 CAMPO ESTRATÉGICO
-    isTrackable: { type: Boolean, default: true }, // Si es true, obligará a usar Lotes y Caducidad
+    // 🔥 TRAZABILIDAD
+    isTrackable: { type: Boolean, default: true }, // Obliga a usar Batches si es true
 
     isActive: { type: Boolean, default: true },
     createdBy: {
@@ -36,7 +43,10 @@ const productSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// Índices para que cuando pasen el escáner, la base de datos lo encuentre en 1 milisegundo
-productSchema.index({ name: "text" });
+// 🚀 ÍNDICES PROFESIONALES
+// Búsqueda de texto para el buscador del frontend
+productSchema.index({ name: "text", sku: "text" });
+// Índice de categoría para los filtros del dashboard
+productSchema.index({ category: 1, isActive: 1 });
 
 export default mongoose.model("Product", productSchema);
