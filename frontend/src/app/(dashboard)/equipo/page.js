@@ -88,7 +88,19 @@ export default function TeamPage() {
 
   useEffect(() => {
     // 🛡️ LÓGICA: OBTENER EL ROL AL CARGAR LA PÁGINA
-    setCurrentUserRole(localStorage.getItem("sbeltic_role"));
+    const storedRole = localStorage.getItem("sbeltic_user");
+    if (storedRole) {
+      setCurrentUserRole(storedRole.toUpperCase());
+    } else {
+      const userStr = localStorage.getItem("sbeltic_user");
+      try {
+        const userObj = userStr ? JSON.parse(userStr) : null;
+        setCurrentUserRole(userObj?.role?.toUpperCase() || "");
+      } catch (err) {
+        setCurrentUserRole("");
+      }
+    }
+
     fetchStaff();
   }, []);
 
@@ -187,8 +199,8 @@ export default function TeamPage() {
   return (
     <div className="space-y-10 p-4 md:p-8 pb-24 md:pb-8 max-w-full overflow-x-hidden">
       {/* HEADER ORIGINAL */}
-      <header className="flex flex-col items-center text-center gap-8 mb-12 md:flex-row md:items-end md:justify-between md:text-left">
-        <div className="space-y-2">
+      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
+        <div className="space-y-2 text-center md:text-left">
           <h2 className="text-4xl md:text-5xl font-extrabold italic uppercase text-slate-900 leading-none">
             Gestión de Equipo
           </h2>
@@ -196,17 +208,20 @@ export default function TeamPage() {
             Estructura organizacional Sbeltic
           </p>
         </div>
-        <div className="w-full max-w-md md:w-auto">
-          {/* 🛡️ LÓGICA: SOLO ADMIN PUEDE DAR DE ALTA */}
-          {currentUserRole === "ADMIN" && (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="w-full md:w-auto md:px-12 py-5 bg-slate-900 text-white font-black rounded-2xl hover:bg-rose-500 transition-all text-[11px] uppercase tracking-widest flex items-center justify-center gap-2"
-            >
-              <UserPlus size={16} weight="bold" /> ALTA DE PERSONAL
-            </button>
-          )}
-        </div>
+
+        {/* 🛡️ LÓGICA: SOLO ADMIN PUEDE DAR DE ALTA */}
+        {currentUserRole === "ADMIN" && (
+          <button
+            onClick={() => {
+              setEditingId(null);
+              setNewUser(initialUserState);
+              setIsModalOpen(true);
+            }}
+            className="w-full md:w-auto px-8 py-4 bg-slate-900 text-white font-black rounded-2xl hover:bg-rose-500 transition-all text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg hover:shadow-rose-500/30"
+          >
+            <UserPlus size={18} weight="bold" /> ALTA DE PERSONAL
+          </button>
+        )}
       </header>
 
       {/* TOOLBAR REPARADA: Grid en móvil para evitar empujes */}

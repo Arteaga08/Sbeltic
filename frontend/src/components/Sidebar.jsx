@@ -2,6 +2,14 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  House,
+  CalendarCheck,
+  Users,
+  Megaphone,
+  Package,
+  Gear,
+} from "@phosphor-icons/react";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -16,22 +24,48 @@ export default function Sidebar() {
   const userRole = user?.role || "GUEST";
 
   const menuItems = [
-    { name: "Inicio", path: "/", icon: "🏠", roles: ["ADMIN", "RECEPTION"] },
+    {
+      name: "Inicio",
+      path: "/",
+      icon: <House size={24} weight="duotone" />,
+      roles: ["ADMIN", "RECEPTION"],
+      activeColor: "text-indigo-600",
+    },
     {
       name: "Agenda",
       path: "/agenda",
-      icon: "📅",
+      icon: <CalendarCheck size={24} weight="duotone" />,
       roles: ["ADMIN", "RECEPTION"],
+      activeColor: "text-purple-600",
     },
     {
       name: "Pacientes",
       path: "/patients",
-      icon: "👥",
+      icon: <Users size={24} weight="duotone" />,
       roles: ["ADMIN", "RECEPTION"],
+      activeColor: "text-rose-600",
     },
-    { name: "Marketing", path: "/marketing", icon: "📢", roles: ["ADMIN"] },
-    { name: "Inventario", path: "/inventory", icon: "📦", roles: ["ADMIN"] },
-    { name: "Equipo", path: "/equipo", icon: "⚙️", roles: ["ADMIN"] },
+    {
+      name: "Marketing",
+      path: "/marketing",
+      icon: <Megaphone size={24} weight="duotone" />,
+      roles: ["ADMIN"],
+      activeColor: "text-amber-600",
+    },
+    {
+      name: "Inventario",
+      path: "/inventory",
+      icon: <Package size={24} weight="duotone" />,
+      roles: ["ADMIN"],
+      activeColor: "text-emerald-600",
+    },
+    {
+      name: "Equipo",
+      path: "/equipo",
+      icon: <Gear size={24} weight="duotone" />,
+      roles: ["ADMIN"],
+      activeColor: "text-blue-600",
+    },
   ];
 
   const filteredItems = menuItems.filter((item) =>
@@ -64,7 +98,9 @@ export default function Sidebar() {
                     : "text-slate-500 hover:bg-slate-50"
                 }`}
               >
-                <span className="text-xl">{item.icon}</span>
+                <span className={isActive ? "text-white" : item.activeColor}>
+                  {item.icon}
+                </span>
                 {item.name}
               </Link>
             );
@@ -72,23 +108,29 @@ export default function Sidebar() {
         </nav>
       </aside>
 
-      {/* MOBILE NAV: Barra inferior elegante con desenfoque */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-200 flex justify-around items-center p-3 z-[100] h-20 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
+      {/* MOBILE NAV: Barra inferior elegante con desenfoque y z-index máximo */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-2xl border-t border-slate-200 flex justify-around items-center p-3 z-10000 h-20 shadow-[0_-10px_40px_rgba(0,0,0,0.08)] pb-safe">
         {filteredItems.map((item) => {
           const isActive = pathname === item.path;
           return (
             <Link
               key={item.path}
               href={item.path}
-              className="flex flex-col items-center gap-1 flex-1"
+              className="flex flex-col items-center gap-1.5 flex-1 transition-transform active:scale-90"
             >
               <span
-                className={`text-xl transition-all ${isActive ? "scale-110" : "opacity-30 grayscale"}`}
+                className={`transition-all duration-300 ${
+                  isActive
+                    ? `scale-110 ${item.activeColor}`
+                    : "opacity-40 text-slate-400 grayscale"
+                }`}
               >
                 {item.icon}
               </span>
               <span
-                className={`text-[8px] font-black uppercase tracking-tighter ${isActive ? "text-slate-900" : "text-slate-400"}`}
+                className={`text-[9px] font-black uppercase tracking-tighter transition-colors ${
+                  isActive ? "text-slate-900" : "text-slate-400"
+                }`}
               >
                 {item.name}
               </span>

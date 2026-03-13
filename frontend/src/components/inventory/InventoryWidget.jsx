@@ -1,11 +1,18 @@
+"use client";
 import { useState } from "react";
 import InventoryCard from "./InventoryCard";
 import CategoryFilter from "./CategoryFilter";
 
-const InventoryWidget = ({ title, products, icon: Icon, type }) => {
+// 1. Agregamos onProductClick a las props
+const InventoryWidget = ({
+  title,
+  products,
+  icon: Icon,
+  type,
+  onProductClick,
+}) => {
   const [activeCategory, setActiveCategory] = useState("all");
 
-  // Filtrado local: Solo muestra los productos de la categoría seleccionada
   const displayedProducts =
     activeCategory === "all"
       ? products
@@ -20,17 +27,14 @@ const InventoryWidget = ({ title, products, icon: Icon, type }) => {
             <Icon size={24} weight="fill" />
           </div>
         )}
-        {/* Agregamos flex-1 para que el título ocupe el espacio disponible sin empujar demás */}
         <h2 className="flex-1 text-lg font-black tracking-tight uppercase sm:text-xl text-slate-800">
           {title}
         </h2>
-        {/* Aquí está la magia: shrink-0 y whitespace-nowrap */}
         <span className="px-3 py-1 ml-auto text-xs font-bold text-slate-500 bg-slate-200 rounded-full shrink-0 whitespace-nowrap">
           {displayedProducts.length} Items
         </span>
       </div>
 
-      {/* Filtro Dinámico (Pide las categorías según el type: RETAIL o INSUMO) */}
       <CategoryFilter
         type={type}
         activeCategory={activeCategory}
@@ -40,7 +44,14 @@ const InventoryWidget = ({ title, products, icon: Icon, type }) => {
       {/* Grid de Productos */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {displayedProducts.map((product) => (
-          <InventoryCard key={product._id} product={product} />
+          /* 2. Envolvemos la tarjeta con el evento onClick */
+          <div
+            key={product._id}
+            onClick={() => onProductClick(product)}
+            className="cursor-pointer active:scale-[0.98] transition-transform"
+          >
+            <InventoryCard product={product} />
+          </div>
         ))}
 
         {/* Estado Vacío */}
