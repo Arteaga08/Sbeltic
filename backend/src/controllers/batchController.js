@@ -54,9 +54,10 @@ const createBatch = asyncHandler(async (req, res, next) => {
     session.endSession();
   }
 });
+
 const getBatches = asyncHandler(async (req, res, next) => {
   const { productId, status } = req.query;
-  const query = { isActive: true };
+  const query = {};
 
   if (productId) query.productId = productId;
   if (status) query.status = status;
@@ -64,7 +65,7 @@ const getBatches = asyncHandler(async (req, res, next) => {
   const batches = await Batch.find(query)
     .populate("productId", "name sku unit")
     .populate("supplierId", "name")
-    .sort({ expiryDate: 1 }); // Ordenamos por caducidad por defecto
+    .sort({ expiryDate: 1 });
 
   sendResponse(res, 200, batches);
 });

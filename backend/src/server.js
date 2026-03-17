@@ -23,18 +23,22 @@ import productRoutes from "./routes/productRoutes.js";
 import batchRoutes from "./routes/batchRoutes.js";
 import supplierRoutes from "./routes/supplierRoutes.js";
 import couponRoutes from "./routes/couponRoutes.js";
-import categoryRoutes from "./routes/categoryRoutes.js"
+import categoryRoutes from "./routes/categoryRoutes.js";
+import publicRoutes from "./routes/publicRoutes.js"; // 🌟 NUEVA: Rutas para firmas remotas
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
 // ==========================================
 // 1. MIDDLEWARES GLOBALES DE SEGURIDAD
 // ==========================================
 app.use(helmet());
 app.use(cors(corsOptions));
-app.use(cors(corsOptions));
-app.use(express.json({ limit: "15kb" }));
-app.use(express.urlencoded({ extended: true, limit: "15kb" }));
+
+// 🚀 CAMBIO CRÍTICO: Aumentamos el límite de 15kb a 10mb para recibir firmas Base64
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
 app.use(mongoSanitize);
 
 // Logger para desarrollo
@@ -56,6 +60,10 @@ app.get("/health", (req, res) =>
   res.json({ status: "Sbeltic API Online", date: new Date() }),
 );
 
+// 🔓 RUTAS PÚBLICAS (Sin protección de token para pacientes)
+// Importante: Ponerlas antes del manejador de 404
+app.use("/api/public", publicRoutes);
+
 // Módulo de Usuarios y Auth
 app.use("/api/users", userRoutes);
 
@@ -67,7 +75,7 @@ app.use("/api/treatments", treatmentRoutes);
 
 // Módulo de Logística (Inventario)
 app.use("/api/products", productRoutes);
-app.use("/api/categories", categoryRoutes)
+app.use("/api/categories", categoryRoutes);
 app.use("/api/batches", batchRoutes);
 app.use("/api/suppliers", supplierRoutes);
 
@@ -86,7 +94,6 @@ app.use((req, res) => {
 // ==========================================
 // 4. MANEJADOR DE ERRORES GLOBAL
 // ==========================================
-// Este captura todos los next(new AppError(...))
 app.use(errorHandler);
 
 // ==========================================
@@ -94,13 +101,11 @@ app.use(errorHandler);
 // ==========================================
 const startServer = async () => {
   try {
-    // Conectar a la base de datos primero
     await connectDB();
 
     app.listen(PORT, () => {
       console.log(`🚀 Sbeltic Server running at http://localhost:${PORT}`);
 
-      // Iniciar Cron Jobs (Recordatorios, Limpieza de Cupones, etc.)
       try {
         initCronJobs();
         console.log("⏱️ Cron jobs initialized successfully");

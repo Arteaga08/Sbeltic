@@ -27,18 +27,28 @@ const SystemsSection = ({ formData, setFormData }) => {
 
   const systems = [
     { id: "heart", label: "Corazón", icon: Heartbeat },
-    { id: "circulation", label: "Circulación Sanguínea", icon: Pulse }, // 👈 Actualizado aquí
+    { id: "circulation", label: "Circulación Sanguínea", icon: Pulse },
     { id: "coagulation", label: "Coagulación de Sangre", icon: Waves },
     { id: "respiratory", label: "Pulmones / Respiración", icon: Wind },
     { id: "gastrointestinal", label: "Gastrointestinales", icon: Flask },
     { id: "urinary", label: "Vías Urinarias", icon: WarningCircle },
     { id: "hormonal", label: "Sistema Hormonal", icon: Drop },
-    { id: "skin", label: "Piel", icon: Pulse }, // 👈 Actualizado aquí
+    { id: "skin", label: "Piel", icon: Pulse },
     { id: "nervous", label: "Sistema Nervioso", icon: Brain },
   ];
 
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+      
+      {/* 🌟 NUEVO TÍTULO AÑADIDO AQUÍ */}
+      <div className="bg-slate-50 p-5 rounded-4xl mb-2 text-center border border-slate-100">
+        <p className="text-[10px] md:text-xs font-black text-slate-600 uppercase tracking-widest italic leading-relaxed">
+          Aparte de las enfermedades que mencionaste <span className="text-[9px] text-slate-400 normal-case tracking-normal">(si es que tienes alguna)</span>
+          <br className="hidden md:block" />
+          <span className="text-indigo-600">¿Tienes algún problema en?</span>
+        </p>
+      </div>
+
       {systems.map((sys) => {
         // Acceso seguro a la data
         const systemData = formData.medicalHistory?.systems?.[sys.id] || {
@@ -68,7 +78,7 @@ const SystemsSection = ({ formData, setFormData }) => {
                 {[true, false].map((v) => (
                   <button
                     key={String(v)}
-                    type="button" // 👈 Importante añadir type="button" para evitar envíos de form accidentales
+                    type="button"
                     onClick={() => updateSystem(sys.id, v)}
                     className={`px-6 py-2 rounded-lg text-[10px] font-black transition-all ${hasIssue === v ? "bg-white text-slate-900 shadow-sm" : "text-slate-400"}`}
                   >

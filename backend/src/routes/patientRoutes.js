@@ -11,10 +11,12 @@ import {
   getPatientById,
   getPatients,
   updatePatient,
+  addEvolution,
 } from "../controllers/patientController.js";
 import {
   createPatientSchema,
   updatePatientSchema,
+  createEvolutionSchema
 } from "../validators/patientValidator.js";
 
 const router = express.Router();
@@ -36,5 +38,12 @@ router
   .get(getPatientById)
   .put(validateSchema({ body: updatePatientSchema }), updatePatient)
   .delete(authorizeRole("ADMIN"), deletePatient); // Solo Admin puede desactivar
+
+router.post(
+  "/:id/evolutions",
+  authorizeRole("DOCTOR", "ADMIN"),
+  validateSchema({ body: createEvolutionSchema }),
+  addEvolution,
+);
 
 export default router;

@@ -9,11 +9,14 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.9",
     "@phosphor-icons/react": "^2.1.10",
+    "@react-pdf/renderer": "^4.3.2",
     "next": "16.1.6",
     "qrcode.react": "^4.2.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-signature-canvas": "^1.1.0-alpha.2",
     "sonner": "^2.0.7"
   },
   "devDependencies": {

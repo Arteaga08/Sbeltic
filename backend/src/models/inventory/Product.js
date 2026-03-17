@@ -6,33 +6,31 @@ const productSchema = new mongoose.Schema(
     sku: {
       type: String,
       unique: true,
-      uppercase: true,
+      lowercase: true, // 🔥 CAMBIO: Ahora forzará minúsculas en la BD
       trim: true,
     },
+    brand: { type: String, trim: true }, // 🔥 NUEVO: Marca
+    amount: { type: String, trim: true }, // 🔥 NUEVO: Presentación (Ej: 100ml, 50U)
     description: { type: String, trim: true },
     currentStock: { type: Number, default: 0 },
 
-    // 🔗 CAMBIO CLAVE: Referencia dinámica a la colección de Categorías
     category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
       required: true,
     },
 
-    // 💰 PRECIOS: Esenciales para la rentabilidad de la clínica
-    purchasePrice: { type: Number, default: 0 }, // Lo que le cuesta a Sbeltic
-    salePrice: { type: Number, default: 0 }, // PVP (Solo para RETAIL)
+    purchasePrice: { type: Number, default: 0 },
+    salePrice: { type: Number, default: 0 }, // Sigue existiendo, pero si no lo mandan será 0
 
     supplierId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Supplier",
     },
     minStockAlert: { type: Number, default: 5 },
-    unit: { type: String, default: "pza", trim: true }, // pza, ml, caja, vial
+    unit: { type: String, default: "unidades", trim: true },
 
-    // 🔥 TRAZABILIDAD
-    isTrackable: { type: Boolean, default: true }, // Obliga a usar Batches si es true
-
+    isTrackable: { type: Boolean, default: true },
     isActive: { type: Boolean, default: true },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -43,10 +41,7 @@ const productSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// 🚀 ÍNDICES PROFESIONALES
-// Búsqueda de texto para el buscador del frontend
-productSchema.index({ name: "text", sku: "text" });
-// Índice de categoría para los filtros del dashboard
+productSchema.index({ name: "text", sku: "text", brand: "text" }); // Añadimos marca al buscador
 productSchema.index({ category: 1, isActive: 1 });
 
 export default mongoose.model("Product", productSchema);

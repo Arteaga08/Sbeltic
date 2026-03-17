@@ -3,7 +3,7 @@ import {
   createCoupon,
   getCoupons,
   deactivateCoupon,
-  validateCouponCode,
+  validateCouponCode, // 🧠 Ahora será un POST
 } from "../controllers/couponController.js";
 import checkAuth from "../middlewares/checkAuth.js";
 import authorizeRole from "../middlewares/authorizeRole.js";
@@ -11,22 +11,23 @@ import { validateCreateCoupon } from "../validators/couponValidator.js";
 
 const router = express.Router();
 
-// Todas las rutas de cupones requieren estar logueado
+// Todas las rutas requieren autenticación
 router.use(checkAuth);
 
 /**
- * RUTAS ADMINISTRATIVAS
+ * 🔐 RUTAS ADMINISTRATIVAS
  */
 router
   .route("/")
-  .get(getCoupons) // Ver todos los cupones (con filtros ?status=active)
-  .post(authorizeRole("ADMIN"), validateCreateCoupon, createCoupon); // Crear cupones
+  .get(authorizeRole("ADMIN", "RECEPTIONIST"), getCoupons)
+  .post(authorizeRole("ADMIN"), validateCreateCoupon, createCoupon);
 
-router.route("/:id/deactivate").patch(authorizeRole("ADMIN"), deactivateCoupon); // Desactivar cupón sin borrarlo
+router.route("/:id/deactivate").patch(authorizeRole("ADMIN"), deactivateCoupon);
 
 /**
- * RUTA PÚBLICA (Para el Bot o la Recepcionista)
+ * 🏷️ RUTA DE VALIDACIÓN (Motor de Marketing)
+ * Cambiamos a POST para poder enviar { code, patientId }
  */
-router.get("/validate/:code", validateCouponCode);
+router.post("/validate", validateCouponCode);
 
 export default router;

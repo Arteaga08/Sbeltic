@@ -13,7 +13,7 @@ const authorizeRole = (...allowedRoles) => {
       );
     }
 
-    next(); // 👈 Siempre llamar a next()
+    next();
   };
 };
 

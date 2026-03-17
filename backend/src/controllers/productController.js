@@ -7,14 +7,16 @@ import { sendResponse } from "../utils/responseHandler.js";
 import { getUniqueSKU } from "../services/inventoryService.js";
 
 /**
- * @desc    Crear Producto
+ * @desc    Crear Producto (Con soporte para Lote Inicial)
  * @route   POST /api/products
  * @access  Private (Admin/Receptionist)
  */
 const createProduct = asyncHandler(async (req, res, next) => {
-  let { sku, category } = req.body;
+  // 1. Extraemos los campos (incluyendo los nuevos del lote inicial)
+  let { sku, category, initialQuantity, batchNumber, expirationDate } =
+    req.body;
 
-  // 1. Validar que la categoría seleccionada exista y esté activa
+  // 2. Validar que la categoría seleccionada exista y esté activa
   const categoryExists = await Category.findOne({
     _id: category,
     isActive: true,
@@ -25,15 +27,12 @@ const createProduct = asyncHandler(async (req, res, next) => {
     );
   }
 
-  // 🛡️ CWE-1287 Fix: Seguridad en el SKU
+  // 🛡️ Seguridad en el SKU (Minúsculas para consistencia en Vidix Studio)
   if (sku && typeof sku === "string") {
-    sku = sku.trim().toUpperCase();
-  } else if (sku && typeof sku !== "string") {
-    return next(new AppError("El formato del SKU es inválido", 400));
+    sku = sku.trim().toLowerCase();
   }
 
   if (!sku || sku === "") {
-    // Usamos el nombre de la categoría para el prefijo del SKU automático
     sku = await getUniqueSKU(categoryExists.name);
   } else {
     const existingSku = await Product.findOne({ sku });
@@ -44,18 +43,46 @@ const createProduct = asyncHandler(async (req, res, next) => {
     }
   }
 
+  // 3. Crear el producto base
   const product = new Product({
     ...req.body,
     sku,
+    // El stock total del producto nace con lo que recibimos en la entrada inicial
+    currentStock:
+      initialQuantity && initialQuantity > 0 ? Number(initialQuantity) : 0,
     createdBy: req.user._id,
   });
 
   await product.save();
 
-  // Devolvemos el producto con la categoría populada para el frontend
+  // 📦 4. LÓGICA DEL LOTE INICIAL (Mapeada a tu Modelo Batch)
+  if (initialQuantity && initialQuantity > 0) {
+    const finalBatchNumber =
+      batchNumber && batchNumber.trim() !== ""
+        ? batchNumber
+        : `INIT-${sku.substring(0, 4).toUpperCase()}`;
+
+    const initialBatch = new Batch({
+      productId: product._id, // ✅ Antes era 'product'
+      batchNumber: finalBatchNumber,
+      initialQuantity: Number(initialQuantity), // ✅ Antes era 'quantity'
+      currentQuantity: Number(initialQuantity), // ✅ Campo requerido por tu modelo
+      expiryDate: new Date(expirationDate),
+      createdBy: req.user._id, // ✅ Antes era 'receivedBy'
+    });
+
+    await initialBatch.save();
+  }
+
+  // 5. Respuesta final
   const populatedProduct = await product.populate("category", "name type");
 
-  sendResponse(res, 201, populatedProduct, "Producto creado exitosamente");
+  sendResponse(
+    res,
+    201,
+    populatedProduct,
+    "Producto y Lote inicial creados exitosamente",
+  );
 });
 
 /**
@@ -92,19 +119,29 @@ const getProducts = asyncHandler(async (req, res, next) => {
       // 1. Alerta de Stock Bajo
       productObj.isLowStock = product.currentStock <= product.minStockAlert;
 
-      // 2. Alerta de Caducidad (Próximos 30 días)
+      // 2. Próxima Caducidad y Alerta
       if (product.isTrackable) {
-        const thresholdDate = new Date();
-        thresholdDate.setDate(thresholdDate.getDate() + 30);
-
-        const expiringBatch = await Batch.exists({
+        // 🌟 NUEVO: En lugar de solo preguntar si existe, traemos el lote más próximo a vencer
+        const closestBatch = await Batch.findOne({
           productId: product._id,
           status: "AVAILABLE",
-          expiryDate: { $lte: thresholdDate, $gte: new Date() },
-        });
+        }).sort({ expiryDate: 1 }); // Ordenamos del más próximo al más lejano
 
-        productObj.hasExpiringBatch = !!expiringBatch;
+        if (closestBatch) {
+          // Le mandamos la fecha exacta al frontend
+          productObj.nextExpiryDate = closestBatch.expiryDate;
+
+          // Mantenemos tu lógica original de alerta de 30 días
+          const thresholdDate = new Date();
+          thresholdDate.setDate(thresholdDate.getDate() + 30);
+          productObj.hasExpiringBatch =
+            new Date(closestBatch.expiryDate) <= thresholdDate;
+        } else {
+          productObj.nextExpiryDate = null;
+          productObj.hasExpiringBatch = false;
+        }
       } else {
+        productObj.nextExpiryDate = null;
         productObj.hasExpiringBatch = false;
       }
 
@@ -159,7 +196,7 @@ const updateProduct = asyncHandler(async (req, res, next) => {
   // 🛡️ CWE-1287 Fix: Seguridad en el SKU
   if (req.body.sku) {
     if (typeof req.body.sku === "string") {
-      req.body.sku = req.body.sku.trim().toUpperCase();
+      req.body.sku = req.body.sku.trim().toLowerCase();
 
       if (req.body.sku !== product.sku) {
         const existingSku = await Product.findOne({ sku: req.body.sku });
