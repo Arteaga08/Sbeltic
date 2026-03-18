@@ -2,6 +2,7 @@ import cron from "node-cron";
 import {
   getLowStockProducts,
   getExpiringBatches,
+  activateClearanceCoupons,
 } from "../services/inventoryAlertService.js";
 import { sendTelegramAlert } from "../services/notificationService.js";
 
@@ -13,6 +14,9 @@ const startInventoryCron = () => {
     try {
       const lowStock = await getLowStockProducts();
       const expiring = await getExpiringBatches(30); // Lotes a 30 días de caducar
+
+      // 🏷️ Activar cupones CLEARANCE vinculados a productos con stock bajo
+      if (lowStock.length > 0) await activateClearanceCoupons(lowStock);
 
       if (lowStock.length === 0 && expiring.length === 0) return;
 

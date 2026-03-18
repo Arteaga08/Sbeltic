@@ -3,7 +3,8 @@ import {
   createCoupon,
   getCoupons,
   deactivateCoupon,
-  validateCouponCode, // 🧠 Ahora será un POST
+  validateCouponCode,
+  getCouponStats,
 } from "../controllers/couponController.js";
 import checkAuth from "../middlewares/checkAuth.js";
 import authorizeRole from "../middlewares/authorizeRole.js";
@@ -21,6 +22,8 @@ router
   .route("/")
   .get(authorizeRole("ADMIN", "RECEPTIONIST"), getCoupons)
   .post(authorizeRole("ADMIN"), validateCreateCoupon, createCoupon);
+
+router.get("/stats", authorizeRole("ADMIN", "RECEPTIONIST"), getCouponStats);
 
 router.route("/:id/deactivate").patch(authorizeRole("ADMIN"), deactivateCoupon);
 

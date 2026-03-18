@@ -33,7 +33,7 @@ const createCoupon = asyncHandler(async (req, res, next) => {
  * 2. OBTENER CUPONES
  */
 const getCoupons = asyncHandler(async (req, res, next) => {
-  const { status } = req.query;
+  const { status, type } = req.query;
   const query = {};
   const now = new Date();
 
@@ -44,6 +44,8 @@ const getCoupons = asyncHandler(async (req, res, next) => {
   } else if (status === "expired") {
     query.$or = [{ expiresAt: { $lt: now } }, { isActive: false }];
   }
+
+  if (type) query.type = type;
 
   const coupons = await Coupon.find(query).sort({ createdAt: -1 });
   sendResponse(res, 200, coupons);
@@ -139,4 +141,32 @@ const validateCouponCode = asyncHandler(async (req, res, next) => {
   sendResponse(res, 200, coupon, "Cupón válido y aplicable");
 });
 
-export { createCoupon, getCoupons, deactivateCoupon, validateCouponCode };
+/**
+ * 5. ESTADÍSTICAS GLOBALES DE MARKETING
+ */
+const getCouponStats = asyncHandler(async (req, res) => {
+  const [referralCount, welcomeCoupons, fixedCoupons] = await Promise.all([
+    Coupon.countDocuments({ type: "REFERRAL", usedCount: { $gt: 0 } }),
+    Coupon.find({ type: "WELCOME" }),
+    Coupon.find({ discountType: "FIXED_AMOUNT", usedCount: { $gt: 0 } }),
+  ]);
+
+  const totalWelcomeUses = welcomeCoupons.reduce((a, c) => a + c.usedCount, 0);
+  const conversionRate =
+    welcomeCoupons.length > 0
+      ? Math.round((totalWelcomeUses / welcomeCoupons.length) * 100)
+      : 0;
+
+  const totalSavings = fixedCoupons.reduce(
+    (acc, c) => acc + c.usedCount * c.discountValue,
+    0,
+  );
+
+  sendResponse(res, 200, {
+    conversionRate,
+    totalReferrals: referralCount,
+    totalSavings,
+  });
+});
+
+export { createCoupon, getCoupons, deactivateCoupon, validateCouponCode, getCouponStats };

@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { objectIdSchema } from "./common.js";
 
-const CLINIC_OPEN_HOUR = 9;
-const CLINIC_CLOSE_HOUR = 21;
+const CLINIC_OPEN_HOUR = 8;
+const CLINIC_CLOSE_HOUR = 23;
 
 const optionalString = z
   .string()
@@ -20,12 +20,12 @@ const createAppointmentSchema = z
       .trim()
       .min(2, "El nombre del tratamiento es requerido"),
     // 🔥 Agregamos el roomId que faltaba
-    roomId: z.enum(["CABINA_1", "CABINA_2", "CABINA_3", "SPA", "CONSULTORIO"], {
+    roomId: z.enum(["CABINA_1", "CABINA_2", "CABINA_3", "SPA", "CONSULTORIO", "QUIROFANO"], {
       errorMap: () => ({ message: "Selecciona una cabina válida" }),
     }),
     originalQuote: z.number().nonnegative().optional(),
     appliedCoupon: objectIdSchema.optional(),
-    duration: z.number().int().min(15).max(240).default(30),
+    duration: z.number().int().min(15).max(480).default(30),
     appointmentDate: z.coerce
       .date()
       .refine((date) => date > new Date(), {
@@ -33,14 +33,7 @@ const createAppointmentSchema = z
       })
       .refine((date) => date.getDay() !== 0, {
         message: "La clínica cierra los domingos",
-      })
-      .refine(
-        (date) => {
-          const hour = date.getHours();
-          return hour >= CLINIC_OPEN_HOUR && hour < CLINIC_CLOSE_HOUR;
-        },
-        { message: "Horario fuera de servicio (9AM - 9PM)" },
-      ),
+      }),
     consumedSupplies: z
       .array(
         z.object({

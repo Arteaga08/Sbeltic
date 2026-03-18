@@ -3,6 +3,7 @@ import {
   sendReferralInvitations,
   sendTouchUpReminders,
   sendHourlyReminders,
+  processScheduledCoupons,
 } from "../services/automationService.js";
 import { startInventoryCron } from "./inventoryCron.js"; // 🔥 Importamos el de Inventario
 
@@ -17,6 +18,7 @@ const initCronJobs = () => {
     console.log("🌅 [CRON] Iniciando tareas diarias de marketing (8:00 AM)...");
     await sendReferralInvitations();
     await sendTouchUpReminders();
+    await processScheduledCoupons();
   });
 
   // RELOJ RÁPIDO: Se ejecuta cada 15 minutos

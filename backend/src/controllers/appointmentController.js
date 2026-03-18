@@ -9,6 +9,7 @@ import AppError from "../utils/appError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendResponse } from "../utils/responseHandler.js";
 import { deductInventoryFEFO } from "../services/inventoryService.js";
+import { processTriggerCoupons } from "../services/automationService.js";
 
 // --- HELPERS DE COLISIÓN (Internos) ---
 
@@ -124,12 +125,11 @@ const getAppointments = asyncHandler(async (req, res, next) => {
   if (roomId) query.roomId = roomId;
   if (status) query.status = status;
   if (date && typeof date === "string") {
-    const searchDate = new Date(date);
-    if (!isNaN(searchDate)) {
-      query.appointmentDate = {
-        $gte: new Date(searchDate.setHours(0, 0, 0, 0)),
-        $lte: new Date(searchDate.setHours(23, 59, 59, 999)),
-      };
+    const start = new Date(date);
+    if (!isNaN(start)) {
+      const daysParam = Math.min(parseInt(req.query.days) || 1, 30);
+      const end = new Date(start.getTime() + daysParam * 24 * 60 * 60 * 1000 - 1);
+      query.appointmentDate = { $gte: start, $lte: end };
     }
   }
 
@@ -201,7 +201,11 @@ const updateAppointment = asyncHandler(async (req, res, next) => {
     safeCouponCode = req.body.couponCode.toUpperCase();
   }
 
+  const isCompletingNow =
+    req.body.status === "COMPLETED" && appointment.status !== "COMPLETED";
+
   let session = null;
+  let isFirstVisit = false;
 
   try {
     // Intentamos iniciar sesión si vamos a completar la cita (Checkout)
@@ -335,6 +339,7 @@ const updateAppointment = asyncHandler(async (req, res, next) => {
       }).session(session);
 
       if (pastCompleted === 0) {
+        isFirstVisit = true;
         const welcome = new Coupon({
           code: `WELCOME-${Math.random().toString(36).substring(7).toUpperCase()}`,
           discountType: "PERCENTAGE",
@@ -378,6 +383,11 @@ const updateAppointment = asyncHandler(async (req, res, next) => {
       finalApp,
       "Cita actualizada y procesada correctamente.",
     );
+
+    // Disparar triggers de marketing (fire-and-forget, no bloquea la respuesta)
+    if (isFirstVisit) {
+      processTriggerCoupons("ON_APPOINTMENT_COMPLETE", finalApp.patientId, { isFirstVisit: true }).catch(console.error);
+    }
   } catch (error) {
     // Si la transacción falla al final, intentamos abortar
     if (session) {
@@ -435,12 +445,11 @@ const cancelAppointment = asyncHandler(async (req, res, next) => {
       appointmentDate: { $gte: new Date() },
     });
 
-    notificationMessage = existingFuture
-      ? `Hola ${patientWaitlist.name}, se liberó un espacio a las ${canceledDate.getHours()}:${canceledDate.getMinutes().toString().padStart(2, "0")}. ¿Deseas adelantar tu cita del ${existingFuture.appointmentDate.toLocaleDateString()}?`
-      : `Hola ${patientWaitlist.name}, ¡buenas noticias! Se liberó un espacio hoy. ¿Deseas tomarlo?`;
-
-    nextInLine.status = "NOTIFIED";
-    await nextInLine.save();
+    if (!existingFuture) {
+      notificationMessage = `Hola ${patientWaitlist.name}, ¡buenas noticias! Se liberó un espacio hoy. ¿Deseas tomarlo?`;
+      nextInLine.status = "NOTIFIED";
+      await nextInLine.save();
+    }
   }
 
   sendResponse(
@@ -455,6 +464,28 @@ const cancelAppointment = asyncHandler(async (req, res, next) => {
   );
 });
 
+const getDaySummary = asyncHandler(async (req, res, next) => {
+  const { date } = req.query;
+  const start = date ? new Date(date) : (() => { const d = new Date(); d.setHours(0,0,0,0); return d; })();
+  const startOfDay = new Date(start);
+  const endOfDay = new Date(start.getTime() + 24 * 60 * 60 * 1000 - 1);
+
+  const appointments = await Appointment.find({
+    appointmentDate: { $gte: startOfDay, $lte: endOfDay },
+    status: { $ne: "CANCELLED" },
+  });
+
+  const total = appointments.length;
+  const confirmed = appointments.filter((a) =>
+    ["CONFIRMED", "IN_PROGRESS"].includes(a.status),
+  ).length;
+  const revenue = appointments
+    .filter((a) => a.status === "COMPLETED")
+    .reduce((sum, a) => sum + (a.finalAmount || 0), 0);
+
+  sendResponse(res, 200, { total, confirmed, revenue });
+});
+
 // --- EXPORTACIÓN AGRUPADA AL FINAL ---
 export {
   createAppointment,
@@ -462,4 +493,5 @@ export {
   getAppointmentById,
   updateAppointment,
   cancelAppointment,
+  getDaySummary,
 };

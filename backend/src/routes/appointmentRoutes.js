@@ -5,6 +5,7 @@ import {
   getAppointmentById,
   updateAppointment,
   cancelAppointment,
+  getDaySummary,
 } from "../controllers/appointmentController.js";
 import checkAuth from "../middlewares/checkAuth.js";
 import authorizeRole from "../middlewares/authorizeRole.js";
@@ -19,6 +20,8 @@ const router = express.Router();
 const staff = ["ADMIN", "RECEPTIONIST", "DOCTOR"];
 
 router.use(checkAuth);
+
+router.get("/day-summary", getDaySummary);
 
 router
   .route("/")

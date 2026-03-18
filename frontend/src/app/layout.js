@@ -2,6 +2,11 @@ import { Toaster } from "sonner"; // 1. Importamos el componente
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"] });
 
 export default function RootLayout({ children }) {

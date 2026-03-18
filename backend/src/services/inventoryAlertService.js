@@ -1,5 +1,6 @@
 import Product from "../models/inventory/Product.js";
 import Batch from "../models/inventory/Batch.js";
+import Coupon from "../models/marketing/Coupon.js";
 
 /**
  * 🔍 DETECTOR DE STOCK CRÍTICO
@@ -27,4 +28,32 @@ const getExpiringBatches = async (days = 30) => {
   }).populate("productId", "name sku");
 };
 
-export { getLowStockProducts, getExpiringBatches };
+/**
+ * 🏷️ ACTIVADOR DE CUPONES CLEARANCE
+ * Para cada producto con stock crítico, activa cualquier cupón CLEARANCE
+ * que tenga ese producto en clearanceConfig.applicableProducts.
+ * Retorna la cantidad de cupones activados.
+ */
+const activateClearanceCoupons = async (lowStockProducts) => {
+  if (!lowStockProducts.length) return 0;
+
+  const productIds = lowStockProducts.map((p) => p._id);
+
+  const couponsToActivate = await Coupon.find({
+    type: "CLEARANCE",
+    isActive: false,
+    "clearanceConfig.applicableProducts": { $in: productIds },
+  });
+
+  for (const coupon of couponsToActivate) {
+    coupon.isActive = true;
+    await coupon.save();
+    console.log(
+      `🏷️ [CLEARANCE] Cupón "${coupon.code}" activado automáticamente por stock bajo.`,
+    );
+  }
+
+  return couponsToActivate.length;
+};
+
+export { getLowStockProducts, getExpiringBatches, activateClearanceCoupons };

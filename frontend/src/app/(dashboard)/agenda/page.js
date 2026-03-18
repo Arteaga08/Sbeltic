@@ -1,77 +1,168 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
-import AppointmentCard from "@/components/AppointmentCard";
-import NewAppointmentModal from "@/components/modal/NewAppointmentModal"; // 1. Importamos tu Modal
+
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import AgendaHeader from "@/components/agenda/AgendaHeader";
+import CalendarGrid from "@/components/agenda/CalendarGrid";
+import SidePanels from "@/components/agenda/SidePanels";
+import SuperModal from "@/components/agenda/SuperModal";
+import NewAppointmentModal from "@/components/modal/NewAppointmentModal";
+import { getCategoryFromTreatment } from "@/lib/treatmentCategories";
+import { ListBullets } from "@phosphor-icons/react";
+
+const API = process.env.NEXT_PUBLIC_API_URL;
+
+function getToken() {
+  if (typeof window !== "undefined") return localStorage.getItem("sbeltic_token");
+  return null;
+}
+
+function todayDate() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
 
 export default function AgendaPage() {
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0],
-  );
+  const [selectedDate, setSelectedDate] = useState(todayDate());
   const [appointments, setAppointments] = useState([]);
+  const [waitlist, setWaitlist] = useState([]);
+  const [daySummary, setDaySummary] = useState(null);
+  const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 2. Estado para controlar si el Modal está abierto o cerrado
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [filterRoom, setFilterRoom] = useState("ALL");
+  const [filterDoctor, setFilterDoctor] = useState("ALL");
 
-  const dateInputRef = useRef(null);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [upcomingSurgeries, setUpcomingSurgeries] = useState([]);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
-  const fetchAppointments = async () => {
-    setLoading(true);
+  // ── ISO de medianoche local → enviado al backend para range queries ──
+  const dateStr = selectedDate.toISOString(); // e.g. "2026-03-17T06:00:00.000Z" en UTC-6
+
+  // ── Fetches ──
+  const fetchAppointments = async (date = dateStr) => {
     try {
-      // 1. Sacamos la llave de acceso (token) que guardamos en el login
-      const token = localStorage.getItem("sbeltic_token");
-
-      // 2. Hacemos la petición enviando el header de Authorization
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/appointments?date=${selectedDate}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`, // 🛡️ Aquí está la magia
-          },
-        },
-      );
-
-      const result = await response.json();
-      console.log("📡 Respuesta real del backend:", result);
-
-      const dataArray =
-        result.data ||
-        result.appointments ||
-        (Array.isArray(result) ? result : []);
-      setAppointments(dataArray);
-    } catch (error) {
-      console.error("Error en fetchAppointments:", error);
+      const res = await fetch(`${API}/appointments?date=${date}`, {
+        headers: { Authorization: `Bearer ${getToken()}`, "Cache-Control": "no-cache" },
+      });
+      const data = await res.json();
+      const arr = data.data || data.appointments || (Array.isArray(data) ? data : []);
+      setAppointments(arr);
+    } catch {
       toast.error("Error al cargar la agenda");
-    } finally {
-      setLoading(false);
     }
   };
 
+  const fetchWaitlist = async () => {
+    try {
+      const res = await fetch(`${API}/waitlist`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const data = await res.json();
+      setWaitlist(data.data || []);
+    } catch {
+      // waitlist is non-critical
+    }
+  };
+
+  const fetchDaySummary = async (date = dateStr) => {
+    try {
+      const res = await fetch(`${API}/appointments/day-summary?date=${date}`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const data = await res.json();
+      setDaySummary(data.data || null);
+    } catch {
+      // summary is non-critical
+    }
+  };
+
+  const fetchUpcomingSurgeries = async () => {
+    try {
+      const from = new Date();
+      from.setHours(0, 0, 0, 0);
+      const res = await fetch(
+        `${API}/appointments?date=${from.toISOString()}&days=7`,
+        { headers: { Authorization: `Bearer ${getToken()}` } },
+      );
+      const data = await res.json();
+      const arr = data.data || [];
+      setUpcomingSurgeries(
+        arr.filter(
+          (a) =>
+            getCategoryFromTreatment(a.treatmentName) === "CIRUGIA" &&
+            !["COMPLETED", "CANCELLED", "NO_SHOW"].includes(a.status),
+        ),
+      );
+    } catch {
+      // non-critical
+    }
+  };
+
+  const fetchStaff = async () => {
+    try {
+      const res = await fetch(`${API}/users?role=DOCTOR`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const data = await res.json();
+      setStaff(data.data || []);
+    } catch {
+      // staff filter is optional
+    }
+  };
+
+  // ── Carga inicial y al cambiar fecha ──
   useEffect(() => {
-    fetchAppointments();
+    setLoading(true);
+    Promise.all([
+      fetchAppointments(dateStr),
+      fetchWaitlist(),
+      fetchDaySummary(dateStr),
+    ]).finally(() => setLoading(false));
   }, [selectedDate]);
 
-  const handleContainerClick = () => {
-    if (
-      dateInputRef.current &&
-      typeof dateInputRef.current.showPicker === "function"
-    ) {
-      dateInputRef.current.showPicker();
-    }
+  useEffect(() => {
+    fetchStaff();
+    fetchUpcomingSurgeries();
+  }, []);
+
+  // ── Filtrar appointments por doctor si aplica ──
+  const visibleAppointments =
+    filterDoctor === "ALL"
+      ? appointments
+      : appointments.filter((a) => String(a.doctorId?._id || a.doctorId) === filterDoctor);
+
+  // ── Handlers ──
+  const handleAppointmentClick = (appt) => setSelectedAppointment(appt);
+
+  const handleSuperModalSave = (updatedAppt) => {
+    // Actualizar el appointment en la lista local sin refetch completo
+    setAppointments((prev) =>
+      prev.map((a) => (a._id === updatedAppt._id ? updatedAppt : a)),
+    );
+    // Refrescar resumen del día
+    fetchDaySummary(dateStr);
+    toast.success("Cita actualizada");
   };
 
-  // 3. LA FUNCIÓN MÁGICA QUE GUARDA LA CITA
-  const handleSaveAppointment = async (payloadFromModal) => {
-    try {
-      // 1. Preparamos la seguridad y el usuario actual
-      const token = localStorage.getItem("sbeltic_token");
-      const currentUser = JSON.parse(
-        localStorage.getItem("sbeltic_user") || "{}",
-      );
+  const handleSuperModalCancel = (cancelledAppt) => {
+    setAppointments((prev) =>
+      prev.map((a) =>
+        a._id === cancelledAppt._id ? { ...a, status: "CANCELLED" } : a,
+      ),
+    );
+    fetchDaySummary(dateStr);
+    toast.success("Cita cancelada");
+  };
 
+  // ── Guardar nueva cita (desde NewAppointmentModal) ──
+  const handleSaveNewAppointment = async (payloadFromModal) => {
+    try {
+      const token = getToken();
+      const currentUser = JSON.parse(localStorage.getItem("sbeltic_user") || "{}");
       const headers = {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -80,138 +171,114 @@ export default function AgendaPage() {
       const { isNewPatient, patientData, appointmentData } = payloadFromModal;
       let finalPatientId = appointmentData.patientId;
 
-      // PASO 1: Si es paciente nuevo, lo creamos enviando el Token
       if (isNewPatient) {
-        const patientRes = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/patients`,
-          {
-            method: "POST",
-            headers, // <-- Mandamos el token aquí
-            body: JSON.stringify({
-              ...patientData,
-              createdBy: currentUser._id,
-            }),
-          },
-        );
+        const patientRes = await fetch(`${API}/patients`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ ...patientData, createdBy: currentUser._id }),
+        });
         const patientResult = await patientRes.json();
-
         if (!patientRes.ok) {
-          return toast.error(
-            patientResult.message || "Error al registrar el nuevo paciente.",
-          );
+          return toast.error(patientResult.message || "Error al registrar el paciente.");
         }
         finalPatientId = patientResult.data._id || patientResult.patient._id;
         toast.success("Paciente nuevo registrado.");
       }
 
-      // PASO 2: Creamos la Cita
-      const finalAppointmentPayload = {
-        ...appointmentData,
-        patientId: finalPatientId,
-        createdBy: currentUser._id, // 🛡️ Ahora sabemos EXACTAMENTE quién creó la cita en el sistema
-      };
-
-      const apptRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/appointments`,
-        {
-          method: "POST",
-          headers, // <-- Y mandamos el token aquí también
-          body: JSON.stringify(finalAppointmentPayload),
-        },
-      );
-
+      const apptRes = await fetch(`${API}/appointments`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ ...appointmentData, patientId: finalPatientId }),
+      });
       const apptResult = await apptRes.json();
 
       if (apptRes.ok) {
         toast.success("¡Cita agendada con éxito!");
-        setIsModalOpen(false);
-        fetchAppointments(); // Recargamos la vista
+        setIsNewModalOpen(false);
+        fetchAppointments(dateStr);
+        fetchDaySummary(dateStr);
       } else {
-        toast.error(
-          apptResult.message ||
-            "No se pudo agendar la cita. Posible choque de horarios.",
-        );
+        toast.error(apptResult.message || "No se pudo agendar la cita.");
       }
-    } catch (error) {
-      console.error("Error completo:", error);
+    } catch {
       toast.error("Error de conexión con el servidor.");
     }
   };
+
+  const panelBadgeCount =
+    upcomingSurgeries.length + waitlist.filter((w) => w.status === "WAITING").length;
+
   return (
-    <div className="space-y-10 p-4 md:p-8 pb-24 md:pb-8">
-      <header className="flex flex-col items-center text-center gap-8 mb-12">
-        {/* 1. Bloque de Título: Centrado y con el estilo Vidix Standard */}
-        <div className="space-y-2">
-          <h2 className="text-4xl md:text-5xl font-extrabold italic uppercase tracking-normal text-slate-900 leading-none">
-            Agenda Sbeltic
-          </h2>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-            Control total de la clínica
-          </p>
-        </div>
+    <div className="flex flex-col overflow-hidden -mx-4 -my-4 md:-mx-10 md:-my-10 h-[calc(100dvh-80px)] md:h-dvh">
 
-        {/* 2. Contenedor de Controles: Apilados y con ancho controlado */}
-        <div className="w-full max-w-md flex flex-col gap-4">
-          {/* BOTÓN DEL CALENDARIO (Ahora con padding y texto centrado) */}
-          <div
-            onClick={handleContainerClick}
-            className="flex items-center justify-center gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:bg-slate-50 transition-all group w-full"
-          >
-            <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-rose-500 transition-colors">
-              FECHA:
-            </span>
-            <input
-              ref={dateInputRef}
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-transparent font-bold text-slate-900 focus:outline-none cursor-pointer text-sm uppercase"
-            />
-          </div>
+      {/* Header */}
+      <AgendaHeader
+        selectedDate={selectedDate}
+        onDateChange={setSelectedDate}
+        filterRoom={filterRoom}
+        onFilterRoom={setFilterRoom}
+        staff={staff}
+        filterDoctor={filterDoctor}
+        onFilterDoctor={setFilterDoctor}
+        onNewAppointment={() => setIsNewModalOpen(true)}
+      />
 
-          {/* BOTÓN GIGANTE DE NUEVA CITA (Igual al de "Alta de Personal") */}
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="w-full py-5 bg-slate-900 text-white font-black text-[11px] tracking-[0.2em] uppercase rounded-2xl shadow-xl shadow-slate-900/20 hover:bg-rose-500 transition-all flex items-center justify-center gap-2"
-          >
-            <span className="text-lg leading-none">+</span> NUEVA CITA
-          </button>
-        </div>
-      </header>
-
-      {/* RENDERIZAMOS LAS TARJETAS... */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-48 bg-slate-200 animate-pulse rounded-3xl"
-            />
-          ))}
-        </div>
-      ) : (
-        <>
-          {appointments.length === 0 ? (
-            <div className="bg-white p-20 text-center rounded-3xl border border-dashed border-slate-300">
-              <p className="text-slate-400 font-medium">
-                No hay citas programadas para este día.
+      {/* Cuerpo principal */}
+      <div className="flex flex-1 overflow-hidden relative">
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center bg-slate-50">
+            <div className="text-center">
+              <div className="w-10 h-10 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                Cargando agenda...
               </p>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {appointments.map((appt) => (
-                <AppointmentCard key={appt._id} appointment={appt} />
-              ))}
-            </div>
-          )}
-        </>
-      )}
+          </div>
+        ) : (
+          <CalendarGrid
+            appointments={visibleAppointments}
+            filterRoom={filterRoom}
+            onAppointmentClick={handleAppointmentClick}
+          />
+        )}
 
-      {/* 5. EL MODAL INVISIBLE (Solo se muestra si isModalOpen es true) */}
+        <SidePanels
+          appointments={visibleAppointments}
+          waitlist={waitlist}
+          daySummary={daySummary}
+          upcomingSurgeries={upcomingSurgeries}
+          mobileOpen={isPanelOpen}
+          onClose={() => setIsPanelOpen(false)}
+        />
+
+        {/* FAB — solo móvil */}
+        <button
+          onClick={() => setIsPanelOpen(true)}
+          className="md:hidden fixed bottom-24 right-4 z-50 w-14 h-14 bg-teal-500 text-white rounded-full shadow-xl flex items-center justify-center active:scale-95 transition-transform"
+        >
+          <ListBullets size={24} weight="bold" />
+          {panelBadgeCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full text-[10px] font-black flex items-center justify-center">
+              {panelBadgeCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Súper Modal */}
+      <SuperModal
+        appointment={selectedAppointment}
+        isOpen={!!selectedAppointment}
+        onClose={() => setSelectedAppointment(null)}
+        onSave={handleSuperModalSave}
+        onCancelAppointment={handleSuperModalCancel}
+      />
+
+      {/* Modal Nueva Cita */}
       <NewAppointmentModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSaveAppointment}
+        isOpen={isNewModalOpen}
+        onClose={() => setIsNewModalOpen(false)}
+        onSave={handleSaveNewAppointment}
       />
     </div>
   );

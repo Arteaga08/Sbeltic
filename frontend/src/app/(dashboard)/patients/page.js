@@ -1,13 +1,13 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import { MagnifyingGlass, Plus, CaretLeft } from "@phosphor-icons/react";
+import { MagnifyingGlass, Plus, CaretLeft, Pill } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import PatientStats from "@/components/patients/PatientStats";
 import PatientCard from "@/components/patients/PatientCard";
 import NewPatientModal from "@/components/patients/NewPatientModal";
 
-// 🌟 IMPORTAMOS EL EXPEDIENTE MAESTRO
 import PatientFileModal from "@/components/patients/PatientFile";
+import TreatmentManagerModal from "@/components/patients/TreatmentManagerModal";
 
 const categoryNames = {
   ALL: "Directorio",
@@ -30,6 +30,7 @@ export default function PatientsPage() {
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [isFileModalOpen, setIsFileModalOpen] = useState(false);
   const [selectedPatientId, setSelectedPatientId] = useState(null);
+  const [isTreatmentModalOpen, setIsTreatmentModalOpen] = useState(false);
 
   const fetchPatients = async () => {
     try {
@@ -107,12 +108,20 @@ export default function PatientsPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsNewModalOpen(true)}
-          className="w-full md:w-auto px-8 py-4 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 transition-all text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 active:scale-95"
-        >
-          <Plus size={18} weight="bold" /> NUEVO REGISTRO
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setIsTreatmentModalOpen(true)}
+            className="w-full md:w-auto px-6 py-4 bg-slate-100 text-slate-700 font-black rounded-2xl hover:bg-slate-200 transition-all text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95"
+          >
+            <Pill size={16} weight="bold" /> Tratamientos
+          </button>
+          <button
+            onClick={() => setIsNewModalOpen(true)}
+            className="w-full md:w-auto px-8 py-4 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 transition-all text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 active:scale-95"
+          >
+            <Plus size={18} weight="bold" /> NUEVO REGISTRO
+          </button>
+        </div>
       </header>
 
       {currentView === "DASHBOARD" ? (
@@ -167,12 +176,16 @@ export default function PatientsPage() {
         onRefresh={fetchPatients}
       />
 
-      {/* 🌟 MODAL DE EXPEDIENTE CLÍNICO (MASTER FILE) */}
       <PatientFileModal
         isOpen={isFileModalOpen}
         patientId={selectedPatientId}
         onClose={() => setIsFileModalOpen(false)}
         onUpdate={fetchPatients}
+      />
+
+      <TreatmentManagerModal
+        isOpen={isTreatmentModalOpen}
+        onClose={() => setIsTreatmentModalOpen(false)}
       />
     </div>
   );

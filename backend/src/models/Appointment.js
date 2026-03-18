@@ -15,7 +15,7 @@ const appointmentSchema = new mongoose.Schema(
     },
     roomId: {
       type: String,
-      enum: ["CABINA_1", "CABINA_2", "CABINA_3", "SPA", "CONSULTORIO"],
+      enum: ["CABINA_1", "CABINA_2", "CABINA_3", "SPA", "CONSULTORIO", "QUIROFANO"],
       required: [true, "La cabina/habitación es obligatoria para agendar"],
     },
     appointmentDate: { type: Date, required: true },
