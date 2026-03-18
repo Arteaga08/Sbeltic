@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import AppointmentPDF from "./AppointmentPDF";
+import MedicalHistoryPDF from "../patients/PatientFile/Tabs/MedicalHistoryPDF";
 
 const STATUS_CONFIG = {
   PENDING: { label: "Pendiente", active: "bg-amber-400 text-white", dot: "bg-amber-400" },
@@ -34,6 +35,8 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
   const [supplyResults, setSupplyResults] = useState([]);
   const [showSupplyDropdown, setShowSupplyDropdown] = useState(false);
   const [supplyType, setSupplyType] = useState("INSUMO");
+  const [fullPatient, setFullPatient] = useState(null);
+  const [loadingPatient, setLoadingPatient] = useState(false);
 
   // Inicializar form cuando abre
   useEffect(() => {
@@ -49,6 +52,20 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
       setCouponError("");
       setActiveTab(0);
       setSupplyType("INSUMO");
+      setFullPatient(null);
+
+      // Fetch paciente completo para el PDF de historial médico
+      const patientId = appointment.patientId?._id || appointment.patientId;
+      if (patientId) {
+        setLoadingPatient(true);
+        fetch(`${API}/patients/${patientId}`, {
+          headers: { Authorization: `Bearer ${getToken()}` },
+        })
+          .then((res) => res.json())
+          .then((data) => { if (data.success) setFullPatient(data.data); })
+          .catch(() => {})
+          .finally(() => setLoadingPatient(false));
+      }
     }
   }, [appointment, isOpen]);
 
@@ -294,7 +311,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                 </div>
               </div>
 
-              {/* Botón PDF */}
+              {/* Botones PDF */}
               <PDFDownloadLink
                 document={<AppointmentPDF appointment={appointment} form={form} />}
                 fileName={`Cita_${(patient.name || "Paciente").replace(/\s+/g, "_")}_${apptDate.replace(/[\s,]/g, "-")}.pdf`}
@@ -306,10 +323,37 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                       text-slate-400 hover:border-teal-300 hover:text-teal-500 transition-colors flex items-center justify-center gap-2"
                   >
                     <span>📄</span>
-                    {loading ? "Generando PDF..." : "Descargar Historial Médico PDF"}
+                    {loading ? "Generando PDF..." : "Descargar Registro de Cita"}
                   </button>
                 )}
               </PDFDownloadLink>
+
+              {fullPatient ? (
+                <PDFDownloadLink
+                  document={<MedicalHistoryPDF patient={fullPatient} />}
+                  fileName={`Historial_Medico_${(fullPatient.name || "Paciente").replace(/\s+/g, "_")}.pdf`}
+                  className="block w-full"
+                >
+                  {({ loading }) => (
+                    <button
+                      className="w-full py-3 border-2 border-dashed border-indigo-200 rounded-2xl text-xs font-black uppercase
+                        text-indigo-400 hover:border-indigo-400 hover:text-indigo-600 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <span>📋</span>
+                      {loading ? "Generando PDF..." : "Descargar Historial Médico PDF"}
+                    </button>
+                  )}
+                </PDFDownloadLink>
+              ) : (
+                <button
+                  disabled
+                  className="w-full py-3 border-2 border-dashed border-slate-100 rounded-2xl text-xs font-black uppercase
+                    text-slate-300 flex items-center justify-center gap-2 cursor-not-allowed"
+                >
+                  <span>📋</span>
+                  {loadingPatient ? "Cargando historial..." : "Historial Médico PDF"}
+                </button>
+              )}
             </div>
           )}
 

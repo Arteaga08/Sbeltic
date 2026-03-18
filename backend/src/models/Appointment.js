@@ -36,6 +36,7 @@ const appointmentSchema = new mongoose.Schema(
     // --- 2. SERVICIO Y FINANZAS ---
     treatmentId: { type: mongoose.Schema.Types.ObjectId, ref: "Treatment" },
     treatmentName: { type: String, required: true, trim: true },
+    treatmentCategory: { type: String, trim: true },
     originalQuote: { type: Number, default: 0, min: 0 },
     appliedCoupon: {
       type: mongoose.Schema.Types.ObjectId,

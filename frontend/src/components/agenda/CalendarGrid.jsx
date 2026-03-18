@@ -82,6 +82,7 @@ export default function CalendarGrid({
   appointments = [],
   filterRoom = "ALL",
   onAppointmentClick,
+  isToday = false,
 }) {
   const [currentTimeTop, setCurrentTimeTop] = useState(null);
   const scrollRef = useRef(null);
@@ -106,12 +107,15 @@ export default function CalendarGrid({
     return () => clearInterval(id);
   }, []);
 
-  // Scroll automático a la hora actual al montar
+  // Scroll automático: a hora actual si es hoy, al inicio si es otro día
   useEffect(() => {
-    if (scrollRef.current && currentTimeTop !== null) {
+    if (!scrollRef.current) return;
+    if (isToday && currentTimeTop !== null) {
       scrollRef.current.scrollTop = Math.max(0, currentTimeTop - 150);
+    } else if (!isToday) {
+      scrollRef.current.scrollTop = 0;
     }
-  }, [currentTimeTop]);
+  }, [currentTimeTop, isToday]);
 
   const headerLabel =
     filterRoom === "ALL"

@@ -19,6 +19,7 @@ const createAppointmentSchema = z
       .string()
       .trim()
       .min(2, "El nombre del tratamiento es requerido"),
+    treatmentCategory: z.string().trim().optional(),
     // 🔥 Agregamos el roomId que faltaba
     roomId: z.enum(["CABINA_1", "CABINA_2", "CABINA_3", "SPA", "CONSULTORIO", "QUIROFANO"], {
       errorMap: () => ({ message: "Selecciona una cabina válida" }),

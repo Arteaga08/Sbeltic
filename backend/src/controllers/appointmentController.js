@@ -65,21 +65,21 @@ const checkTimeCollision = async (
 
     // 3. Lógica de traslape de tiempos
     if (newStart < existingEnd && newEnd > existingStart) {
-      const currentApptRoomId = String(appt.roomId);
-      const currentApptDoctorId = String(appt.doctorId);
+      const sameRoom = String(appt.roomId) === targetRoomId;
+      const sameDoctor = String(appt.doctorId) === targetPerformerId;
 
-      // Si la habitación es la misma pero el profesional es distinto -> Choque de cuarto
-      if (
-        currentApptRoomId === targetRoomId &&
-        currentApptDoctorId !== targetPerformerId
-      ) {
+      // Diferente doctor Y diferente cabina → no hay conflicto real
+      if (!sameRoom && !sameDoctor) continue;
+
+      // Misma cabina, diferente doctor → Choque de cuarto
+      if (sameRoom && !sameDoctor) {
         return {
           collision: true,
           reason: `La habitación/cabina ${roomId} ya está ocupada en ese horario.`,
         };
       }
 
-      // Si el profesional es el mismo -> Choque de agenda del personal
+      // Mismo doctor (cualquier cabina) → Choque de agenda del personal
       return {
         collision: true,
         reason: "El personal ya tiene una cita asignada en ese horario.",
@@ -128,7 +128,9 @@ const getAppointments = asyncHandler(async (req, res, next) => {
     const start = new Date(date);
     if (!isNaN(start)) {
       const daysParam = Math.min(parseInt(req.query.days) || 1, 30);
-      const end = new Date(start.getTime() + daysParam * 24 * 60 * 60 * 1000 - 1);
+      const end = new Date(
+        start.getTime() + daysParam * 24 * 60 * 60 * 1000 - 1,
+      );
       query.appointmentDate = { $gte: start, $lte: end };
     }
   }
@@ -228,6 +230,7 @@ const updateAppointment = asyncHandler(async (req, res, next) => {
       "duration",
       "status",
       "treatmentName",
+      "treatmentCategory",
       "originalQuote",
       "isReminderSent",
       "nextFollowUpDate",
@@ -386,7 +389,9 @@ const updateAppointment = asyncHandler(async (req, res, next) => {
 
     // Disparar triggers de marketing (fire-and-forget, no bloquea la respuesta)
     if (isFirstVisit) {
-      processTriggerCoupons("ON_APPOINTMENT_COMPLETE", finalApp.patientId, { isFirstVisit: true }).catch(console.error);
+      processTriggerCoupons("ON_APPOINTMENT_COMPLETE", finalApp.patientId, {
+        isFirstVisit: true,
+      }).catch(console.error);
     }
   } catch (error) {
     // Si la transacción falla al final, intentamos abortar
@@ -466,7 +471,13 @@ const cancelAppointment = asyncHandler(async (req, res, next) => {
 
 const getDaySummary = asyncHandler(async (req, res, next) => {
   const { date } = req.query;
-  const start = date ? new Date(date) : (() => { const d = new Date(); d.setHours(0,0,0,0); return d; })();
+  const start = date
+    ? new Date(date)
+    : (() => {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d;
+      })();
   const startOfDay = new Date(start);
   const endOfDay = new Date(start.getTime() + 24 * 60 * 60 * 1000 - 1);
 

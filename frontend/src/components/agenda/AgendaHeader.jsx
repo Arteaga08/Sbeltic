@@ -1,5 +1,13 @@
 "use client";
 
+// 🌟 Importamos los íconos de Phosphor Icons
+import {
+  CaretLeft,
+  CaretRight,
+  Plus,
+  CaretDownIcon,
+} from "@phosphor-icons/react";
+
 const ROOMS = [
   { value: "ALL", label: "Todas las cabinas" },
   { value: "CABINA_1", label: "Cabina 1" },
@@ -7,6 +15,7 @@ const ROOMS = [
   { value: "CABINA_3", label: "Cabina 3" },
   { value: "SPA", label: "Spa" },
   { value: "CONSULTORIO", label: "Consultorio" },
+  { value: "QUIROFANO", label: "Quirofano" },
 ];
 
 function formatDateLabel(date) {
@@ -48,7 +57,11 @@ export default function AgendaHeader({
     onDateChange(d);
   };
 
-  const goToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); onDateChange(d); };
+  const goToday = () => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    onDateChange(d);
+  };
 
   const dateLabel = formatDateLabel(selectedDate);
   const fullDate = selectedDate.toLocaleDateString("es-MX", {
@@ -71,9 +84,10 @@ export default function AgendaHeader({
           onClick={() => goDay(-1)}
           className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-slate-200 transition-colors text-slate-500 font-bold"
         >
-          ‹
+          {/* 🌟 Ícono de flecha izquierda */}
+          <CaretLeft size={16} weight="bold" />
         </button>
-        <div className="px-3 text-center min-w-[90px]">
+        <div className="px-3 text-center min-w-22">
           <p className="text-sm font-black text-slate-900 leading-none">
             {dateLabel}
           </p>
@@ -85,7 +99,8 @@ export default function AgendaHeader({
           onClick={() => goDay(1)}
           className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-slate-200 transition-colors text-slate-500 font-bold"
         >
-          ›
+          {/* 🌟 Ícono de flecha derecha */}
+          <CaretRight size={16} weight="bold" />
         </button>
       </div>
 
@@ -109,32 +124,44 @@ export default function AgendaHeader({
       />
 
       {/* Filtro por cabina */}
-      <select
-        value={filterRoom}
-        onChange={(e) => onFilterRoom(e.target.value)}
-        className="px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 bg-white hidden sm:block"
-      >
-        {ROOMS.map((r) => (
-          <option key={r.value} value={r.value}>
-            {r.label}
-          </option>
-        ))}
-      </select>
-
-      {/* Filtro por doctor */}
-      {staff.length > 0 && (
+      <div className="relative hidden sm:block">
         <select
-          value={filterDoctor}
-          onChange={(e) => onFilterDoctor(e.target.value)}
-          className="px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 bg-white hidden md:block"
+          value={filterRoom}
+          onChange={(e) => onFilterRoom(e.target.value)}
+          // 🌟 appearance-none quita la flecha nativa. pr-8 deja el espacio para la nuestra.
+          className="appearance-none w-full pl-3 pr-8 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 bg-white cursor-pointer hover:border-slate-300 outline-none focus:border-indigo-500 transition-all"
         >
-          <option value="ALL">Todos los doctores</option>
-          {staff.map((s) => (
-            <option key={s._id} value={s._id}>
-              {s.name}
+          {ROOMS.map((r) => (
+            <option key={r.value} value={r.value}>
+              {r.label}
             </option>
           ))}
         </select>
+        {/* 🌟 Nuestra flecha Phosphor, separada del borde con right-3 */}
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+          <CaretDownIcon size={14} weight="bold" />
+        </div>
+      </div>
+
+      {/* Filtro por doctor */}
+      {staff.length > 0 && (
+        <div className="relative hidden md:block">
+          <select
+            value={filterDoctor}
+            onChange={(e) => onFilterDoctor(e.target.value)}
+            className="appearance-none w-full pl-3 pr-8 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 bg-white cursor-pointer hover:border-slate-300 outline-none focus:border-indigo-500 transition-all"
+          >
+            <option value="ALL">Todos los doctores</option>
+            {staff.map((s) => (
+              <option key={s._id} value={s._id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+            <CaretDownIcon size={14} weight="bold" />
+          </div>
+        </div>
       )}
 
       {/* Spacer */}
@@ -145,7 +172,9 @@ export default function AgendaHeader({
         onClick={onNewAppointment}
         className="px-5 py-2.5 bg-slate-900 text-white text-xs font-black uppercase rounded-xl hover:bg-teal-600 transition-colors tracking-wider flex items-center gap-2"
       >
-        <span className="text-base leading-none">+</span> Nueva Cita
+        {/* 🌟 Ícono de Plus en lugar del texto "+" */}
+        <Plus size={16} weight="bold" />
+        Nueva Cita
       </button>
     </header>
   );

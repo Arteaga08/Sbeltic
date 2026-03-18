@@ -2,7 +2,10 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
-import { TREATMENT_CATEGORIES, getCategoryById } from "@/lib/treatmentCategories";
+import {
+  TREATMENT_CATEGORIES,
+  getCategoryById,
+} from "@/lib/treatmentCategories";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -34,9 +37,9 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
     durationMinutes: 30,
   });
 
-  const [patients, setPatients]       = useState([]);
-  const [staff, setStaff]             = useState([]);
-  const [treatments, setTreatments]   = useState([]);
+  const [patients, setPatients] = useState([]);
+  const [staff, setStaff] = useState([]);
+  const [treatments, setTreatments] = useState([]);
   const [loadingData, setLoadingData] = useState(false);
 
   useEffect(() => {
@@ -70,7 +73,10 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
     setLoadingData(true);
     try {
       const token = localStorage.getItem("sbeltic_token");
-      const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
 
       const [resP, resS, resT] = await Promise.all([
         fetch(`${API}/patients?limit=500`, { headers }),
@@ -78,11 +84,14 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
         fetch(`${API}/treatments?limit=200`, { headers }),
       ]);
       const [dataP, dataS, dataT] = await Promise.all([
-        resP.json(), resS.json(), resT.json(),
+        resP.json(),
+        resS.json(),
+        resT.json(),
       ]);
 
       // Pacientes: { data: { patients: [...], pagination: {...} } }
-      const rawP = dataP.data?.patients ?? dataP.data ?? dataP.patients ?? dataP;
+      const rawP =
+        dataP.data?.patients ?? dataP.data ?? dataP.patients ?? dataP;
       setPatients(Array.isArray(rawP) ? rawP : []);
 
       // Staff: { data: [...] }
@@ -91,7 +100,9 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
 
       // Tratamientos: { data: { results: [...] } }
       const rawT = dataT.data?.results ?? dataT.data ?? dataT.results ?? dataT;
-      setTreatments(Array.isArray(rawT) ? rawT.filter((t) => t.isActive !== false) : []);
+      setTreatments(
+        Array.isArray(rawT) ? rawT.filter((t) => t.isActive !== false) : [],
+      );
     } catch (err) {
       console.error(err);
       toast.error("Error al cargar datos. Intenta reingresar.");
@@ -123,14 +134,28 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
     }));
   };
 
-  const durationTotal = Number(formData.durationHours) * 60 + Number(formData.durationMinutes);
+  const durationTotal =
+    Number(formData.durationHours) * 60 + Number(formData.durationMinutes);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.treatmentName) return toast.error("Selecciona un tratamiento de la lista.");
-    if (durationTotal < 15) return toast.error("La duración mínima es 15 minutos.");
+    if (!isNewPatient && !formData.patientId)
+      return toast.error("Selecciona un paciente de la lista.");
+    if (!formData.doctorId)
+      return toast.error("Selecciona el personal que atiende.");
+    if (!formData.treatmentName)
+      return toast.error("Selecciona un tratamiento de la lista.");
+    if (durationTotal < 15)
+      return toast.error("La duración mínima es 15 minutos.");
 
-    const appointmentDate = new Date(`${formData.date}T${formData.time}:00`).toISOString();
+    const appointmentDate = new Date(
+      `${formData.date}T${formData.time}:00`,
+    ).toISOString();
+
+    if (new Date(appointmentDate) <= new Date())
+      return toast.error("La fecha y hora deben ser en el futuro.");
+    if (new Date(appointmentDate).getDay() === 0)
+      return toast.error("La clínica cierra los domingos.");
 
     onSave({
       isNewPatient,
@@ -146,19 +171,26 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
         appointmentDate,
         treatmentId: formData.treatmentId || undefined,
         treatmentName: formData.treatmentName,
+        treatmentCategory: selectedCategory || undefined,
         duration: durationTotal,
       },
     });
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-
+    <div className="fixed inset-0 sm:inset-0 bg-slate-900/60 backdrop-blur-sm z-99999 flex items-start sm:items-center justify-center p-4 pt-16 pb-28 sm:pt-4 sm:pb-4">
+      <div className="bg-white rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[75dvh] sm:max-h-[90vh]">
         {/* Header */}
         <div className="bg-slate-50 p-6 border-b border-slate-100 flex justify-between items-center shrink-0">
-          <h2 className="text-2xl font-black text-slate-800">Nueva Cita Sbeltic</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 font-bold text-xl">✕</button>
+          <h2 className="text-2xl font-black text-slate-800">
+            Nueva Cita Sbeltic
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-700 font-bold text-xl"
+          >
+            ✕
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-6">
@@ -168,7 +200,6 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
             </div>
           ) : (
             <div className="space-y-8">
-
               {/* 1. SELECTOR DE CATEGORÍA */}
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">
@@ -194,12 +225,18 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
                 {/* Paciente */}
                 <div className="space-y-4">
                   <div className="flex gap-4 border-b border-slate-200 pb-2">
-                    <button type="button" onClick={() => setIsNewPatient(false)}
-                      className={`text-sm font-bold pb-1 border-b-2 ${!isNewPatient ? "border-slate-800 text-slate-800" : "border-transparent text-slate-400"}`}>
+                    <button
+                      type="button"
+                      onClick={() => setIsNewPatient(false)}
+                      className={`text-sm font-bold pb-1 border-b-2 ${!isNewPatient ? "border-slate-800 text-slate-800" : "border-transparent text-slate-400"}`}
+                    >
                       Paciente Existente
                     </button>
-                    <button type="button" onClick={() => setIsNewPatient(true)}
-                      className={`text-sm font-bold pb-1 border-b-2 ${isNewPatient ? "border-slate-800 text-slate-800" : "border-transparent text-slate-400"}`}>
+                    <button
+                      type="button"
+                      onClick={() => setIsNewPatient(true)}
+                      className={`text-sm font-bold pb-1 border-b-2 ${isNewPatient ? "border-slate-800 text-slate-800" : "border-transparent text-slate-400"}`}
+                    >
                       + Nuevo
                     </button>
                   </div>
@@ -208,10 +245,14 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
                     <select
                       className="w-full p-3 rounded-xl border border-slate-200 outline-none"
                       value={formData.patientId}
-                      onChange={(e) => setFormData({ ...formData, patientId: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, patientId: e.target.value })
+                      }
                     >
                       <option value="">
-                        {patients.length === 0 ? "Sin pacientes registrados" : "Buscar en base de datos..."}
+                        {patients.length === 0
+                          ? "Sin pacientes registrados"
+                          : "Buscar en base de datos..."}
                       </option>
                       {patients.map((p) => (
                         <option key={p._id} value={p._id}>
@@ -221,25 +262,49 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
                     </select>
                   ) : (
                     <div className="space-y-3">
-                      <input type="text" placeholder="Nombre Completo *" required={isNewPatient}
+                      <input
+                        type="text"
+                        placeholder="Nombre Completo *"
+                        required={isNewPatient}
                         className="w-full p-3 rounded-xl border border-slate-200 outline-none text-sm"
                         value={formData.newPatientName}
-                        onChange={(e) => setFormData({ ...formData, newPatientName: e.target.value })} />
-                      <input type="tel" placeholder="Teléfono a 10 dígitos *" required={isNewPatient}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            newPatientName: e.target.value,
+                          })
+                        }
+                      />
+                      <input
+                        type="tel"
+                        placeholder="Teléfono a 10 dígitos *"
+                        required={isNewPatient}
                         className="w-full p-3 rounded-xl border border-slate-200 outline-none text-sm"
                         value={formData.newPatientPhone}
-                        onChange={(e) => setFormData({ ...formData, newPatientPhone: e.target.value })} />
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            newPatientPhone: e.target.value,
+                          })
+                        }
+                      />
                     </div>
                   )}
                 </div>
 
                 {/* Personal */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase">¿Quién Atiende?</label>
-                  <select required
+                  <label className="text-xs font-bold text-slate-500 uppercase">
+                    ¿Quién Atiende?
+                  </label>
+                  <select
+                    required
                     className="w-full p-3 rounded-xl border border-slate-200 outline-none"
                     value={formData.doctorId}
-                    onChange={(e) => setFormData({ ...formData, doctorId: e.target.value })}>
+                    onChange={(e) =>
+                      setFormData({ ...formData, doctorId: e.target.value })
+                    }
+                  >
                     <option value="">Selecciona personal...</option>
                     {staff.map((user) => (
                       <option key={user._id} value={user._id}>
@@ -262,14 +327,19 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
                       Sin tratamientos. Agrégalos en Pacientes → Catálogo
                     </p>
                   ) : (
-                    <select required
+                    <select
+                      required
                       className="w-full p-3 rounded-xl border border-slate-200 outline-none text-sm"
                       value={formData.treatmentId}
-                      onChange={(e) => handleTreatmentSelect(e.target.value)}>
+                      onChange={(e) => handleTreatmentSelect(e.target.value)}
+                    >
                       <option value="">Selecciona opción...</option>
                       {categoryTreatments.map((t) => (
                         <option key={t._id} value={t._id}>
-                          {t.name}{t.estimatedDuration ? ` (${formatDuration(t.estimatedDuration)})` : ""}
+                          {t.name}
+                          {t.estimatedDuration
+                            ? ` (${formatDuration(t.estimatedDuration)})`
+                            : ""}
                         </option>
                       ))}
                     </select>
@@ -277,27 +347,46 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Fecha</label>
-                  <input type="date" required
+                  <label className="text-xs font-bold text-slate-500 uppercase">
+                    Fecha
+                  </label>
+                  <input
+                    type="date"
+                    required
                     className="w-full p-3 rounded-xl border border-slate-200 outline-none"
                     value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
+                    onChange={(e) =>
+                      setFormData({ ...formData, date: e.target.value })
+                    }
+                  />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Hora de Inicio</label>
-                  <input type="time" required
+                  <label className="text-xs font-bold text-slate-500 uppercase">
+                    Hora de Inicio
+                  </label>
+                  <input
+                    type="time"
+                    required
                     className="w-full p-3 rounded-xl border border-slate-200 outline-none"
                     value={formData.time}
-                    onChange={(e) => setFormData({ ...formData, time: e.target.value })} />
+                    onChange={(e) =>
+                      setFormData({ ...formData, time: e.target.value })
+                    }
+                  />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Cabina</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase">
+                    Cabina
+                  </label>
                   <select
                     className="w-full p-3 rounded-xl border border-slate-200 outline-none text-sm"
                     value={formData.roomId}
-                    onChange={(e) => setFormData({ ...formData, roomId: e.target.value })}>
+                    onChange={(e) =>
+                      setFormData({ ...formData, roomId: e.target.value })
+                    }
+                  >
                     <option value="CABINA_1">Cabina 1</option>
                     <option value="CABINA_2">Cabina 2</option>
                     <option value="CABINA_3">Cabina 3</option>
@@ -321,17 +410,33 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
                     <select
                       className="flex-1 p-3 rounded-xl border border-slate-200 outline-none text-sm font-bold"
                       value={formData.durationHours}
-                      onChange={(e) => setFormData({ ...formData, durationHours: Number(e.target.value) })}>
-                      {[0,1,2,3,4,5,6,7,8].map((h) => (
-                        <option key={h} value={h}>{h}h</option>
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          durationHours: Number(e.target.value),
+                        })
+                      }
+                    >
+                      {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((h) => (
+                        <option key={h} value={h}>
+                          {h}h
+                        </option>
                       ))}
                     </select>
                     <select
                       className="flex-1 p-3 rounded-xl border border-slate-200 outline-none text-sm font-bold"
                       value={formData.durationMinutes}
-                      onChange={(e) => setFormData({ ...formData, durationMinutes: Number(e.target.value) })}>
-                      {[0,15,30,45].map((m) => (
-                        <option key={m} value={m}>{m}min</option>
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          durationMinutes: Number(e.target.value),
+                        })
+                      }
+                    >
+                      {[0, 15, 30, 45].map((m) => (
+                        <option key={m} value={m}>
+                          {m}min
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -341,12 +446,19 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
           )}
 
           <div className="flex gap-3 pt-4 border-t border-slate-100 shrink-0">
-            <button type="button" onClick={onClose} disabled={loadingData}
-              className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loadingData}
+              className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors"
+            >
               Cancelar
             </button>
-            <button type="submit" disabled={loadingData}
-              className="flex-1 py-3 bg-slate-900 text-white font-black rounded-xl hover:bg-slate-800 transition-all">
+            <button
+              type="submit"
+              disabled={loadingData}
+              className="flex-1 py-3 bg-slate-900 text-white font-black rounded-xl hover:bg-slate-800 transition-all"
+            >
               Guardar Cita Sbeltic
             </button>
           </div>

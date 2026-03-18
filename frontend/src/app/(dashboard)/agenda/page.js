@@ -93,7 +93,7 @@ export default function AgendaPage() {
       setUpcomingSurgeries(
         arr.filter(
           (a) =>
-            getCategoryFromTreatment(a.treatmentName) === "CIRUGIA" &&
+            (a.treatmentCategory || getCategoryFromTreatment(a.treatmentName)) === "CIRUGIA" &&
             !["COMPLETED", "CANCELLED", "NO_SHOW"].includes(a.status),
         ),
       );
@@ -198,7 +198,12 @@ export default function AgendaPage() {
         fetchAppointments(dateStr);
         fetchDaySummary(dateStr);
       } else {
-        toast.error(apptResult.message || "No se pudo agendar la cita.");
+        // El backend puede devolver { message } o { errors: [{message}] } de Zod
+        const errMsg =
+          apptResult.message ||
+          apptResult.errors?.[0]?.message ||
+          "No se pudo agendar la cita.";
+        toast.error(errMsg);
       }
     } catch {
       toast.error("Error de conexión con el servidor.");
@@ -239,6 +244,7 @@ export default function AgendaPage() {
             appointments={visibleAppointments}
             filterRoom={filterRoom}
             onAppointmentClick={handleAppointmentClick}
+            isToday={selectedDate.toDateString() === new Date().toDateString()}
           />
         )}
 

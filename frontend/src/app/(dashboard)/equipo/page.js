@@ -88,17 +88,12 @@ export default function TeamPage() {
 
   useEffect(() => {
     // 🛡️ LÓGICA: OBTENER EL ROL AL CARGAR LA PÁGINA
-    const storedRole = localStorage.getItem("sbeltic_user");
-    if (storedRole) {
-      setCurrentUserRole(storedRole.toUpperCase());
-    } else {
-      const userStr = localStorage.getItem("sbeltic_user");
-      try {
-        const userObj = userStr ? JSON.parse(userStr) : null;
-        setCurrentUserRole(userObj?.role?.toUpperCase() || "");
-      } catch (err) {
-        setCurrentUserRole("");
-      }
+    const userStr = localStorage.getItem("sbeltic_user");
+    try {
+      const userObj = userStr ? JSON.parse(userStr) : null;
+      setCurrentUserRole(userObj?.role?.toUpperCase() || "");
+    } catch (err) {
+      setCurrentUserRole("");
     }
 
     fetchStaff();

@@ -178,7 +178,7 @@ const CampaignCard = ({ campaign, onRefresh }) => {
 
       {/* Cierra el dropdown WA al hacer clic afuera */}
       {showWA && (
-        <div className="fixed inset-0 z-[9]" onClick={() => setShowWA(false)} />
+        <div className="fixed inset-0 z-9" onClick={() => setShowWA(false)} />
       )}
     </div>
   );

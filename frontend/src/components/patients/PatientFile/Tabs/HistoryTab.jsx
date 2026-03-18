@@ -5,8 +5,11 @@ import {
   LockSimple,
   PencilLine,
   Tag,
+  FilePdf,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import MedicalHistoryPDF from "./MedicalHistoryPDF";
 
 // Importaciones
 import BasicInfoForm from "../../NewPatientModal/steps/BasicInfoForm";
@@ -157,8 +160,24 @@ const HistoryTab = ({ patient, userRole, onUpdate, onClose }) => {
           </div>
         </div>
 
-        {/* 🌟 CONTENEDOR DE BOTONES (Firma + Guardar) */}
+        {/* 🌟 CONTENEDOR DE BOTONES (PDF + Firma + Guardar) */}
         <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto scrollbar-hide">
+          <PDFDownloadLink
+            document={<MedicalHistoryPDF patient={formData} />}
+            fileName={`Historial_Medico_${(formData.name || "Paciente").replace(/\s+/g, "_")}.pdf`}
+          >
+            {({ loading }) => (
+              <button
+                disabled={loading}
+                className="shrink-0 px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg bg-slate-800 text-white shadow-slate-100 disabled:opacity-50 whitespace-nowrap"
+                title="Descargar Historial Médico PDF"
+              >
+                <FilePdf size={16} weight="bold" />
+                {loading ? "Generando..." : "Historial PDF"}
+              </button>
+            )}
+          </PDFDownloadLink>
+
           {!isEditing && (
             <WhatsAppSignatureButton
               patientPhone={formData.phone}
