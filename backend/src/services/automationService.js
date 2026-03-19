@@ -1,6 +1,9 @@
 import { subDays, addDays, addWeeks, addMonths, startOfDay, endOfDay, addHours, setHours, setMinutes, setSeconds, setMilliseconds } from "date-fns";
 import Appointment from "../models/Appointment.js";
+import Patient from "../models/clinical/Patient.js";
 import Coupon from "../models/marketing/Coupon.js";
+import Waitlist from "../models/clinical/Waitlist.js";
+import { sendWhatsAppMessage } from "./whatsappService.js";
 
 // ==========================================
 // 🔍 1. LOS BUSCADORES (Consultas de citas)
@@ -89,10 +92,23 @@ export const processScheduledCoupons = async () => {
     "schedule.nextSendAt": { $lte: now },
   });
 
+  // Filtrar pacientes con opt-in para evitar bloqueos de API de WhatsApp
+  const eligiblePatients = await Patient.find({
+    isActive: true,
+    allowsWhatsAppNotifications: true,
+  }).select("name phone");
+
   for (const coupon of dueCoupons) {
-    console.log(
-      `📅 [SCHEDULE] Cupón "${coupon.code}" (${coupon.type}) — envío programado. Template: "${coupon.whatsappMessageTemplate}"`,
-    );
+    for (const patient of eligiblePatients) {
+      const message = (coupon.whatsappMessageTemplate || "")
+        .replace(/{{nombre}}/g, patient.name?.split(" ")[0] || "")
+        .replace(/{{codigo}}/g, coupon.code)
+        .replace(/{{descuento}}/g, coupon.discountType === "PERCENTAGE"
+          ? `${coupon.discountValue}%`
+          : `$${coupon.discountValue}`);
+
+      await sendWhatsAppMessage(patient.phone, message);
+    }
 
     // Actualizar lastSentAt y calcular nuevo nextSendAt
     coupon.schedule.lastSentAt = now;
@@ -137,10 +153,7 @@ export const processReferralCampaign = async () => {
           ? `${coupon.discountValue}%`
           : `$${coupon.discountValue}`);
 
-      // 📲 Aquí irá la API de Meta cuando esté lista
-      console.log(
-        `📲 [REFERRAL] Para ${patient.name} (${patient.phone}) — Cupón: ${coupon.code}: "${message}"`,
-      );
+      await sendWhatsAppMessage(patient.phone, message);
     }
   }
 };
@@ -151,6 +164,9 @@ export const processReferralCampaign = async () => {
  */
 export const processTriggerCoupons = async (event, patient, context = {}) => {
   try {
+    // Respetar opt-in de WhatsApp del paciente
+    if (!patient?.allowsWhatsAppNotifications) return;
+
     const coupons = await Coupon.find({
       isActive: true,
       "schedule.triggerEvent": event,
@@ -182,13 +198,71 @@ export const processTriggerCoupons = async (event, patient, context = {}) => {
 
       coupon.schedule.lastSentAt = new Date();
       await coupon.save();
-      // 📲 Aquí irá la API de Meta cuando esté lista
-      console.log(
-        `📲 [TRIGGER:${event}] Para ${patient.name} (${patient.phone}) — Cupón: ${coupon.code}: "${message}"`,
-      );
+      await sendWhatsAppMessage(patient.phone, message);
     }
   } catch (error) {
     console.error(`❌ Error en processTriggerCoupons [${event}]:`, error);
+  }
+};
+
+/**
+ * 🏥 Busca citas completadas hace 24h y 48h para enviar cuidados post-operatorios
+ */
+export const processPostOperativeCare = async () => {
+  const now = new Date();
+
+  for (const hoursAgo of [24, 48]) {
+    const targetStart = startOfDay(subDays(now, hoursAgo / 24));
+    const targetEnd = endOfDay(subDays(now, hoursAgo / 24));
+
+    // Buscar citas completadas en la ventana de tiempo correspondiente
+    const appointments = await Appointment.find({
+      status: "COMPLETED",
+      updatedAt: { $gte: targetStart, $lte: targetEnd },
+    }).populate("patientId");
+
+    const targets = appointments.filter(
+      (appt) => appt.patientId?.allowsWhatsAppNotifications,
+    );
+
+    for (const appt of targets) {
+      const patient = appt.patientId;
+      const firstName = patient.name?.split(" ")[0] || "Paciente";
+
+      const message = hoursAgo === 24
+        ? `Hola ${firstName}, han pasado 24 horas desde tu procedimiento en Sbeltic. Recuerda seguir las indicaciones de cuidado. Si tienes alguna molestia, no dudes en contactarnos.`
+        : `Hola ${firstName}, a 48 horas de tu tratamiento, esperamos que tu recuperación vaya bien. Recuerda mantener los cuidados indicados. Estamos para ti.`;
+
+      await sendWhatsAppMessage(patient.phone, message);
+    }
+  }
+};
+
+/**
+ * 📋 Busca citas con nextFollowUpDate para mañana y envía recordatorio
+ */
+export const processFollowUpReminders = async () => {
+  const tomorrow = addDays(new Date(), 1);
+
+  const appointments = await Appointment.find({
+    nextFollowUpDate: {
+      $gte: startOfDay(tomorrow),
+      $lte: endOfDay(tomorrow),
+    },
+    status: "COMPLETED",
+  }).populate("patientId");
+
+  const targets = appointments.filter(
+    (appt) => appt.patientId?.allowsWhatsAppNotifications,
+  );
+
+  for (const appt of targets) {
+    const patient = appt.patientId;
+    const firstName = patient.name?.split(" ")[0] || "Paciente";
+
+    const message = `Hola ${firstName}, mañana tienes una cita de seguimiento programada en Sbeltic. ¿Te gustaría confirmar tu horario?`;
+
+    await sendWhatsAppMessage(patient.phone, message);
   }
 };
 
@@ -211,8 +285,10 @@ export const sendTouchUpReminders = async () => {
 
     for (const appt of targets) {
       const patient = appt.patientId;
-      console.log(
-        `📲 [CLÍNICO] Recordatorio de retoque a ${patient.name} (${patient.phone}): "Hola, mañana te toca revisión de retoque por tu tratamiento. ¿Agendamos?"`,
+      const firstName = patient.name?.split(" ")[0] || "Paciente";
+      await sendWhatsAppMessage(
+        patient.phone,
+        `Hola ${firstName}, mañana te toca revisión de retoque por tu tratamiento. ¿Agendamos?`,
       );
     }
   } catch (error) {
@@ -227,8 +303,10 @@ export const sendHourlyReminders = async () => {
 
     for (const appt of targets) {
       const patient = appt.patientId;
-      console.log(
-        `📲 [OPERATIVO] Recordatorio urgente a ${patient.name} (${patient.phone}): "Hola, tu cita en Cabina es en 1 hora. Responde 1 para confirmar o 2 para cancelar."`,
+      const firstName = patient.name?.split(" ")[0] || "Paciente";
+      await sendWhatsAppMessage(
+        patient.phone,
+        `Hola ${firstName}, tu cita en Sbeltic es en 1 hora. Responde 1 para confirmar o 2 para cancelar.`,
       );
 
       appt.isReminderSent = true;
@@ -236,5 +314,63 @@ export const sendHourlyReminders = async () => {
     }
   } catch (error) {
     console.error("❌ Error en sendHourlyReminders:", error);
+  }
+};
+
+/**
+ * Expira notificaciones de waitlist sin respuesta después de 30 minutos.
+ * Escala al siguiente candidato en la cola.
+ */
+export const expireWaitlistNotifications = async () => {
+  try {
+    const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
+
+    const expired = await Waitlist.find({
+      status: "NOTIFIED",
+      notifiedAt: { $lte: thirtyMinAgo },
+    });
+
+    for (const entry of expired) {
+      entry.status = "EXPIRED";
+      await entry.save();
+
+      // Buscar siguiente candidato en la cola para el mismo doctor y fecha
+      const nextCandidate = await Waitlist.findOne({
+        doctorId: entry.doctorId,
+        desiredDate: entry.desiredDate,
+        status: "WAITING",
+      }).populate("patientId", "name phone");
+
+      if (nextCandidate && nextCandidate.patientId) {
+        nextCandidate.status = "NOTIFIED";
+        nextCandidate.notifiedAt = new Date();
+        await nextCandidate.save();
+
+        const patient = nextCandidate.patientId;
+        const firstName = patient.name?.split(" ")[0] || "Paciente";
+        await sendWhatsAppMessage(
+          patient.phone,
+          `Hola ${firstName}, se liberó un espacio. ¿Deseas tomarlo? Responde 1 para aceptar.`,
+        );
+      }
+    }
+  } catch (error) {
+    console.error("❌ Error en expireWaitlistNotifications:", error);
+  }
+};
+
+export const sendPostOperativeCare = async () => {
+  try {
+    await processPostOperativeCare();
+  } catch (error) {
+    console.error("❌ Error en sendPostOperativeCare:", error);
+  }
+};
+
+export const sendFollowUpReminders = async () => {
+  try {
+    await processFollowUpReminders();
+  } catch (error) {
+    console.error("❌ Error en sendFollowUpReminders:", error);
   }
 };

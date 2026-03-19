@@ -9,7 +9,7 @@ dotenv.config();
 import connectDB from "./config/db.js";
 import initCronJobs from "./jobs/cronJobs.js";
 import corsOptions from "./config/corsOptions.js";
-import { apiLimiter } from "./middlewares/rateLimiter.js";
+import { apiLimiter, publicLimiter } from "./middlewares/rateLimiter.js";
 import { errorHandler } from "./middlewares/errorMiddleware.js";
 import mongoSanitize from "./middlewares/mongoSanitize.js";
 
@@ -25,6 +25,7 @@ import supplierRoutes from "./routes/supplierRoutes.js";
 import couponRoutes from "./routes/couponRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import publicRoutes from "./routes/publicRoutes.js"; // 🌟 NUEVA: Rutas para firmas remotas
+import webhookRoutes from "./routes/webhookRoutes.js"; // 🤖 Webhooks de WhatsApp
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -61,8 +62,8 @@ app.get("/health", (req, res) =>
 );
 
 // 🔓 RUTAS PÚBLICAS (Sin protección de token para pacientes)
-// Importante: Ponerlas antes del manejador de 404
-app.use("/api/public", publicRoutes);
+// Rate limiting estricto: 10 req / 15 min por IP
+app.use("/api/public", publicLimiter, publicRoutes);
 
 // Módulo de Usuarios y Auth
 app.use("/api/users", userRoutes);
@@ -81,6 +82,9 @@ app.use("/api/suppliers", supplierRoutes);
 
 // Módulo de Marketing y Recompensas
 app.use("/api/coupons", couponRoutes);
+
+// 🤖 Webhooks (WhatsApp — sin auth, validado por HMAC)
+app.use("/api/webhooks", webhookRoutes);
 
 // 🛡️ Manejador de rutas inexistentes (404)
 app.use((req, res) => {

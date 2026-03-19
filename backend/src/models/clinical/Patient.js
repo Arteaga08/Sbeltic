@@ -65,6 +65,18 @@ const patientSchema = new mongoose.Schema(
 
     // Firma del paciente para el historial clínico inicial
     historySignature: { type: String },
+
+    // Tokens temporales para links de firma (seguridad anti-enumeración)
+    signatureTokens: [
+      {
+        token: { type: String, required: true },
+        targetId: { type: String, required: true }, // patientId o evolutionId
+        type: { type: String, enum: ["HISTORY", "EVOLUTION"], required: true },
+        expiresAt: { type: Date, required: true },
+        used: { type: Boolean, default: false },
+      },
+    ],
+
     isActive: { type: Boolean, default: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },

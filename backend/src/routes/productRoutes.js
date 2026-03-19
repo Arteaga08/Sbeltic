@@ -5,6 +5,7 @@ import {
   getProductById,
   updateProduct,
   deleteProduct,
+  checkAvailability,
 } from "../controllers/productController.js";
 
 import checkAuth from "../middlewares/checkAuth.js";
@@ -29,6 +30,9 @@ router
     validateSchema({ body: createProductSchema }),
     createProduct,
   );
+
+// Verificar disponibilidad de stock (pre-checkout)
+router.post("/check-availability", checkAvailability);
 
 router
   .route("/:id")

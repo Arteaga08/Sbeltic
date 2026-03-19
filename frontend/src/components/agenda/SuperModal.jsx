@@ -143,6 +143,37 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      // Pre-validación de stock al completar cita con insumos
+      if (
+        form.status === "COMPLETED" &&
+        appointment.status !== "COMPLETED" &&
+        form.consumedSupplies?.length > 0
+      ) {
+        const stockRes = await fetch(`${API}/products/check-availability`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`,
+          },
+          body: JSON.stringify({
+            items: form.consumedSupplies.map((s) => ({
+              productId: s.productId,
+              quantity: s.quantity,
+            })),
+          }),
+        });
+        const stockData = await stockRes.json();
+        if (stockRes.ok && !stockData.data.allAvailable) {
+          const issues = stockData.data.items
+            .filter((i) => !i.available)
+            .map((i) => `${i.name}: ${i.reason}`)
+            .join("\n");
+          alert(`Stock insuficiente:\n${issues}`);
+          setIsSaving(false);
+          return;
+        }
+      }
+
       const payload = {
         status: form.status,
         originalQuote: form.originalQuote,

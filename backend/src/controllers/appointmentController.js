@@ -451,8 +451,9 @@ const cancelAppointment = asyncHandler(async (req, res, next) => {
     });
 
     if (!existingFuture) {
-      notificationMessage = `Hola ${patientWaitlist.name}, ¡buenas noticias! Se liberó un espacio hoy. ¿Deseas tomarlo?`;
+      notificationMessage = `Hola ${patientWaitlist.name}, ¡buenas noticias! Se liberó un espacio hoy. ¿Deseas tomarlo? Responde 1 para aceptar.`;
       nextInLine.status = "NOTIFIED";
+      nextInLine.notifiedAt = new Date();
       await nextInLine.save();
     }
   }

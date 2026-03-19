@@ -3,6 +3,9 @@ import {
   sendReferralInvitations,
   sendTouchUpReminders,
   sendHourlyReminders,
+  sendPostOperativeCare,
+  sendFollowUpReminders,
+  expireWaitlistNotifications,
   processScheduledCoupons,
 } from "../services/automationService.js";
 import { startInventoryCron } from "./inventoryCron.js"; // 🔥 Importamos el de Inventario
@@ -18,13 +21,16 @@ const initCronJobs = () => {
     console.log("🌅 [CRON] Iniciando tareas diarias de marketing (8:00 AM)...");
     await sendReferralInvitations();
     await sendTouchUpReminders();
+    await sendFollowUpReminders();
+    await sendPostOperativeCare();
     await processScheduledCoupons();
   });
 
   // RELOJ RÁPIDO: Se ejecuta cada 15 minutos
   cron.schedule("*/15 * * * *", async () => {
-    console.log("⚡ [CRON] Revisando citas próximas (1 hora antes)...");
+    console.log("⚡ [CRON] Revisando citas próximas y waitlist...");
     await sendHourlyReminders();
+    await expireWaitlistNotifications();
   });
 };
 

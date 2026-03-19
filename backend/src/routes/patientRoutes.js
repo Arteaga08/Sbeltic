@@ -12,6 +12,7 @@ import {
   getPatients,
   updatePatient,
   addEvolution,
+  requestSignatureToken,
 } from "../controllers/patientController.js";
 import {
   createPatientSchema,
@@ -45,5 +46,8 @@ router.post(
   validateSchema({ body: createEvolutionSchema }),
   addEvolution,
 );
+
+// Generar token temporal para link de firma (botón WhatsApp del frontend)
+router.post("/:id/signature-token", requestSignatureToken);
 
 export default router;

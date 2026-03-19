@@ -57,10 +57,11 @@ const createProduct = asyncHandler(async (req, res, next) => {
 
   // 📦 4. LÓGICA DEL LOTE INICIAL (Mapeada a tu Modelo Batch)
   if (initialQuantity && initialQuantity > 0) {
-    const finalBatchNumber =
-      batchNumber && batchNumber.trim() !== ""
-        ? batchNumber
-        : `INIT-${sku.substring(0, 4).toUpperCase()}`;
+  const finalBatchNumber =
+    typeof batchNumber === "string" && batchNumber.trim() !== ""
+      ? batchNumber
+      // 🌟 EXTRA: Protegemos el 'sku' también, por si acaso viene como número o nulo
+      : `INIT-${typeof sku === "string" ? sku.substring(0, 4).toUpperCase() : "0000"}`;
 
     const initialBatch = new Batch({
       productId: product._id, // ✅ Antes era 'product'
@@ -234,10 +235,54 @@ const deleteProduct = asyncHandler(async (req, res, next) => {
   sendResponse(res, 200, null, "Producto desactivado correctamente");
 });
 
+/**
+ * @desc    Verificar disponibilidad de stock para una lista de insumos
+ * @route   POST /api/products/check-availability
+ * @access  Private
+ */
+const checkAvailability = asyncHandler(async (req, res, next) => {
+  const { items } = req.body; // [{ productId, quantity }]
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return next(new AppError("Se requiere una lista de insumos", 400));
+  }
+
+  const results = [];
+
+  for (const item of items) {
+    const product = await Product.findById(item.productId).select(
+      "name currentStock sku",
+    );
+    if (!product) {
+      results.push({
+        productId: item.productId,
+        available: false,
+        reason: "Producto no encontrado",
+      });
+      continue;
+    }
+
+    const sufficient = product.currentStock >= item.quantity;
+    results.push({
+      productId: item.productId,
+      name: product.name,
+      requested: item.quantity,
+      currentStock: product.currentStock,
+      available: sufficient,
+      reason: sufficient ? null : `Stock insuficiente (disponible: ${product.currentStock})`,
+    });
+  }
+
+  const allAvailable = results.every((r) => r.available);
+
+  sendResponse(res, 200, { allAvailable, items: results });
+});
+
 export {
   createProduct,
   getProducts,
   getProductById,
   updateProduct,
   deleteProduct,
+  checkAvailability,
 };

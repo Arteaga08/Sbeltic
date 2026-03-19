@@ -31,7 +31,8 @@ const createUserSchema = z
       .string()
       .min(8, "La contraseña debe tener al menos 8 caracteres")
       .regex(/(?=.*[A-Z])/, "Debe contener al menos una mayúscula")
-      .regex(/(?=.*[0-9])/, "Debe contener al menos un número"),
+      .regex(/(?=.*[0-9])/, "Debe contener al menos un número")
+      .regex(/(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])/, "Debe contener al menos un carácter especial"),
     role: z.enum(["ADMIN", "RECEPTIONIST", "DOCTOR"]).default("RECEPTIONIST"),
     phone: z
       .string()
@@ -58,7 +59,8 @@ const changePasswordSchema = z
       .string()
       .min(8, "La nueva contraseña debe tener al menos 8 caracteres")
       .regex(/(?=.*[A-Z])/, "Debe contener una mayúscula")
-      .regex(/(?=.*[0-9])/, "Debe contener un número"),
+      .regex(/(?=.*[0-9])/, "Debe contener un número")
+      .regex(/(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])/, "Debe contener un carácter especial"),
   })
   .strict();
 

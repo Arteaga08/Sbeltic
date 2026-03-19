@@ -53,6 +53,12 @@ export const errorHandler = (err, req, res, next) => {
     error.isOperational = true;
   }
 
+  // 🔹 Conflict (409) — ej. doble reservación detectada en pre-save
+  if (err.statusCode === 409) {
+    error.statusCode = 409;
+    error.isOperational = true;
+  }
+
   // 🔹 JWT Errors
   if (err.name === "JsonWebTokenError") {
     error.message = "Invalid token. Please log in again.";

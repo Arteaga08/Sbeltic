@@ -2,16 +2,11 @@ import Patient from "../models/clinical/Patient.js";
 import AppError from "../utils/appError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendResponse } from "../utils/responseHandler.js";
+import { generateSignatureToken } from "./publicController.js";
+import { sendWhatsAppMessage } from "../services/whatsappService.js";
 
-// 🤖 UTILIDAD MOCK PARA WHATSAPP (Reemplazar con API real en el futuro)
-// Puedes mover esto a un archivo utils/whatsapp.js cuando contrates la API
-const sendWA = async (phone, message) => {
-  console.log(`\n========================================`);
-  console.log(`📱 [WA-AUTOMATION] Enviando WhatsApp a: ${phone}`);
-  console.log(`💬 Mensaje: \n${message}`);
-  console.log(`========================================\n`);
-  // Aquí irá tu fetch a la API de WhatsApp (GreenAPI, Twilio, Meta API, etc.)
-};
+// Alias para mantener compatibilidad con las llamadas existentes
+const sendWA = sendWhatsAppMessage;
 
 const sanitizePatientList = (p) => ({
   _id: p._id,
@@ -54,10 +49,10 @@ const createPatient = asyncHandler(async (req, res, next) => {
 
   await patient.save();
 
-  // 🤖 AUTOMATIZACIÓN WHATSAPP: Link de firma de Historia Clínica
-  // Usamos localhost como fallback por si no tienes la variable de entorno configurada aún
+  // 🤖 AUTOMATIZACIÓN WHATSAPP: Link de firma de Historia Clínica (con token seguro)
   const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-  const signLink = `${baseUrl}/public/${patient._id}`;
+  const signToken = await generateSignatureToken(patient._id, String(patient._id), "HISTORY");
+  const signLink = `${baseUrl}/public/${signToken}`;
 
   await sendWA(
     patient.phone,
@@ -141,7 +136,10 @@ const addEvolution = asyncHandler(async (req, res, next) => {
 
   patient.evolutions.push(newEvolution);
 
-  if (req.body.diagnosis?.toUpperCase().includes("CIRUGIA")) {
+  if (
+    typeof req.body.diagnosis === "string" &&
+    req.body.diagnosis.toUpperCase().includes("CIRUGIA")
+  ) {
     patient.patientType = "SURGERY";
   }
 
@@ -150,9 +148,10 @@ const addEvolution = asyncHandler(async (req, res, next) => {
   // 🌟 OBTENER EL ID DE LA EVOLUCIÓN RECIÉN CREADA
   const addedEvolution = patient.evolutions[patient.evolutions.length - 1];
 
-  // 🤖 AUTOMATIZACIÓN WHATSAPP: Link de firma de Evolución
+  // 🤖 AUTOMATIZACIÓN WHATSAPP: Link de firma de Evolución (con token seguro)
   const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-  const signLink = `${baseUrl}/public/${addedEvolution._id}`;
+  const signToken = await generateSignatureToken(patient._id, String(addedEvolution._id), "EVOLUTION");
+  const signLink = `${baseUrl}/public/${signToken}`;
   const firstName = patient.name.split(" ")[0];
 
   await sendWA(
@@ -168,6 +167,27 @@ const deletePatient = asyncHandler(async (req, res, next) => {
   sendResponse(res, 200, null, "Paciente desactivado correctamente");
 });
 
+// 🔑 Generar token de firma on-demand (para botón WhatsApp del frontend)
+const requestSignatureToken = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const { targetId, type } = req.body;
+
+  if (!["HISTORY", "EVOLUTION"].includes(type)) {
+    return next(new AppError("Tipo de firma inválido", 400));
+  }
+
+  const effectiveTargetId = type === "HISTORY" ? id : targetId;
+  if (!effectiveTargetId) {
+    return next(new AppError("Se requiere targetId para firmas de evolución", 400));
+  }
+
+  const token = await generateSignatureToken(id, effectiveTargetId, type);
+  const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+  const signLink = `${baseUrl}/public/${token}`;
+
+  sendResponse(res, 200, { signLink }, "Link de firma generado");
+});
+
 // --- EXPORTACIÓN AGRUPADA AL FINAL ---
 export {
   createPatient,
@@ -176,4 +196,5 @@ export {
   updatePatient,
   addEvolution,
   deletePatient,
+  requestSignatureToken,
 };

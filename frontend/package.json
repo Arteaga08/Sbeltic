@@ -12,7 +12,7 @@
     "@headlessui/react": "^2.2.9",
     "@phosphor-icons/react": "^2.1.10",
     "@react-pdf/renderer": "^4.3.2",
-    "next": "16.1.6",
+    "next": "^16.2.0",
     "qrcode.react": "^4.2.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",

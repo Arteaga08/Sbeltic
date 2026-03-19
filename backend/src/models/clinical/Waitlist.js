@@ -18,9 +18,10 @@ const waitlistSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["WAITING", "NOTIFIED", "RESOLVED"],
+      enum: ["WAITING", "NOTIFIED", "RESOLVED", "EXPIRED"],
       default: "WAITING",
     },
+    notifiedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

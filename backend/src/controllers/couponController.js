@@ -75,29 +75,31 @@ const deactivateCoupon = asyncHandler(async (req, res, next) => {
  * 4. VALIDAR CUPÓN (Motor de Marketing)
  */
 const validateCouponCode = asyncHandler(async (req, res, next) => {
-  // 🌟 2. Ahora lo recibimos del BODY, porque el admin/recepción es quien lo envía
   const { code, patientId } = req.body;
 
-  if (!code || !patientId) {
+  if (!code || typeof code !== "string" || !patientId) {
     return next(
-      new AppError("Se requiere el código del cupón y el paciente", 400),
+      new AppError(
+        "Se requiere un código de cupón válido (texto) y el paciente",
+        400,
+      ),
     );
   }
 
+  const safeCode = code.toUpperCase();
+
   const coupon = await Coupon.findOne({
-    code: code.toUpperCase(),
+    code: safeCode,
     isActive: true,
     expiresAt: { $gte: new Date() },
   });
 
   if (!coupon) return next(new AppError("Cupón no válido o expirado", 404));
 
-  // 1. Validar límite GLOBAL
   if (coupon.usedCount >= coupon.maxRedemptions) {
     return next(new AppError("Este cupón se ha agotado", 400));
   }
 
-  // 2. Validar límite POR USUARIO (maxUsesPerUser)
   const userUsageCount = coupon.usedBy.filter(
     (usage) => usage.patientId.toString() === patientId,
   ).length;
@@ -169,4 +171,10 @@ const getCouponStats = asyncHandler(async (req, res) => {
   });
 });
 
-export { createCoupon, getCoupons, deactivateCoupon, validateCouponCode, getCouponStats };
+export {
+  createCoupon,
+  getCoupons,
+  deactivateCoupon,
+  validateCouponCode,
+  getCouponStats,
+};
