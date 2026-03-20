@@ -28,6 +28,9 @@ const createTreatmentSchema = z
         }),
       )
       .optional(),
+    defaultRoomId: z
+      .enum(["CABINA_1", "CABINA_2", "CABINA_3", "SPA", "CONSULTORIO", "QUIROFANO"])
+      .optional(),
     isActive: z.boolean().default(true),
   })
   .strict();

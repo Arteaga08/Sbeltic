@@ -32,6 +32,11 @@ const treatmentSchema = new mongoose.Schema(
       },
     ],
 
+    defaultRoomId: {
+      type: String,
+      enum: ["CABINA_1", "CABINA_2", "CABINA_3", "SPA", "CONSULTORIO", "QUIROFANO"],
+    },
+
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true },

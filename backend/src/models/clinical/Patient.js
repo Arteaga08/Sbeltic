@@ -71,7 +71,7 @@ const patientSchema = new mongoose.Schema(
       {
         token: { type: String, required: true },
         targetId: { type: String, required: true }, // patientId o evolutionId
-        type: { type: String, enum: ["HISTORY", "EVOLUTION"], required: true },
+        type: { type: String, enum: ["HISTORY", "EVOLUTION", "MEDICAL_HISTORY_FORM"], required: true },
         expiresAt: { type: Date, required: true },
         used: { type: Boolean, default: false },
       },

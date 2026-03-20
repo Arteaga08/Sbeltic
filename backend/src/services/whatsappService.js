@@ -114,6 +114,122 @@ export const sendWhatsAppTemplate = async (phone, templateName, languageCode = "
 };
 
 /**
+ * Envía un mensaje interactivo con botones de respuesta rápida.
+ * @param {string} phone
+ * @param {string} bodyText
+ * @param {Array<{id: string, title: string}>} buttons — máximo 3
+ */
+export const sendWhatsAppInteractive = async (phone, bodyText, buttons) => {
+  console.log(`\n========================================`);
+  console.log(`📱 [WA-${WHATSAPP_MODE.toUpperCase()}] Enviando a: ${phone}`);
+  console.log(`🔘 Interactivo (botones): ${bodyText}`);
+  buttons.forEach((b) => console.log(`   • [${b.id}] ${b.title}`));
+  console.log(`========================================\n`);
+
+  if (!PHONE_NUMBER_ID || !ACCESS_TOKEN) {
+    console.log("⚠️ [WA] Credenciales no configuradas — mensaje solo logueado");
+    return { success: true, mode: "mock" };
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${ACCESS_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: phone.replace(/[^\d]/g, ""),
+        type: "interactive",
+        interactive: {
+          type: "button",
+          body: { text: bodyText },
+          action: {
+            buttons: buttons.map((b) => ({
+              type: "reply",
+              reply: { id: b.id, title: b.title },
+            })),
+          },
+        },
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("❌ [WA-INTERACTIVE] Error de API:", data.error?.message || data);
+      return { success: false, error: data.error };
+    }
+
+    console.log(`✅ [WA-INTERACTIVE] Enviado. ID: ${data.messages?.[0]?.id}`);
+    return { success: true, messageId: data.messages?.[0]?.id, mode: WHATSAPP_MODE };
+  } catch (error) {
+    console.error("❌ [WA-INTERACTIVE] Error de red:", error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Envía un mensaje interactivo de lista desplegable.
+ * @param {string} phone
+ * @param {string} bodyText
+ * @param {string} buttonLabel — texto del botón que abre la lista (máx 20 chars)
+ * @param {Array<{title: string, rows: Array<{id: string, title: string, description?: string}>}>} sections
+ */
+export const sendWhatsAppList = async (phone, bodyText, buttonLabel, sections) => {
+  console.log(`\n========================================`);
+  console.log(`📱 [WA-${WHATSAPP_MODE.toUpperCase()}] Enviando a: ${phone}`);
+  console.log(`📋 Lista: ${bodyText}`);
+  sections.forEach((s) => {
+    console.log(`   Sección: ${s.title}`);
+    s.rows.forEach((r) => console.log(`     • [${r.id}] ${r.title}`));
+  });
+  console.log(`========================================\n`);
+
+  if (!PHONE_NUMBER_ID || !ACCESS_TOKEN) {
+    console.log("⚠️ [WA] Credenciales no configuradas — mensaje solo logueado");
+    return { success: true, mode: "mock" };
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${ACCESS_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: phone.replace(/[^\d]/g, ""),
+        type: "interactive",
+        interactive: {
+          type: "list",
+          body: { text: bodyText },
+          action: {
+            button: buttonLabel,
+            sections,
+          },
+        },
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("❌ [WA-LIST] Error de API:", data.error?.message || data);
+      return { success: false, error: data.error };
+    }
+
+    console.log(`✅ [WA-LIST] Enviado. ID: ${data.messages?.[0]?.id}`);
+    return { success: true, messageId: data.messages?.[0]?.id, mode: WHATSAPP_MODE };
+  } catch (error) {
+    console.error("❌ [WA-LIST] Error de red:", error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
  * Verifica la firma HMAC del webhook de Meta.
  */
 export const verifyWebhookSignature = (rawBody, signature) => {

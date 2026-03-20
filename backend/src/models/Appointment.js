@@ -107,18 +107,20 @@ appointmentSchema.index({ patientId: 1, appointmentDate: -1 });
 appointmentSchema.index({ appointmentDate: 1, status: 1 });
 
 // --- PRE-SAVE: Prevención atómica de doble reservación (race condition) ---
-appointmentSchema.pre("save", async function (next) {
+appointmentSchema.pre("save", async function () {
   if (!this.isNew && !this.isModified("appointmentDate") && !this.isModified("doctorId") && !this.isModified("roomId") && !this.isModified("duration")) {
-    return next();
+    return;
   }
 
   const start = new Date(this.appointmentDate);
   const end = new Date(start.getTime() + this.duration * 60000);
 
-  const conflict = await mongoose.model("Appointment").findOne({
+  const botIds = [process.env.BOT_RECEPTIONIST_ID, process.env.BOT_DOCTOR_ID].filter(Boolean);
+  const isBotDoctor = botIds.includes(String(this.doctorId));
+
+  const collisionFilter = {
     _id: { $ne: this._id },
     status: { $ne: "CANCELLED" },
-    $or: [{ doctorId: this.doctorId }, { roomId: this.roomId }],
     appointmentDate: { $lt: end },
     $expr: {
       $gt: [
@@ -126,18 +128,34 @@ appointmentSchema.pre("save", async function (next) {
         start,
       ],
     },
-  });
+  };
+
+  if (isBotDoctor) {
+    collisionFilter.roomId = this.roomId;
+  } else {
+    collisionFilter.$or = [{ doctorId: this.doctorId }, { roomId: this.roomId }];
+  }
+
+  const conflict = await mongoose.model("Appointment").findOne(collisionFilter);
 
   if (conflict) {
+    console.log("⚠️ [PRE-SAVE] Conflicto detectado:", {
+      conflictId: conflict._id,
+      conflictDoctor: conflict.doctorId,
+      conflictRoom: conflict.roomId,
+      conflictDate: conflict.appointmentDate,
+      newDoctor: this.doctorId,
+      newRoom: this.roomId,
+      newDate: this.appointmentDate,
+    });
     const sameDoctor = String(conflict.doctorId) === String(this.doctorId);
     const reason = sameDoctor
       ? "El personal ya tiene una cita asignada en ese horario."
       : `La habitación/cabina ${this.roomId} ya está ocupada en ese horario.`;
     const err = new Error(reason);
     err.statusCode = 409;
-    return next(err);
+    throw err;
   }
-  next();
 });
 
 export default mongoose.model("Appointment", appointmentSchema);

@@ -12,11 +12,9 @@ import { getUniqueSKU } from "../services/inventoryService.js";
  * @access  Private (Admin/Receptionist)
  */
 const createProduct = asyncHandler(async (req, res, next) => {
-  // 1. Extraemos los campos (incluyendo los nuevos del lote inicial)
   let { sku, category, initialQuantity, batchNumber, expirationDate } =
     req.body;
 
-  // 2. Validar que la categoría seleccionada exista y esté activa
   const categoryExists = await Category.findOne({
     _id: category,
     isActive: true,

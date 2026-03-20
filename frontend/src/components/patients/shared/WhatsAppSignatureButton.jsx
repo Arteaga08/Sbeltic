@@ -12,6 +12,8 @@ const WhatsAppSignatureButton = ({
 }) => {
   const [loading, setLoading] = useState(false);
 
+  const isMedicalHistoryForm = type === "MEDICAL_HISTORY_FORM";
+
   const sendWhatsApp = async () => {
     if (!patientId || patientId === "undefined") {
       return toast.error("Aún no hay un ID generado para enviar el enlace");
@@ -23,36 +25,41 @@ const WhatsAppSignatureButton = ({
 
     setLoading(true);
     try {
-      const token = localStorage.getItem("sbeltic_token");
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/patients/${patientId}/signature-token`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            type,
-            targetId: type === "EVOLUTION" ? evolutionId : undefined,
-          }),
+      const authToken = localStorage.getItem("sbeltic_token");
+
+      const endpoint = isMedicalHistoryForm
+        ? `${process.env.NEXT_PUBLIC_API_URL}/patients/${patientId}/medical-history-token`
+        : `${process.env.NEXT_PUBLIC_API_URL}/patients/${patientId}/signature-token`;
+
+      const body = isMedicalHistoryForm
+        ? {}
+        : { type, targetId: type === "EVOLUTION" ? evolutionId : undefined };
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
         },
-      );
+        body: JSON.stringify(body),
+      });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Error al generar link");
 
       const link = data.data.signLink;
       const firstName = patientName ? patientName.split(" ")[0] : "Paciente";
-      const message = `Hola ${firstName}, por favor firma tu ${type === "HISTORY" ? "historia clínica" : "nota médica"} de Sbeltic en el siguiente enlace: ${link}`;
-      const encodedMessage = encodeURIComponent(message);
+
+      const message = isMedicalHistoryForm
+        ? `Hola ${firstName}, por favor completa tu historial médico de Sbeltic en el siguiente enlace seguro (expira en 1 hora):\n${link}`
+        : `Hola ${firstName}, por favor firma tu ${type === "HISTORY" ? "historia clínica" : "nota médica"} de Sbeltic en el siguiente enlace: ${link}`;
 
       window.open(
-        `https://wa.me/${patientPhone}?text=${encodedMessage}`,
+        `https://wa.me/${patientPhone}?text=${encodeURIComponent(message)}`,
         "_blank",
       );
     } catch (err) {
-      toast.error(err.message || "No se pudo generar el enlace de firma");
+      toast.error(err.message || "No se pudo generar el enlace");
     } finally {
       setLoading(false);
     }
@@ -73,10 +80,16 @@ const WhatsAppSignatureButton = ({
       </div>
       <div className="text-left">
         <p className="text-[9px] font-black uppercase tracking-widest leading-none mb-1 group-hover:text-white transition-colors">
-          {loading ? "Generando enlace..." : "Enviar Firma a WhatsApp"}
+          {loading
+            ? "Generando enlace..."
+            : isMedicalHistoryForm
+              ? "Enviar Historial Médico"
+              : "Enviar Firma a WhatsApp"}
         </p>
         <p className="text-[8px] font-bold opacity-70 uppercase tracking-tighter group-hover:text-emerald-50 transition-colors">
-          El paciente firmará desde su móvil
+          {isMedicalHistoryForm
+            ? "El paciente llenará el formulario desde su móvil"
+            : "El paciente firmará desde su móvil"}
         </p>
       </div>
     </button>

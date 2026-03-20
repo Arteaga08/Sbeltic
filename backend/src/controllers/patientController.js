@@ -49,15 +49,35 @@ const createPatient = asyncHandler(async (req, res, next) => {
 
   await patient.save();
 
-  // 🤖 AUTOMATIZACIÓN WHATSAPP: Link de firma de Historia Clínica (con token seguro)
+  // 🤖 AUTOMATIZACIÓN WHATSAPP
   const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-  const signToken = await generateSignatureToken(patient._id, String(patient._id), "HISTORY");
-  const signLink = `${baseUrl}/public/${signToken}`;
 
-  await sendWA(
-    patient.phone,
-    `¡Bienvenido a Sbeltic, ${firstName}! 🏥\n\nPara completar tu registro, por favor firma tu historia clínica digital en el siguiente enlace seguro:\n${signLink}`,
-  );
+  if (["SURGERY", "LEAD"].includes(patientType)) {
+    // Pacientes SURGERY y LEAD: formulario completo de historial (1 hora)
+    const formToken = await generateSignatureToken(
+      patient._id,
+      String(patient._id),
+      "MEDICAL_HISTORY_FORM",
+      1,
+    );
+    const formLink = `${baseUrl}/paciente/historial/${formToken}`;
+    await sendWA(
+      patient.phone,
+      `¡Bienvenido a Sbeltic, ${firstName}! 🏥\n\nPor favor, completa tu historial médico en el siguiente enlace seguro (expira en 1 hora):\n${formLink}`,
+    );
+  } else {
+    // Otros tipos: solo firma de historia clínica
+    const signToken = await generateSignatureToken(
+      patient._id,
+      String(patient._id),
+      "HISTORY",
+    );
+    const signLink = `${baseUrl}/public/${signToken}`;
+    await sendWA(
+      patient.phone,
+      `¡Bienvenido a Sbeltic, ${firstName}! 🏥\n\nPara completar tu registro, por favor firma tu historia clínica digital en el siguiente enlace seguro:\n${signLink}`,
+    );
+  }
 
   sendResponse(res, 201, patient, "Paciente registrado exitosamente");
 });
@@ -188,6 +208,35 @@ const requestSignatureToken = asyncHandler(async (req, res, next) => {
   sendResponse(res, 200, { signLink }, "Link de firma generado");
 });
 
+// 🔑 Generar enlace de formulario de historial médico (solo SURGERY y LEAD)
+const generateMedicalHistoryToken = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+
+  const patient = await Patient.findById(id);
+  if (!patient || !patient.isActive)
+    return next(new AppError("Paciente no encontrado", 404));
+
+  if (!["SURGERY", "LEAD"].includes(patient.patientType)) {
+    return next(
+      new AppError(
+        "El formulario de historial médico solo aplica para pacientes de tipo Cirugía o Cotización",
+        400,
+      ),
+    );
+  }
+
+  const token = await generateSignatureToken(
+    patient._id,
+    String(patient._id),
+    "MEDICAL_HISTORY_FORM",
+    1,
+  );
+  const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+  const signLink = `${baseUrl}/paciente/historial/${token}`;
+
+  sendResponse(res, 200, { signLink }, "Enlace de historial médico generado");
+});
+
 // --- EXPORTACIÓN AGRUPADA AL FINAL ---
 export {
   createPatient,
@@ -197,4 +246,5 @@ export {
   addEvolution,
   deletePatient,
   requestSignatureToken,
+  generateMedicalHistoryToken,
 };

@@ -2,6 +2,7 @@ import Appointment from "../models/Appointment.js";
 import Patient from "../models/clinical/Patient.js";
 import Waitlist from "../models/clinical/Waitlist.js";
 import { sendWhatsAppMessage } from "../services/whatsappService.js";
+import { handleStateMachine, hasActiveSession } from "./whatsappController.js";
 
 /**
  * GET /api/webhooks/whatsapp — Verificación del webhook de Meta
@@ -12,12 +13,13 @@ export const verifyWhatsAppWebhook = (req, res) => {
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
 
+  // DEBUG: Vamos a ver qué está recibiendo Node y qué tiene en memoria
+
   if (mode === "subscribe" && token === process.env.WHATSAPP_VERIFY_TOKEN) {
-    console.log("✅ [WEBHOOK] WhatsApp verificado correctamente");
     return res.status(200).send(challenge);
   }
 
-  return res.status(403).json({ error: "Verificación fallida" });
+  return res.status(403).send("Error de token");
 };
 
 /**
@@ -39,28 +41,44 @@ export const handleWhatsAppWebhook = async (req, res) => {
 
     if (!messages || messages.length === 0) return;
 
-    const msg = messages[0];
-    const from = msg.from; // Número del remitente (sin +)
-    const text = msg.text?.body?.trim();
+    let msg = messages[0];
+    let from = msg.from; // Número del remitente (sin +)
 
-    if (!text) return;
+    if (from.startsWith("521") && from.length === 13) {
+      from = "52" + from.substring(3);
+    }
 
-    console.log(`📩 [WEBHOOK] Mensaje recibido de ${from}: "${text}"`);
+    console.log(`📩 [WEBHOOK] Mensaje de ${from} | tipo: ${msg.type}`);
 
-    // Buscar paciente por teléfono
+    // --- ROUTING ---
+    // Mensajes interactivos (botones/listas) y sesiones activas → state machine
+    // "1" o "2" sin sesión activa → flujo legacy de citas
+    const rawText = msg.text?.body?.trim();
+    const isLegacyReply =
+      msg.type === "text" && (rawText === "1" || rawText === "2");
+
+    if (hasActiveSession(from) || !isLegacyReply) {
+      const handled = await handleStateMachine(msg, from);
+      if (handled) return;
+      // Si retorna false (HUMAN_TAKEOVER), caer al flujo legacy
+    }
+
+    // --- FLUJO LEGACY: confirmación/cancelación de citas ("1" / "2") ---
+    if (!rawText) return;
+
     const patient = await Patient.findOne({
       phone: { $regex: from.slice(-10) },
     });
 
     if (!patient) {
-      console.log(`⚠️ [WEBHOOK] Paciente no encontrado para: ${from}`);
+      // Número desconocido intentando "1"/"2" → iniciar bot
+      await handleStateMachine(msg, from);
       return;
     }
 
-    // Procesar respuesta según contexto
-    if (text === "1") {
+    if (rawText === "1") {
       await handleConfirmation(patient, from);
-    } else if (text === "2") {
+    } else if (rawText === "2") {
       await handleCancellation(patient, from);
     }
   } catch (error) {
@@ -82,7 +100,10 @@ const handleConfirmation = async (patient, phone) => {
 
   if (waitlistEntry) {
     // Auto-conversión Waitlist → Appointment
-    const created = await autoConvertWaitlistToAppointment(waitlistEntry, patient);
+    const created = await autoConvertWaitlistToAppointment(
+      waitlistEntry,
+      patient,
+    );
     if (created) {
       await sendWhatsAppMessage(
         phone,
@@ -158,7 +179,8 @@ const handleCancellation = async (patient, phone) => {
       nextInLine.notifiedAt = new Date();
       await nextInLine.save();
 
-      const waitlistName = nextInLine.patientId.name?.split(" ")[0] || "Paciente";
+      const waitlistName =
+        nextInLine.patientId.name?.split(" ")[0] || "Paciente";
       await sendWhatsAppMessage(
         nextInLine.patientId.phone,
         `Hola ${waitlistName}, se liberó un espacio. ¿Deseas tomarlo? Responde 1 para aceptar.`,

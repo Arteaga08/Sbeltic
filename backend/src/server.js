@@ -1,11 +1,11 @@
+import "dotenv/config";
 import express from "express";
-import dotenv from "dotenv";
 import helmet from "helmet";
 import cors from "cors";
 import morgan from "morgan";
 
 // 🛠️ Configuraciones y Conexión
-dotenv.config();
+
 import connectDB from "./config/db.js";
 import initCronJobs from "./jobs/cronJobs.js";
 import corsOptions from "./config/corsOptions.js";
@@ -19,17 +19,19 @@ import patientRoutes from "./routes/patientRoutes.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
 import waitlistRoutes from "./routes/waitlistRoutes.js";
 import treatmentRoutes from "./routes/treatmentRoutes.js";
+import treatmentCategoryRoutes from "./routes/treatmentCategoryRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import batchRoutes from "./routes/batchRoutes.js";
 import supplierRoutes from "./routes/supplierRoutes.js";
 import couponRoutes from "./routes/couponRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import publicRoutes from "./routes/publicRoutes.js"; // 🌟 NUEVA: Rutas para firmas remotas
+import medicalHistoryRoutes from "./routes/medicalHistoryRoutes.js"; // 📋 Historial médico vía WhatsApp
 import webhookRoutes from "./routes/webhookRoutes.js"; // 🤖 Webhooks de WhatsApp
 
 const app = express();
-const PORT = process.env.PORT || 5000;
-
+const PORT = process.env.PORT || 5009;
+app.set('trust proxy', 1);
 // ==========================================
 // 1. MIDDLEWARES GLOBALES DE SEGURIDAD
 // ==========================================
@@ -64,6 +66,7 @@ app.get("/health", (req, res) =>
 // 🔓 RUTAS PÚBLICAS (Sin protección de token para pacientes)
 // Rate limiting estricto: 10 req / 15 min por IP
 app.use("/api/public", publicLimiter, publicRoutes);
+app.use("/api/medical-history", publicLimiter, medicalHistoryRoutes);
 
 // Módulo de Usuarios y Auth
 app.use("/api/users", userRoutes);
@@ -73,6 +76,7 @@ app.use("/api/patients", patientRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/waitlist", waitlistRoutes);
 app.use("/api/treatments", treatmentRoutes);
+app.use("/api/treatment-categories", treatmentCategoryRoutes);
 
 // Módulo de Logística (Inventario)
 app.use("/api/products", productRoutes);

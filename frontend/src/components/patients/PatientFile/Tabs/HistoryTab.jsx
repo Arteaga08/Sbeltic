@@ -183,7 +183,11 @@ const HistoryTab = ({ patient, userRole, onUpdate, onClose }) => {
               patientPhone={formData.phone}
               patientName={formData.name}
               patientId={formData._id}
-              type="HISTORY"
+              type={
+                ["SURGERY", "LEAD"].includes(formData.patientType)
+                  ? "MEDICAL_HISTORY_FORM"
+                  : "HISTORY"
+              }
             />
           )}
 

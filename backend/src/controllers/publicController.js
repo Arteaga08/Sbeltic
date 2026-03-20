@@ -5,9 +5,9 @@ import AppError from "../utils/appError.js";
 import { sendResponse } from "../utils/responseHandler.js";
 
 // 🔑 Generar token temporal para link de firma (llamado desde patientController)
-const generateSignatureToken = async (patientId, targetId, type) => {
+const generateSignatureToken = async (patientId, targetId, type, expiresInHours = 72) => {
   const token = crypto.randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 horas
+  const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
 
   const patient = await Patient.findById(patientId);
   if (!patient) throw new Error("Paciente no encontrado");
