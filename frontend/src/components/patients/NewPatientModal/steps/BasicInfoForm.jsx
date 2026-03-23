@@ -6,6 +6,7 @@ import {
   UsersThree,
   WhatsappLogo,
   Notepad,
+  CalendarBlank,
 } from "@phosphor-icons/react";
 
 const BasicInfoForm = ({ formData, setFormData }) => {
@@ -109,6 +110,26 @@ const BasicInfoForm = ({ formData, setFormData }) => {
               className="w-full pl-14 pr-6 py-5 bg-white border-2 border-slate-100 rounded-2xl outline-none focus:border-indigo-600/20 transition-all font-bold text-[11px] lowercase tracking-widest"
             />
           </div>
+        </div>
+      </div>
+
+      {/* FECHA DE NACIMIENTO */}
+      <div className="space-y-2">
+        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2 flex items-center gap-2">
+          <CalendarBlank size={14} /> Fecha de Nacimiento (Opcional)
+        </label>
+        <div className="relative group">
+          <CalendarBlank
+            size={20}
+            className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-600 transition-colors"
+          />
+          <input
+            type="date"
+            name="dateOfBirth"
+            value={formData?.dateOfBirth || ""}
+            onChange={handleChange}
+            className="w-full pl-14 pr-6 py-5 bg-slate-50 border-2 border-transparent rounded-3xl outline-none focus:border-indigo-600/20 focus:bg-white transition-all font-bold text-xs tracking-widest"
+          />
         </div>
       </div>
 

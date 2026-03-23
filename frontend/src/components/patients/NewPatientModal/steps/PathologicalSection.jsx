@@ -126,8 +126,7 @@ const PathologicalSection = ({ formData, setFormData }) => {
                 }
               />
               <input
-                type="text"
-                placeholder="FECHA"
+                type="date"
                 className="w-full md:w-1/3 p-4 bg-white rounded-2xl text-[9px] font-bold uppercase outline-none border border-slate-200"
                 value={path.hospitalized.date}
                 onChange={(e) =>
@@ -303,8 +302,7 @@ const PathologicalSection = ({ formData, setFormData }) => {
           {path.covid.had && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 animate-in zoom-in-95 duration-300">
               <input
-                type="text"
-                placeholder="¿CUÁNDO? (MES/AÑO)"
+                type="month"
                 className="p-4 bg-white rounded-2xl text-[9px] font-bold uppercase outline-none border border-slate-200"
                 value={path.covid.date}
                 onChange={(e) =>

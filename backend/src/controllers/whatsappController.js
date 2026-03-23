@@ -5,7 +5,7 @@
  *
  * Flujos:
  *   A) Agendar  → categoría → tratamiento → slots → nombre → LEAD + Appointment PENDING
- *   B) Cotizar  → categoría → tratamiento → slots → nombre → LEAD + Appointment PENDING + link historial
+ *   B) Consulta → tratamiento → slots → nombre+edad → LEAD + Appointment PENDING + historial link + firma link + gracias
  *   C) Asesor   → transferencia a humano (bot se pausa)
  *
  * Variables de entorno requeridas:
@@ -19,12 +19,14 @@ import TimeBlock from "../models/TimeBlock.js";
 import Patient from "../models/clinical/Patient.js";
 import Treatment from "../models/clinical/Treatment.js";
 import TreatmentCategory from "../models/clinical/TreatmentCategory.js";
+import Waitlist from "../models/clinical/Waitlist.js";
 import { generateSignatureToken } from "./publicController.js";
 import {
   sendWhatsAppInteractive,
   sendWhatsAppList,
   sendWhatsAppMessage,
 } from "../services/whatsappService.js";
+import { getActiveReceptionists, RECEPTIONIST_ROOMS } from "../services/availabilityService.js";
 
 // ---------------------------------------------------------------------------
 // Estado en memoria
@@ -36,7 +38,7 @@ const sessions = new Map();
 // Los tratamientos dentro de cada categoría también se cargan desde la DB
 // ---------------------------------------------------------------------------
 let _agendarCatCache = null;
-let _cotizarCatCache = null;
+let _consultaCatCache = null;
 let _catCacheExpiresAt = 0;
 
 const _mapCat = (c, i) => ({
@@ -52,19 +54,19 @@ const getAgendarCategories = async () => {
   return _agendarCatCache;
 };
 
-const getCotizarCategories = async () => {
-  if (Date.now() < _catCacheExpiresAt && _cotizarCatCache) return _cotizarCatCache;
+const getConsultaCategories = async () => {
+  if (Date.now() < _catCacheExpiresAt && _consultaCatCache) return _consultaCatCache;
   await _refreshCatCache();
-  return _cotizarCatCache;
+  return _consultaCatCache;
 };
 
 const _refreshCatCache = async () => {
-  const [agendar, cotizar] = await Promise.all([
+  const [agendar, consulta] = await Promise.all([
     TreatmentCategory.find({ botFlow: { $in: ["AGENDAR", "BOTH"] }, isActive: true }).sort({ name: 1 }),
-    TreatmentCategory.find({ botFlow: { $in: ["COTIZAR", "BOTH"] }, isActive: true }).sort({ name: 1 }),
+    TreatmentCategory.find({ botFlow: { $in: ["CONSULTA", "BOTH"] }, isActive: true }).sort({ name: 1 }),
   ]);
   _agendarCatCache = agendar.map(_mapCat);
-  _cotizarCatCache = cotizar.map(_mapCat);
+  _consultaCatCache = consulta.map(_mapCat);
   _catCacheExpiresAt = Date.now() + 5 * 60 * 1000;
 };
 
@@ -103,6 +105,10 @@ const getAvailableSlots = async (performerId, roomId, daysAhead = 7, slotDuratio
   const botIds = [process.env.BOT_RECEPTIONIST_ID, process.env.BOT_DOCTOR_ID].filter(Boolean);
   const isBotUser = botIds.includes(String(performerId));
 
+  // Cargar recepcionistas activas si el cuarto es de recepcionista (para verificar agenda llena)
+  const isReceptionistRoom = RECEPTIONIST_ROOMS.includes(roomId);
+  const receptionists = isReceptionistRoom ? await getActiveReceptionists() : [];
+
   for (let d = 0; d < daysAhead && available.length < 10; d++) {
     const day = new Date();
     day.setDate(day.getDate() + d);
@@ -118,7 +124,12 @@ const getAvailableSlots = async (performerId, roomId, daysAhead = 7, slotDuratio
       ? { roomId, appointmentDate: { $gte: dayStart, $lte: dayEnd }, status: { $nin: ["CANCELLED"] } }
       : { $or: [{ doctorId: perfId }, { roomId }], appointmentDate: { $gte: dayStart, $lte: dayEnd }, status: { $nin: ["CANCELLED"] } };
 
-    const [appointments, blocks] = await Promise.all([
+    // Query adicional: todas las citas en cuartos de recepcionista (para contar recepcionistas ocupadas)
+    const allReceptionistFilter = isReceptionistRoom
+      ? { roomId: { $in: RECEPTIONIST_ROOMS }, appointmentDate: { $gte: dayStart, $lte: dayEnd }, status: { $nin: ["CANCELLED"] } }
+      : null;
+
+    const [appointments, blocks, allReceptionistAppts] = await Promise.all([
       Appointment.find(appointmentFilter),
       TimeBlock.find({
         doctorId: perfId,
@@ -126,6 +137,7 @@ const getAvailableSlots = async (performerId, roomId, daysAhead = 7, slotDuratio
         endTime: { $gte: dayStart },
         isActive: true,
       }),
+      allReceptionistFilter ? Appointment.find(allReceptionistFilter) : Promise.resolve([]),
     ]);
 
     for (let h = 9; h < 18 && available.length < 10; h++) {
@@ -142,7 +154,22 @@ const getAvailableSlots = async (performerId, roomId, daysAhead = 7, slotDuratio
             return slotStart < aEnd && slotEnd > a.appointmentDate;
           }) || blocks.some((b) => slotStart < b.endTime && slotEnd > b.startTime);
 
-        if (!conflict) available.push(slotStart);
+        if (conflict) continue;
+
+        // Para cuartos de recepcionista: verificar que haya al menos una recepcionista libre
+        if (isReceptionistRoom && receptionists.length > 0) {
+          const overlapping = allReceptionistAppts.filter((a) => {
+            const aEnd = new Date(a.appointmentDate.getTime() + a.duration * 60000);
+            return slotStart < aEnd && slotEnd > a.appointmentDate;
+          });
+          const busyIds = new Set(
+            overlapping.map((a) => String(a.doctorId)).filter((id) => !botIds.includes(id)),
+          );
+          const freeCount = receptionists.filter((r) => !busyIds.has(String(r._id))).length;
+          if (freeCount === 0) continue;
+        }
+
+        available.push(slotStart);
       }
     }
   }
@@ -215,6 +242,19 @@ const getTreatmentsByCategory = async (treatmentCategory) => {
     .sort({ name: 1 });
 };
 
+/**
+ * Carga TODOS los treatments activos de categorías con botFlow CONSULTA o BOTH.
+ * Limitado a 10 para cumplir el máximo de filas de WhatsApp list.
+ */
+const getConsultaTreatments = async () => {
+  const cats = await getConsultaCategories();
+  const slugs = cats.map((c) => c.treatmentCategory);
+  return Treatment.find({ category: { $in: slugs }, isActive: true })
+    .select("_id name estimatedDuration category")
+    .sort({ name: 1 })
+    .limit(10);
+};
+
 // ---------------------------------------------------------------------------
 // Parser de mensajes entrantes
 // ---------------------------------------------------------------------------
@@ -246,11 +286,17 @@ const showSlots = async (phone, performerId, session, nextState, slotDuration = 
   const slots = await getAvailableSlots(performerId, session.roomId, 7, slotDuration);
 
   if (slots.length === 0) {
+    // No hay slots — ofrecer agregar a lista de espera
+    sessions.set(phone, {
+      ...session,
+      state: "WAITLIST_PIDIENDO_NOMBRE",
+      performerId,
+      slotDuration,
+    });
     await sendWhatsAppMessage(
       phone,
-      `Lo sentimos, no hay horarios disponibles esta semana para *${session.categoryLabel}*. Un asesor te contactará pronto para ayudarte. 🙏`,
+      `Lo sentimos, no hay horarios disponibles esta semana para *${session.categoryLabel}*. 😔\n\nSi nos das tu *nombre completo*, te avisaremos por aquí si se libera un espacio. ¿Te gustaría que te anotemos?`,
     );
-    sessions.delete(phone);
     return;
   }
 
@@ -273,9 +319,9 @@ const handleNoSession = async (phone) => {
     phone,
     "¡Hola! Soy el asistente virtual de Sbeltic 🌿\n\n¿En qué te puedo ayudar hoy?",
     [
-      { id: "BTN_AGENDAR", title: "Agendar" },
-      { id: "BTN_COTIZAR", title: "Cotizar" },
-      { id: "BTN_ASESOR", title: "Asesor" },
+      { id: "BTN_AGENDAR",  title: "Agendar" },
+      { id: "BTN_CONSULTA", title: "Consulta" },
+      { id: "BTN_ASESOR",   title: "Asesor" },
     ],
   );
   return true;
@@ -300,19 +346,28 @@ const handleMenuSent = async (phone, parsed) => {
       break;
     }
 
-    case "BTN_COTIZAR": {
-      const cotizarCats = await getCotizarCategories();
-      if (cotizarCats.length === 0) {
+    case "BTN_CONSULTA": {
+      const consultaTreats = await getConsultaTreatments();
+      if (consultaTreats.length === 0) {
         await sendWhatsAppMessage(phone, "Lo sentimos, no hay procedimientos disponibles en este momento. Un asesor te contactará pronto. 🙏");
         sessions.delete(phone);
         break;
       }
-      sessions.set(phone, { state: "COTIZANDO_PIDIENDO_CATEGORIA" });
+      sessions.set(phone, { state: "CONSULTANDO_ELIGIENDO_TRATAMIENTO" });
       await sendWhatsAppList(
         phone,
-        "¿Qué procedimiento te interesa cotizar? Selecciona una categoría:",
-        "Ver categorías",
-        [{ title: "Procedimientos médicos", rows: cotizarCats.map((c) => ({ id: c.id, title: c.label })) }],
+        "¿Qué procedimiento te interesa?",
+        "Ver procedimientos",
+        [
+          {
+            title: "Procedimientos médicos",
+            rows: consultaTreats.map((t) => ({
+              id: `TREAT_${t._id}`,
+              title: t.name.length > 24 ? t.name.substring(0, 24) : t.name,
+              description: `${t.estimatedDuration} min`,
+            })),
+          },
+        ],
       );
       break;
     }
@@ -469,76 +524,21 @@ const handleAgendandoNombre = async (phone, parsed, session) => {
 
   await sendWhatsAppMessage(
     phone,
-    `¡Muchas gracias, *${nombre}*! 🙏 Tu cita para *${session.treatmentName || session.categoryLabel}* el *${formatSlotFull(session.slotDate)}* ha sido registrada con éxito ✅.\n\nEn breve un asesor confirmará tu cita. ¡Te esperamos en Sbeltic!`,
+    `¡Muchas gracias, *${nombre}*! 🙏 Tu cita para *${session.treatmentName || session.categoryLabel}* el *${formatSlotFull(session.slotDate)}* ha sido registrada con éxito ✅.\n\n ¡Te esperamos en Sbeltic!`,
   );
   return true;
 };
 
-// --- RAMA COTIZAR ---
+// --- RAMA CONSULTA ---
 
-const handleCotizandoCategoria = async (phone, parsed) => {
-  if (parsed.kind !== "list") {
-    await sendWhatsAppMessage(phone, "Por favor selecciona una categoría del menú anterior.\n\nEscribe *menú* para volver al inicio.");
-    return true;
-  }
-
-  const cats = await getCotizarCategories();
-  const cat = cats.find((c) => c.id === parsed.value);
-  if (!cat) {
-    await sendWhatsAppMessage(phone, "No reconocí esa opción. Por favor intenta de nuevo.");
-    return true;
-  }
-
-  const performerId = process.env.BOT_DOCTOR_ID;
-  if (!performerId) {
-    console.error("❌ [WA-BOT] BOT_DOCTOR_ID no configurado en .env");
-    await sendWhatsAppMessage(phone, "Ocurrió un error interno. Por favor contacta a recepción directamente. 🙏");
-    sessions.delete(phone);
-    return true;
-  }
-
-  const baseSession = {
-    categoryId: cat.id,
-    categoryLabel: cat.label,
-    roomId: cat.roomId,
-    treatmentCategory: cat.treatmentCategory,
-  };
-
-  // Cargar treatments de esta categoría desde la API
-  const treatments = await getTreatmentsByCategory(cat.treatmentCategory);
-
-  if (treatments.length > 0) {
-    sessions.set(phone, { ...baseSession, state: "COTIZANDO_ELIGIENDO_TRATAMIENTO" });
-    await sendWhatsAppList(
-      phone,
-      `¿Qué procedimiento de *${cat.label}* te interesa cotizar?`,
-      "Ver procedimientos",
-      [
-        {
-          title: cat.label,
-          rows: treatments.map((t) => ({
-            id: `TREAT_${t._id}`,
-            title: t.name.length > 24 ? t.name.substring(0, 24) : t.name,
-            description: `${t.estimatedDuration} min`,
-          })),
-        },
-      ],
-    );
-  } else {
-    await showSlots(phone, performerId, { ...baseSession, treatmentName: cat.label }, "COTIZANDO_MOSTRANDO_SLOTS");
-  }
-
-  return true;
-};
-
-const handleCotizandoTratamiento = async (phone, parsed, session) => {
+const handleConsultandoTratamiento = async (phone, parsed, session) => {
   if (parsed.kind !== "list" || !parsed.value.startsWith("TREAT_")) {
     await sendWhatsAppMessage(phone, "Por favor selecciona un procedimiento del menú.\n\nEscribe *menú* para volver al inicio.");
     return true;
   }
 
   const treatmentId = parsed.value.replace("TREAT_", "");
-  const treatment = await Treatment.findById(treatmentId).select("name estimatedDuration");
+  const treatment = await Treatment.findById(treatmentId).select("name estimatedDuration category");
 
   if (!treatment) {
     await sendWhatsAppMessage(phone, "No encontré ese procedimiento. Por favor intenta de nuevo.");
@@ -550,14 +550,17 @@ const handleCotizandoTratamiento = async (phone, parsed, session) => {
     ...session,
     treatmentId: String(treatment._id),
     treatmentName: treatment.name,
+    treatmentCategory: treatment.category,
+    roomId: "CONSULTORIO",
+    categoryLabel: treatment.name,
     slotDuration: treatment.estimatedDuration || 30,
   };
 
-  await showSlots(phone, performerId, updatedSession, "COTIZANDO_MOSTRANDO_SLOTS", updatedSession.slotDuration);
+  await showSlots(phone, performerId, updatedSession, "CONSULTANDO_MOSTRANDO_SLOTS", updatedSession.slotDuration);
   return true;
 };
 
-const handleCotizandoSlot = async (phone, parsed) => {
+const handleConsultandoSlot = async (phone, parsed) => {
   if (parsed.kind !== "list" || !parsed.value.startsWith("SLOT_")) {
     await sendWhatsAppMessage(phone, "Por favor selecciona un horario del menú.\n\nEscribe *menú* para volver al inicio.");
     return true;
@@ -566,30 +569,47 @@ const handleCotizandoSlot = async (phone, parsed) => {
   const slotDate = new Date(parseInt(parsed.value.replace("SLOT_", ""), 10));
   const session = sessions.get(phone);
 
-  sessions.set(phone, { ...session, state: "COTIZANDO_PIDIENDO_NOMBRE", slotDate });
+  sessions.set(phone, { ...session, state: "CONSULTANDO_PIDIENDO_NOMBRE", slotDate });
 
   await sendWhatsAppMessage(
     phone,
-    `¡Excelente! Tienes seleccionado el *${formatSlotFull(slotDate)}* para *${session.treatmentName || session.categoryLabel}*. 🗓️\n\n¿Me puedes dar tu nombre completo para registrarte?`,
+    `¡Excelente! Tienes seleccionado el *${formatSlotFull(slotDate)}* para *${session.treatmentName || session.categoryLabel}*. 🗓️\n\nPor favor escríbeme tu *nombre completo y edad* separados por una coma.\nEjemplo: _María López, 32_`,
   );
   return true;
 };
 
-const handleCotizandoNombre = async (phone, parsed, session) => {
+const handleConsultandoNombre = async (phone, parsed, session) => {
   if (parsed.kind !== "text" || !parsed.value) {
-    await sendWhatsAppMessage(phone, "Por favor escríbeme tu nombre completo para continuar.\n\nEscribe *menú* para volver al inicio.");
+    await sendWhatsAppMessage(phone, "Por favor escríbeme tu nombre y edad separados por coma.\nEjemplo: _María López, 32_\n\nEscribe *menú* para volver al inicio.");
     return true;
   }
 
-  const nombre = parsed.value;
+  // Parsear "Nombre Apellido, 32"
+  const parts = parsed.value.split(",");
+  const nombre = parts[0]?.trim();
+  const edad = parseInt(parts[1]?.trim(), 10);
+
+  if (!nombre || isNaN(edad) || edad < 1 || edad > 120) {
+    await sendWhatsAppMessage(
+      phone,
+      "No pude leer tu nombre y edad. Por favor escríbelos separados por una coma.\nEjemplo: _María López, 32_",
+    );
+    return true;
+  }
+
   const { patient } = await findOrCreateLead(nombre, phone);
+
+  // Guardar edad en historial de identificación
+  await Patient.findByIdAndUpdate(patient._id, {
+    $set: { "medicalHistory.identification.age": edad },
+  });
 
   // Crear cita tentativa
   try {
     await createAppointment(
       patient._id,
       process.env.BOT_DOCTOR_ID,
-      session.roomId,
+      "CONSULTORIO",
       session.slotDate,
       session.treatmentName || session.categoryLabel,
       session.treatmentCategory,
@@ -606,22 +626,75 @@ const handleCotizandoNombre = async (phone, parsed, session) => {
     return true;
   }
 
-  // Generar link a formulario de historial médico (24h de expiración)
+  const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+
+  // Generar link historial médico (1h de expiración)
   console.log("📋 [WA-BOT] Generando token historial para paciente:", patient._id);
-  const token = await generateSignatureToken(
+  const historialToken = await generateSignatureToken(
     patient._id,
     String(patient._id),
     "MEDICAL_HISTORY_FORM",
-    24,
+    1,
   );
-  const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-  const link = `${baseUrl}/paciente/historial/${token}`;
+  const historialLink = `${baseUrl}/paciente/historial/${historialToken}`;
+
+  sessions.delete(phone);
+
+  // Mensaje 1: link historial médico (ya incluye firma al final del formulario)
+  await sendWhatsAppMessage(
+    phone,
+    `*${nombre}*, tu cita para *${session.treatmentName || session.categoryLabel}* el *${formatSlotFull(session.slotDate)}* ha sido reservada ✅.\n\nAntes de tu consulta necesitamos tu historial médico y firma. El siguiente enlace es seguro y caduca en 1 hora o al terminar:\n\n${historialLink}`,
+  );
+
+  // Mensaje 2: agradecimiento
+  await sendWhatsAppMessage(
+    phone,
+    `¡Gracias por tu confianza, *${nombre}*! 🙏 Un médico revisará tu caso. ¡Te esperamos en Sbeltic! 🌿`,
+  );
+
+  return true;
+};
+
+// --- WAITLIST (sin slots disponibles) ---
+
+const handleWaitlistNombre = async (phone, parsed, session) => {
+  if (parsed.kind !== "text" || !parsed.value) {
+    await sendWhatsAppMessage(
+      phone,
+      "Por favor escríbeme tu nombre completo para anotarte en la lista de espera.\n\nEscribe *menú* para volver al inicio.",
+    );
+    return true;
+  }
+
+  const nombre = parsed.value;
+  const { patient } = await findOrCreateLead(nombre, phone);
+
+  // Fecha deseada: hoy (inicio del día) para que coincida con búsquedas por rango
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Verificar que no exista un entry duplicado
+  const existing = await Waitlist.findOne({
+    patientId: patient._id,
+    doctorId: session.performerId,
+    desiredDate: { $gte: today, $lte: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000) },
+    status: "WAITING",
+  });
+
+  if (!existing) {
+    await Waitlist.create({
+      patientId: patient._id,
+      doctorId: session.performerId,
+      desiredDate: today,
+      status: "WAITING",
+    });
+  }
 
   sessions.delete(phone);
 
   await sendWhatsAppMessage(
     phone,
-    `¡Gracias, *${nombre}*! 🙏 Tu cita tentativa para *${session.treatmentName || session.categoryLabel}* el *${formatSlotFull(session.slotDate)}* está reservada ✅.\n\nAntes de confirmarla, necesitamos tu historial médico:\n\n${link}\n\nUn médico revisará tu caso al terminar. ¡El link expira en 24 horas!`,
+    `¡Listo, *${nombre}*! Te hemos anotado en nuestra lista de espera para *${session.treatmentName || session.categoryLabel}*. 📋\n\nSi se libera un espacio esta semana, te avisaremos por aquí. ¡Gracias por tu paciencia! 🙏`,
   );
   return true;
 };
@@ -678,17 +751,17 @@ export const handleStateMachine = async (msg, phone) => {
     case "AGENDANDO_PIDIENDO_NOMBRE":
       return handleAgendandoNombre(phone, parsed, session);
 
-    case "COTIZANDO_PIDIENDO_CATEGORIA":
-      return handleCotizandoCategoria(phone, parsed);
+    case "CONSULTANDO_ELIGIENDO_TRATAMIENTO":
+      return handleConsultandoTratamiento(phone, parsed, session);
 
-    case "COTIZANDO_ELIGIENDO_TRATAMIENTO":
-      return handleCotizandoTratamiento(phone, parsed, session);
+    case "CONSULTANDO_MOSTRANDO_SLOTS":
+      return handleConsultandoSlot(phone, parsed);
 
-    case "COTIZANDO_MOSTRANDO_SLOTS":
-      return handleCotizandoSlot(phone, parsed);
+    case "CONSULTANDO_PIDIENDO_NOMBRE":
+      return handleConsultandoNombre(phone, parsed, session);
 
-    case "COTIZANDO_PIDIENDO_NOMBRE":
-      return handleCotizandoNombre(phone, parsed, session);
+    case "WAITLIST_PIDIENDO_NOMBRE":
+      return handleWaitlistNombre(phone, parsed, session);
 
     default:
       console.warn(`⚠️ [WA-BOT] Estado desconocido "${state}" para ${phone}. Reiniciando.`);

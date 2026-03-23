@@ -35,6 +35,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
   const [supplyResults, setSupplyResults] = useState([]);
   const [showSupplyDropdown, setShowSupplyDropdown] = useState(false);
   const [supplyType, setSupplyType] = useState("INSUMO");
+  const [pendingQuantities, setPendingQuantities] = useState({});
   const [fullPatient, setFullPatient] = useState(null);
   const [loadingPatient, setLoadingPatient] = useState(false);
 
@@ -104,6 +105,27 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
 
   const finalAmount =
     (form.originalQuote || 0) - (couponPreview?.discount || 0);
+
+  // Cupones disponibles del paciente
+  const availableCoupons = (fullPatient?.walletCoupons || []).filter(
+    (c) => c.isActive && new Date(c.expiresAt) > new Date() && c.usedCount < c.maxRedemptions,
+  );
+
+  // Seleccionar cupón del wallet
+  const selectWalletCoupon = (coupon) => {
+    setCouponCode(coupon.code);
+    setCouponError("");
+    const discount =
+      coupon.discountType === "PERCENTAGE"
+        ? (form.originalQuote || 0) * (coupon.discountValue / 100)
+        : coupon.discountValue;
+    setCouponPreview({
+      code: coupon.code,
+      discount,
+      discountValue: coupon.discountValue,
+      discountType: coupon.discountType,
+    });
+  };
 
   // Validar cupón
   const handleValidateCoupon = async () => {
@@ -227,22 +249,31 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
     }
   };
 
-  // Agregar insumo
+  // Agregar insumo con cantidad pendiente
   const addSupply = (product) => {
     const exists = form.consumedSupplies.find(
       (s) => String(s.productId) === String(product._id),
     );
+    const qty = pendingQuantities[product._id] || 1;
     if (!exists) {
       setForm((f) => ({
         ...f,
         consumedSupplies: [
           ...f.consumedSupplies,
-          { productId: product._id, productName: product.name, quantity: 1 },
+          { productId: product._id, productName: product.name, quantity: qty },
         ],
       }));
     }
+    setPendingQuantities((prev) => { const next = { ...prev }; delete next[product._id]; return next; });
     setSupplySearch("");
     setShowSupplyDropdown(false);
+  };
+
+  const updatePendingQty = (productId, delta) => {
+    setPendingQuantities((prev) => ({
+      ...prev,
+      [productId]: Math.max(1, (prev[productId] || 1) + delta),
+    }));
   };
 
   const updateSupplyQty = (idx, qty) => {
@@ -261,8 +292,8 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-0 md:p-4">
-      <div className="bg-white w-full md:max-w-2xl rounded-t-4xl md:rounded-3xl shadow-2xl flex flex-col max-h-[92vh] md:max-h-[88vh] overflow-hidden">
+   <div className="fixed top-0 left-0 w-screen h-[100dvh] bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+      <div className="bg-white w-full md:max-w-2xl rounded-3xl shadow-2xl flex flex-col max-h-[88vh] overflow-hidden">
 
         {/* Header */}
         <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-slate-100 shrink-0">
@@ -328,7 +359,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
               {/* Selector de estado */}
               <div>
                 <p className="text-[10px] font-black uppercase text-slate-400 mb-2">Estado de la cita</p>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
                     <button
                       key={key}
@@ -416,17 +447,49 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                   className="w-full px-4 py-3 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:border-teal-400"
                 />
                 {showSupplyDropdown && supplyResults.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-lg z-10 overflow-hidden">
-                    {supplyResults.map((p) => (
-                      <button
-                        key={p._id}
-                        onClick={() => addSupply(p)}
-                        className="w-full px-4 py-3 text-left text-sm font-bold hover:bg-slate-50 flex justify-between items-center"
-                      >
-                        <span>{p.name}</span>
-                        <span className="text-xs text-slate-400">Stock: {p.totalStock ?? "—"}</span>
-                      </button>
-                    ))}
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-lg z-10 overflow-hidden max-h-72 overflow-y-auto">
+                    {supplyResults.map((p) => {
+                      const qty = pendingQuantities[p._id] || 1;
+                      return (
+                        <div
+                          key={p._id}
+                          className="px-4 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-bold text-slate-800 truncate">{p.name}</p>
+                              <p className="text-[10px] text-slate-400">
+                                {p.category?.name || "Sin categoría"} · Stock: {p.currentStock ?? "—"}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => updatePendingQty(p._id, -1)}
+                                className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-600 font-bold text-sm hover:bg-slate-200"
+                              >
+                                −
+                              </button>
+                              <span className="w-6 text-center text-sm font-black">{qty}</span>
+                              <button
+                                type="button"
+                                onClick={() => updatePendingQty(p._id, 1)}
+                                className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-600 font-bold text-sm hover:bg-slate-200"
+                              >
+                                +
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => addSupply(p)}
+                                className="ml-1 px-3 py-1.5 bg-teal-500 text-white rounded-lg text-[10px] font-black uppercase hover:bg-teal-600 transition-colors"
+                              >
+                                Agregar
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -444,7 +507,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                       key={idx}
                       className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100"
                     >
-                      <p className="font-bold text-sm text-slate-800 flex-1">
+                      <p className="font-bold text-sm text-slate-800 flex-1 min-w-0 truncate">
                         {supply.productName || supply.productId}
                       </p>
                       <div className="flex items-center gap-2 shrink-0">
@@ -515,12 +578,42 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                   </div>
                 </div>
 
-                {/* Cupón */}
+                {/* Cupones del paciente */}
+                {availableCoupons.length > 0 && (
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1.5">
+                      Cupones disponibles
+                    </label>
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {availableCoupons.map((c) => (
+                        <button
+                          key={c._id}
+                          onClick={() => selectWalletCoupon(c)}
+                          className={`shrink-0 px-3 py-2 rounded-xl border-2 transition-all text-left
+                            ${couponPreview?.code === c.code
+                              ? "border-teal-500 bg-teal-50"
+                              : "border-slate-200 bg-white hover:border-teal-300"
+                            }`}
+                        >
+                          <p className="text-[10px] font-black uppercase text-slate-500">{c.type}</p>
+                          <p className="text-xs font-black text-slate-800">{c.code}</p>
+                          <p className="text-[10px] font-bold text-teal-600">
+                            {c.discountType === "PERCENTAGE"
+                              ? `${c.discountValue}% desc.`
+                              : `$${c.discountValue} desc.`}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Cupón manual */}
                 <div>
                   <label className="text-[10px] font-black uppercase text-slate-400 block mb-1.5">
                     Código de cupón
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <input
                       type="text"
                       value={couponCode}
@@ -530,7 +623,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                         setCouponError("");
                       }}
                       placeholder="CODIGO-CUPON"
-                      className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-black uppercase focus:outline-none focus:border-teal-400"
+                      className="flex-1 min-w-0 px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-black uppercase focus:outline-none focus:border-teal-400"
                     />
                     <button
                       onClick={handleValidateCoupon}

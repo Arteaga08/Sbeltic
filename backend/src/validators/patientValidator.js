@@ -32,6 +32,7 @@ const createPatientSchema = z.object({
   referralCode: z.string().optional(),
   isActive: z.boolean().optional(),
   
+  dateOfBirth: z.coerce.date().optional(),
   birthDate: z.string().optional().or(z.literal("")),
   address: z.string().optional().or(z.literal("")),
   occupation: z.string().optional().or(z.literal("")),

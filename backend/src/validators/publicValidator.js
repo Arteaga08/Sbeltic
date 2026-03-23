@@ -4,7 +4,7 @@ export const publicSignatureSchema = z.object({
   signature: z.string().min(100, "La firma es inválida o demasiado corta"),
 });
 
-const medicalHistorySectionSchema = z.record(z.any()).optional();
+const medicalHistorySectionSchema = z.any().optional();
 
 export const medicalHistorySubmitSchema = z.object({
   medicalHistory: z

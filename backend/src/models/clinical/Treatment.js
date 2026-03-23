@@ -5,7 +5,7 @@ const treatmentSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     performerRole: {
       type: String,
-      enum: ["DOCTOR", "RECEPTIONIST", "BOTH"],
+      enum: ["ADMIN", "RECEPTIONIST", "BOTH"],
       required: true,
     },
 

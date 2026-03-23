@@ -10,6 +10,8 @@ import {
   ChartLineUp,
   HandCoins,
   CaretLeft,
+  Cake,
+  FirstAid,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
@@ -123,6 +125,22 @@ export default function MarketingPage() {
       color: "text-amber-600",
       bg: "bg-amber-50",
     },
+    {
+      id: "BIRTHDAY",
+      label: "Cumpleaños",
+      description: "Cupones de Cumpleaños",
+      icon: Cake,
+      color: "text-pink-600",
+      bg: "bg-pink-50",
+    },
+    {
+      id: "MAINTENANCE",
+      label: "Mantenimiento",
+      description: "Retoques y Seguimiento",
+      icon: FirstAid,
+      color: "text-teal-600",
+      bg: "bg-teal-50",
+    },
   ];
 
   const handleCategoryClick = (categoryId) => {
@@ -171,7 +189,7 @@ export default function MarketingPage() {
               Selecciona un Módulo
             </h3>
             {/* 🌟 1. WIDGETS MÁS GRANDES EN PC (md:p-10, md:min-h-[180px]) */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+            <section className="grid grid-cols-2 gap-4 md:gap-8">
               {categories.map((cat) => (
                 <button
                   key={cat.id}

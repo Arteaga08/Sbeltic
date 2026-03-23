@@ -3,7 +3,49 @@ import Appointment from "../models/Appointment.js";
 import Patient from "../models/clinical/Patient.js";
 import Coupon from "../models/marketing/Coupon.js";
 import Waitlist from "../models/clinical/Waitlist.js";
-import { sendWhatsAppMessage } from "./whatsappService.js";
+import { sendWhatsAppMessage, sendWhatsAppTemplate } from "./whatsappService.js";
+import Treatment from "../models/clinical/Treatment.js";
+
+// ==========================================
+// 🗺️ MAPEO DE PLANTILLAS META POR TIPO
+// ==========================================
+
+const TEMPLATE_MAP = {
+  WELCOME: "sbeltic_bienvenida",
+  REFERRAL: "sbeltic_referidos",
+  MAINTENANCE: "sbeltic_mantenimiento",
+  BIRTHDAY: "sbeltic_cumple",
+  SEASONAL: "sbeltic_promo_mensual",
+  CLEARANCE: "sbeltic_liquidacion",
+};
+
+/**
+ * Construye el array de components para la API de Meta WhatsApp Templates.
+ * El orden de parámetros sigue el orden del texto de cada plantilla.
+ */
+const buildTemplateComponents = (coupon, patient, context = {}) => {
+  const firstName = patient.name?.split(" ")[0] || "Paciente";
+  const discountStr = coupon.discountType === "PERCENTAGE"
+    ? `${coupon.discountValue}%`
+    : `$${coupon.discountValue}`;
+  const vars = coupon.templateVariables || {};
+
+  const paramMap = {
+    WELCOME: [firstName, discountStr, coupon.code],
+    REFERRAL: [firstName, discountStr, coupon.code, vars.recompensa || ""],
+    MAINTENANCE: [firstName, context.tiempoTranscurrido || "", context.tratamiento || "", discountStr],
+    BIRTHDAY: [firstName, vars.mensajePersonalizado || "", vars.regalo || "", coupon.code],
+    SEASONAL: [firstName, vars.producto || "", discountStr, coupon.code],
+    CLEARANCE: [firstName, vars.producto || "", discountStr, coupon.code],
+  };
+
+  const params = paramMap[coupon.type] || [firstName, discountStr, coupon.code];
+
+  return [{
+    type: "body",
+    parameters: params.map((text) => ({ type: "text", text: String(text) })),
+  }];
+};
 
 // ==========================================
 // 🔍 1. LOS BUSCADORES (Consultas de citas)
@@ -28,20 +70,20 @@ export const processTouchUpReminders = async () => {
 };
 
 /**
- * ⏱️ Busca citas agendadas que ocurren exactamente en 1 hora
- * (Ideal para correr cada 15 minutos en el CRON)
+ * 📅 Busca citas agendadas para mañana (todo el día)
+ * (Se ejecuta una vez al día en el CRON de las 8:00 AM)
  */
-export const processHourlyReminders = async () => {
-  const now = new Date();
-  const targetStart = addHours(now, 1);
-  const targetEnd = new Date(targetStart.getTime() + 15 * 60000);
+export const processDailyReminders = async () => {
+  const tomorrow = addDays(new Date(), 1);
+  const targetStart = startOfDay(tomorrow);
+  const targetEnd = endOfDay(tomorrow);
 
   const appointments = await Appointment.find({
     status: { $in: ["PENDING", "CONFIRMED"] },
     isReminderSent: false,
     appointmentDate: {
       $gte: targetStart,
-      $lt: targetEnd,
+      $lte: targetEnd,
     },
   }).populate("patientId");
 
@@ -99,15 +141,11 @@ export const processScheduledCoupons = async () => {
   }).select("name phone");
 
   for (const coupon of dueCoupons) {
-    for (const patient of eligiblePatients) {
-      const message = (coupon.whatsappMessageTemplate || "")
-        .replace(/{{nombre}}/g, patient.name?.split(" ")[0] || "")
-        .replace(/{{codigo}}/g, coupon.code)
-        .replace(/{{descuento}}/g, coupon.discountType === "PERCENTAGE"
-          ? `${coupon.discountValue}%`
-          : `$${coupon.discountValue}`);
+    const templateName = coupon.whatsappTemplateName || TEMPLATE_MAP[coupon.type];
 
-      await sendWhatsAppMessage(patient.phone, message);
+    for (const patient of eligiblePatients) {
+      const components = buildTemplateComponents(coupon, patient);
+      await sendWhatsAppTemplate(patient.phone, templateName, "es", components);
     }
 
     // Actualizar lastSentAt y calcular nuevo nextSendAt
@@ -144,16 +182,12 @@ export const processReferralCampaign = async () => {
       (appt) => appt.patientId?.allowsWhatsAppNotifications,
     );
 
+    const templateName = coupon.whatsappTemplateName || TEMPLATE_MAP[coupon.type];
+
     for (const appt of targets) {
       const patient = appt.patientId;
-      const message = coupon.whatsappMessageTemplate
-        .replace(/{{nombre}}/g, patient.name?.split(" ")[0] || "")
-        .replace(/{{codigo}}/g, coupon.code)
-        .replace(/{{descuento}}/g, coupon.discountType === "PERCENTAGE"
-          ? `${coupon.discountValue}%`
-          : `$${coupon.discountValue}`);
-
-      await sendWhatsAppMessage(patient.phone, message);
+      const components = buildTemplateComponents(coupon, patient);
+      await sendWhatsAppTemplate(patient.phone, templateName, "es", components);
     }
   }
 };
@@ -189,16 +223,12 @@ export const processTriggerCoupons = async (event, patient, context = {}) => {
       }
 
       // Envío inmediato (WELCOME u otros AUTO)
-      const message = (coupon.whatsappMessageTemplate || "")
-        .replace(/{{nombre}}/g, patient.name?.split(" ")[0] || "")
-        .replace(/{{codigo}}/g, coupon.code)
-        .replace(/{{descuento}}/g, coupon.discountType === "PERCENTAGE"
-          ? `${coupon.discountValue}%`
-          : `$${coupon.discountValue}`);
+      const templateName = coupon.whatsappTemplateName || TEMPLATE_MAP[coupon.type];
+      const components = buildTemplateComponents(coupon, patient, context);
 
       coupon.schedule.lastSentAt = new Date();
       await coupon.save();
-      await sendWhatsAppMessage(patient.phone, message);
+      await sendWhatsAppTemplate(patient.phone, templateName, "es", components);
     }
   } catch (error) {
     console.error(`❌ Error en processTriggerCoupons [${event}]:`, error);
@@ -267,6 +297,117 @@ export const processFollowUpReminders = async () => {
 };
 
 // ==========================================
+// 🎂 CUPONES DE CUMPLEAÑOS
+// ==========================================
+
+const processBirthdayCoupons = async () => {
+  const birthdayCoupons = await Coupon.find({
+    isActive: true,
+    type: "BIRTHDAY",
+    expiresAt: { $gte: new Date() },
+  });
+
+  if (birthdayCoupons.length === 0) return;
+
+  const currentYear = new Date().getFullYear();
+
+  for (const coupon of birthdayCoupons) {
+    const daysBeforeBirthday = coupon.templateVariables?.daysBeforeBirthday || 0;
+    const targetDate = addDays(new Date(), daysBeforeBirthday);
+    const targetMonth = targetDate.getMonth() + 1;
+    const targetDay = targetDate.getDate();
+
+    // Buscar pacientes cuyo cumpleaños coincide con la fecha objetivo
+    const patients = await Patient.find({
+      dateOfBirth: { $exists: true, $ne: null },
+      allowsWhatsAppNotifications: true,
+      $expr: {
+        $and: [
+          { $eq: [{ $month: "$dateOfBirth" }, targetMonth] },
+          { $eq: [{ $dayOfMonth: "$dateOfBirth" }, targetDay] },
+        ],
+      },
+    }).select("name phone dateOfBirth");
+
+    const templateName = coupon.whatsappTemplateName || TEMPLATE_MAP.BIRTHDAY;
+
+    for (const patient of patients) {
+      // Verificar que no se haya enviado este año
+      const alreadySent = coupon.sentTo?.some(
+        (s) => s.patientId?.toString() === patient._id.toString() && s.year === currentYear,
+      );
+      if (alreadySent) continue;
+
+      const components = buildTemplateComponents(coupon, patient);
+      await sendWhatsAppTemplate(patient.phone, templateName, "es", components);
+
+      // Registrar envío
+      coupon.sentTo.push({ patientId: patient._id, sentAt: new Date(), year: currentYear });
+    }
+
+    if (coupon.isModified()) await coupon.save();
+  }
+};
+
+// ==========================================
+// 🔧 CUPONES DE MANTENIMIENTO
+// ==========================================
+
+const processMaintenanceCoupons = async () => {
+  const maintenanceCoupons = await Coupon.find({
+    isActive: true,
+    type: "MAINTENANCE",
+    expiresAt: { $gte: new Date() },
+    "maintenanceConfig.treatmentId": { $exists: true },
+  });
+
+  if (maintenanceCoupons.length === 0) return;
+
+  for (const coupon of maintenanceCoupons) {
+    // Obtener el tratamiento para saber los días de retoque
+    const treatment = await Treatment.findById(coupon.maintenanceConfig.treatmentId);
+    if (!treatment) continue;
+
+    const touchUpDays = coupon.maintenanceConfig.touchUpDays || treatment.suggestedTouchUpDays;
+    if (!touchUpDays) continue;
+
+    // Buscar citas completadas hace exactamente touchUpDays días (ventana de 1 día)
+    const targetDate = subDays(new Date(), touchUpDays);
+    const appointments = await Appointment.find({
+      status: "COMPLETED",
+      treatmentId: treatment._id,
+      appointmentDate: {
+        $gte: startOfDay(targetDate),
+        $lte: endOfDay(targetDate),
+      },
+    }).populate("patientId");
+
+    const templateName = coupon.whatsappTemplateName || TEMPLATE_MAP.MAINTENANCE;
+
+    for (const appt of appointments) {
+      const patient = appt.patientId;
+      if (!patient?.allowsWhatsAppNotifications) continue;
+
+      // Verificar que no se haya enviado ya para esta cita
+      const alreadySent = coupon.sentTo?.some(
+        (s) => s.patientId?.toString() === patient._id.toString(),
+      );
+      if (alreadySent) continue;
+
+      const components = buildTemplateComponents(coupon, patient, {
+        tiempoTranscurrido: `${touchUpDays} días`,
+        tratamiento: treatment.name,
+      });
+      await sendWhatsAppTemplate(patient.phone, templateName, "es", components);
+
+      coupon.sentTo.push({ patientId: patient._id, sentAt: new Date() });
+    }
+
+    if (coupon.isModified()) await coupon.save();
+  }
+};
+
+// ==========================================
 // 🚀 3. LOS EJECUTORES (Lo que llama el CRON)
 // ==========================================
 
@@ -296,9 +437,9 @@ export const sendTouchUpReminders = async () => {
   }
 };
 
-export const sendHourlyReminders = async () => {
+export const sendDailyReminders = async () => {
   try {
-    const targets = await processHourlyReminders();
+    const targets = await processDailyReminders();
     if (targets.length === 0) return;
 
     for (const appt of targets) {
@@ -306,15 +447,67 @@ export const sendHourlyReminders = async () => {
       const firstName = patient.name?.split(" ")[0] || "Paciente";
       await sendWhatsAppMessage(
         patient.phone,
-        `Hola ${firstName}, tu cita en Sbeltic es en 1 hora. Responde 1 para confirmar o 2 para cancelar.`,
+        `Hola ${firstName}, tu cita en Sbeltic es mañana. Responde 1 para confirmar o 2 para cancelar.`,
       );
 
       appt.isReminderSent = true;
       await appt.save();
     }
   } catch (error) {
-    console.error("❌ Error en sendHourlyReminders:", error);
+    console.error("❌ Error en sendDailyReminders:", error);
   }
+};
+
+/**
+ * Helper compartido: notifica al siguiente candidato en waitlist.
+ * Salta pacientes que ya tienen cita esa misma semana.
+ * @param {ObjectId} doctorId - Doctor de la cita cancelada
+ * @param {Date} cancelledDate - Fecha de la cita cancelada
+ * @returns {boolean} true si se notificó a alguien
+ */
+export const notifyNextWaitlistCandidate = async (doctorId, cancelledDate) => {
+  const date = new Date(cancelledDate);
+  const dayStart = startOfDay(date);
+  const dayEnd = endOfDay(date);
+
+  // Calcular lunes y domingo de la semana
+  const dayOfWeek = date.getDay(); // 0=dom, 1=lun...
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const weekStart = startOfDay(addDays(date, mondayOffset));
+  const weekEnd = endOfDay(addDays(weekStart, 6));
+
+  const candidates = await Waitlist.find({
+    doctorId,
+    desiredDate: { $gte: dayStart, $lte: dayEnd },
+    status: "WAITING",
+  }).populate("patientId", "name phone");
+
+  for (const candidate of candidates) {
+    if (!candidate.patientId) continue;
+
+    // Verificar si ya tiene cita esa semana
+    const existingThisWeek = await Appointment.findOne({
+      patientId: candidate.patientId._id,
+      status: { $in: ["PENDING", "CONFIRMED"] },
+      appointmentDate: { $gte: weekStart, $lte: weekEnd },
+    });
+
+    if (existingThisWeek) continue; // Skip — ya tiene cita esta semana
+
+    candidate.status = "NOTIFIED";
+    candidate.notifiedAt = new Date();
+    await candidate.save();
+
+    const firstName = candidate.patientId.name?.split(" ")[0] || "Paciente";
+    await sendWhatsAppMessage(
+      candidate.patientId.phone,
+      `Hola ${firstName}, ¡buenas noticias! Se liberó un espacio que querías. ¿Deseas tomarlo? Responde 1 para aceptar.`,
+    );
+
+    return true;
+  }
+
+  return false;
 };
 
 /**
@@ -334,25 +527,8 @@ export const expireWaitlistNotifications = async () => {
       entry.status = "EXPIRED";
       await entry.save();
 
-      // Buscar siguiente candidato en la cola para el mismo doctor y fecha
-      const nextCandidate = await Waitlist.findOne({
-        doctorId: entry.doctorId,
-        desiredDate: entry.desiredDate,
-        status: "WAITING",
-      }).populate("patientId", "name phone");
-
-      if (nextCandidate && nextCandidate.patientId) {
-        nextCandidate.status = "NOTIFIED";
-        nextCandidate.notifiedAt = new Date();
-        await nextCandidate.save();
-
-        const patient = nextCandidate.patientId;
-        const firstName = patient.name?.split(" ")[0] || "Paciente";
-        await sendWhatsAppMessage(
-          patient.phone,
-          `Hola ${firstName}, se liberó un espacio. ¿Deseas tomarlo? Responde 1 para aceptar.`,
-        );
-      }
+      // Escalar al siguiente candidato usando el helper compartido
+      await notifyNextWaitlistCandidate(entry.doctorId, entry.desiredDate);
     }
   } catch (error) {
     console.error("❌ Error en expireWaitlistNotifications:", error);
@@ -372,5 +548,21 @@ export const sendFollowUpReminders = async () => {
     await processFollowUpReminders();
   } catch (error) {
     console.error("❌ Error en sendFollowUpReminders:", error);
+  }
+};
+
+export const sendBirthdayCoupons = async () => {
+  try {
+    await processBirthdayCoupons();
+  } catch (error) {
+    console.error("❌ Error en sendBirthdayCoupons:", error);
+  }
+};
+
+export const sendMaintenanceCoupons = async () => {
+  try {
+    await processMaintenanceCoupons();
+  } catch (error) {
+    console.error("❌ Error en sendMaintenanceCoupons:", error);
   }
 };

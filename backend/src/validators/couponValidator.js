@@ -4,14 +4,17 @@ import { objectIdSchema } from "./common.js"; // Tu validador de Mongo IDs
 export const createCouponSchema = z
   .object({
     code: z.string().trim().min(3).toUpperCase(),
-    type: z.enum(["WELCOME", "REFERRAL", "SEASONAL", "CLEARANCE"]),
+    type: z.enum(["WELCOME", "REFERRAL", "SEASONAL", "CLEARANCE", "BIRTHDAY", "MAINTENANCE"]),
     discountType: z.enum(["PERCENTAGE", "FIXED_AMOUNT"]),
     discountValue: z.number().positive(),
 
-    // 🌟 AQUÍ ESTÁ EL CAMPO QUE FALTABA (El pase VIP)
-    whatsappMessageTemplate: z
+    // Nombre de la plantilla pre-aprobada en Meta
+    whatsappTemplateName: z
       .string()
-      .min(1, "El mensaje de WhatsApp es obligatorio"),
+      .min(1, "El nombre de la plantilla de WhatsApp es obligatorio"),
+
+    // Variables configurables por tipo
+    templateVariables: z.record(z.any()).optional(),
 
     // Configuración Global
     minPurchase: z.number().nonnegative().default(0),
@@ -28,7 +31,7 @@ export const createCouponSchema = z
     // 🎯 Configuraciones Específicas
     referralConfig: z
       .object({
-        ownerId: objectIdSchema,
+        ownerId: objectIdSchema.optional(),
         maxShares: z.number().int().nonnegative().default(0),
       })
       .optional(),
@@ -36,6 +39,13 @@ export const createCouponSchema = z
     clearanceConfig: z
       .object({
         applicableProducts: z.array(objectIdSchema).min(1),
+      })
+      .optional(),
+
+    maintenanceConfig: z
+      .object({
+        treatmentId: objectIdSchema,
+        touchUpDays: z.number().int().nonnegative().optional(),
       })
       .optional(),
 
@@ -47,7 +57,7 @@ export const createCouponSchema = z
         dayOfWeek: z.number().int().min(0).max(6).optional(),
         dayOfMonth: z.number().int().min(1).max(31).optional(),
         triggerEvent: z
-          .enum(["MANUAL", "ON_NEW_PATIENT", "ON_LOW_STOCK", "ON_APPOINTMENT_COMPLETE"])
+          .enum(["MANUAL", "ON_NEW_PATIENT", "ON_LOW_STOCK", "ON_APPOINTMENT_COMPLETE", "ON_BIRTHDAY", "ON_MAINTENANCE_DUE"])
           .default("MANUAL"),
         delayDays: z.number().int().nonnegative().default(0),
       })

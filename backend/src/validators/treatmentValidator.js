@@ -11,7 +11,7 @@ const createTreatmentSchema = z
       .string()
       .trim()
       .min(2, "Treatment name must be at least 2 characters"),
-    performerRole: z.enum(["DOCTOR", "RECEPTIONIST", "BOTH"], {
+    performerRole: z.enum(["ADMIN", "RECEPTIONIST", "BOTH"], {
       required_error: "You must specify who can perform this treatment",
     }),
     category: z.string().trim().toUpperCase().min(2, "Category is required"),

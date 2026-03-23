@@ -12,7 +12,7 @@ const couponSchema = new mongoose.Schema(
     // 🌟 Categoría del cupón
     type: {
       type: String,
-      enum: ["WELCOME", "REFERRAL", "SEASONAL", "CLEARANCE"],
+      enum: ["WELCOME", "REFERRAL", "SEASONAL", "CLEARANCE", "BIRTHDAY", "MAINTENANCE"],
       required: true,
     },
     discountType: {
@@ -42,10 +42,16 @@ const couponSchema = new mongoose.Schema(
       },
     ],
 
-    // 🌟 El mensaje del admin
-    whatsappMessageTemplate: {
+    // 🌟 Nombre de la plantilla pre-aprobada en Meta
+    whatsappTemplateName: {
       type: String,
       required: true,
+    },
+
+    // 🎯 Variables configurables por tipo (valores que el admin define al crear el cupón)
+    templateVariables: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
     },
 
     // 🎯 CONFIGURACIONES ESPECÍFICAS
@@ -58,6 +64,19 @@ const couponSchema = new mongoose.Schema(
         { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
       ],
     },
+    maintenanceConfig: {
+      treatmentId: { type: mongoose.Schema.Types.ObjectId, ref: "Treatment" },
+      touchUpDays: { type: Number },
+    },
+
+    // 📊 Tracking de envíos (evitar duplicados en birthday/maintenance)
+    sentTo: [
+      {
+        patientId: { type: mongoose.Schema.Types.ObjectId, ref: "Patient" },
+        sentAt: { type: Date, default: Date.now },
+        year: { type: Number },
+      },
+    ],
 
     // 📅 PROGRAMACIÓN DE ENVÍO
     schedule: {
@@ -71,7 +90,7 @@ const couponSchema = new mongoose.Schema(
       dayOfMonth: { type: Number },                  // 1-31 (MONTHLY)
       triggerEvent: {
         type: String,
-        enum: ["MANUAL", "ON_NEW_PATIENT", "ON_LOW_STOCK", "ON_APPOINTMENT_COMPLETE"],
+        enum: ["MANUAL", "ON_NEW_PATIENT", "ON_LOW_STOCK", "ON_APPOINTMENT_COMPLETE", "ON_BIRTHDAY", "ON_MAINTENANCE_DUE"],
         default: "MANUAL",
       },
       delayDays: { type: Number, default: 0 },       // días de retraso post-evento

@@ -2,6 +2,7 @@ import Appointment from "../models/Appointment.js";
 import Patient from "../models/clinical/Patient.js";
 import Waitlist from "../models/clinical/Waitlist.js";
 import { sendWhatsAppMessage } from "../services/whatsappService.js";
+import { notifyNextWaitlistCandidate } from "../services/automationService.js";
 import { handleStateMachine, hasActiveSession } from "./whatsappController.js";
 
 /**
@@ -163,29 +164,8 @@ const handleCancellation = async (patient, phone) => {
       `${firstName}, tu cita ha sido cancelada. Si deseas reagendar, contacta a recepción.`,
     );
 
-    // Disparar waitlist (misma lógica que cancelAppointment)
-    const canceledDate = new Date(upcomingAppt.appointmentDate);
-    const startOfDay = new Date(canceledDate).setHours(0, 0, 0, 0);
-    const endOfDay = new Date(canceledDate).setHours(23, 59, 59, 999);
-
-    const nextInLine = await Waitlist.findOne({
-      doctorId: upcomingAppt.doctorId,
-      desiredDate: { $gte: startOfDay, $lte: endOfDay },
-      status: "WAITING",
-    }).populate("patientId", "name phone");
-
-    if (nextInLine && nextInLine.patientId) {
-      nextInLine.status = "NOTIFIED";
-      nextInLine.notifiedAt = new Date();
-      await nextInLine.save();
-
-      const waitlistName =
-        nextInLine.patientId.name?.split(" ")[0] || "Paciente";
-      await sendWhatsAppMessage(
-        nextInLine.patientId.phone,
-        `Hola ${waitlistName}, se liberó un espacio. ¿Deseas tomarlo? Responde 1 para aceptar.`,
-      );
-    }
+    // Notificar al siguiente candidato en waitlist (con criterio semanal)
+    await notifyNextWaitlistCandidate(upcomingAppt.doctorId, upcomingAppt.appointmentDate);
     return;
   }
 

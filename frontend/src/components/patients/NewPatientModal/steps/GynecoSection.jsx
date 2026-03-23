@@ -229,14 +229,14 @@ const GynecoSection = ({ formData, setFormData }) => {
         </div>
 
         <div className="col-span-full mt-2">
-          <label className="flex items-center gap-3 cursor-pointer p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors w-fit">
+          <label className="flex items-center gap-3 cursor-pointer p-4 md:p-5 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors w-fit border border-slate-200 md:border-2">
             <input
               type="checkbox"
-              className="w-4 h-4 accent-indigo-600 rounded"
+              className="w-5 h-5 md:w-6 md:h-6 accent-indigo-600 rounded"
               checked={gynecoData.isIrregular || false}
               onChange={(e) => updateGyneco("isIrregular", e.target.checked)}
             />
-            <span className="text-[10px] font-black uppercase text-slate-600 italic">
+            <span className="text-[10px] md:text-xs font-black uppercase text-slate-600 italic">
               Mi periodo es Irregular
             </span>
           </label>

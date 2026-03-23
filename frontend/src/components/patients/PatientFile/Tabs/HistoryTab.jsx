@@ -22,13 +22,40 @@ import SystemsSection from "../../NewPatientModal/steps/SystemsSection";
 import CurrentConditionSection from "../../NewPatientModal/steps/CurrentConditionSection";
 import WhatsAppSignatureButton from "../../shared/WhatsAppSignatureButton"; // 🌟 IMPORTACIÓN DEL BOTÓN
 
+const DEFAULT_PATHOLOGICAL = {
+  surgeries: { has: false, detail: "", dates: "", complications: "" },
+  hospitalized: { has: false, reason: "", date: "" },
+  accidents: { has: false, detail: "", sequels: "", date: "" },
+  malformations: { has: false, detail: "" },
+  transfusions: { has: false, reaction: "" },
+  covid: { had: false, date: "", sequels: "", vaccine: false, type: "", doses: "" },
+};
+
+const DEFAULT_HABITS = {
+  tobacco: { does: false, frequency: "", lastTime: "" },
+  alcohol: { does: false, frequency: "", lastTime: "" },
+  drugs: { does: false, types: { marijuana: false, cocaine: false, crystal: false, other: "" }, frequency: "", lastTime: "" },
+  exercise: { does: false, type: "" },
+  supplements: { does: false, detail: "" },
+  previousTreatments: { massages: false, mesotherapy: false, fillers: false, others: "" },
+};
+
+const mergePatient = (p) => ({
+  ...p,
+  medicalHistory: {
+    ...p.medicalHistory,
+    pathological: { ...DEFAULT_PATHOLOGICAL, ...p.medicalHistory?.pathological },
+    habits: { ...DEFAULT_HABITS, ...p.medicalHistory?.habits },
+  },
+});
+
 const HistoryTab = ({ patient, userRole, onUpdate, onClose }) => {
-  const [formData, setFormData] = useState(patient || {});
+  const [formData, setFormData] = useState(patient ? mergePatient(patient) : {});
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (patient) setFormData(patient);
+    if (patient) setFormData(mergePatient(patient));
   }, [patient]);
 
   const canEdit = userRole === "DOCTOR";

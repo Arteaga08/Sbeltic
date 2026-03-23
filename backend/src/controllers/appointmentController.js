@@ -9,7 +9,8 @@ import AppError from "../utils/appError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendResponse } from "../utils/responseHandler.js";
 import { deductInventoryFEFO } from "../services/inventoryService.js";
-import { processTriggerCoupons } from "../services/automationService.js";
+import { processTriggerCoupons, notifyNextWaitlistCandidate } from "../services/automationService.js";
+import { checkFullSchedule, findNextAvailableSlot, RECEPTIONIST_ROOMS } from "../services/availabilityService.js";
 
 // --- HELPERS DE COLISIÓN (Internos) ---
 
@@ -107,6 +108,25 @@ const createAppointment = asyncHandler(async (req, res, next) => {
   if (collisionCheck.collision)
     return next(new AppError(collisionCheck.reason, 400));
 
+  // Verificar agenda llena para cuartos de recepcionista
+  if (RECEPTIONIST_ROOMS.includes(roomId)) {
+    const fullCheck = await checkFullSchedule(appointmentDate, duration);
+    if (fullCheck.isFull) {
+      const nextSlot = await findNextAvailableSlot(duration, new Date(appointmentDate));
+      return res.status(409).json({
+        success: false,
+        message: "Agenda llena: todas las cabinas o recepcionistas están ocupadas en ese horario.",
+        code: "SCHEDULE_FULL",
+        data: {
+          nextAvailableSlot: nextSlot
+            ? { suggestedDate: nextSlot.slot, suggestedRooms: nextSlot.freeRooms }
+            : null,
+          canJoinWaitlist: !nextSlot,
+        },
+      });
+    }
+  }
+
   const appointment = new Appointment({ ...req.body, createdBy: req.user._id });
   const savedAppointment = await appointment.save();
 
@@ -196,6 +216,25 @@ const updateAppointment = asyncHandler(async (req, res, next) => {
     );
     if (collisionCheck.collision)
       return next(new AppError(collisionCheck.reason, 400));
+
+    // Verificar agenda llena para cuartos de recepcionista
+    if (RECEPTIONIST_ROOMS.includes(newRoomId)) {
+      const fullCheck = await checkFullSchedule(newDate, newDuration, appointment._id);
+      if (fullCheck.isFull) {
+        const nextSlot = await findNextAvailableSlot(newDuration, new Date(newDate));
+        return res.status(409).json({
+          success: false,
+          message: "Agenda llena: todas las cabinas o recepcionistas están ocupadas en ese horario.",
+          code: "SCHEDULE_FULL",
+          data: {
+            nextAvailableSlot: nextSlot
+              ? { suggestedDate: nextSlot.slot, suggestedRooms: nextSlot.freeRooms }
+              : null,
+            canJoinWaitlist: !nextSlot,
+          },
+        });
+      }
+    }
   }
 
   let safeCouponCode = null;
@@ -313,17 +352,19 @@ const updateAppointment = asyncHandler(async (req, res, next) => {
           await coupon.save({ session });
 
           // Recompensa por referido si aplica
-          if (coupon.referredBy) {
+          if (coupon.type === "REFERRAL" && coupon.referralConfig?.ownerId) {
             const rewardCoupon = new Coupon({
               code: `REWARD-${Math.random().toString(36).substring(7).toUpperCase()}`,
+              type: "WELCOME",
               discountType: "PERCENTAGE",
               discountValue: 10,
               expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
               maxRedemptions: 1,
+              whatsappTemplateName: "sbeltic_bienvenida",
             });
             await rewardCoupon.save({ session });
             await Patient.findByIdAndUpdate(
-              coupon.referredBy,
+              coupon.referralConfig.ownerId,
               { $push: { walletCoupons: rewardCoupon._id } },
               { session },
             );
@@ -345,10 +386,12 @@ const updateAppointment = asyncHandler(async (req, res, next) => {
         isFirstVisit = true;
         const welcome = new Coupon({
           code: `WELCOME-${Math.random().toString(36).substring(7).toUpperCase()}`,
+          type: "WELCOME",
           discountType: "PERCENTAGE",
           discountValue: 10,
           expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
           maxRedemptions: 1,
+          whatsappTemplateName: "sbeltic_bienvenida",
         });
         await welcome.save({ session });
         await Patient.findByIdAndUpdate(
@@ -429,43 +472,16 @@ const cancelAppointment = asyncHandler(async (req, res, next) => {
   appointment.status = "CANCELLED";
   await appointment.save();
 
-  const canceledDate = new Date(appointment.appointmentDate);
-  const startOfDay = new Date(canceledDate).setHours(0, 0, 0, 0);
-  const endOfDay = new Date(canceledDate).setHours(23, 59, 59, 999);
-
-  const waitlistCandidates = await Waitlist.find({
-    doctorId: appointment.doctorId,
-    desiredDate: { $gte: startOfDay, $lte: endOfDay },
-    status: "WAITING",
-  }).populate("patientId", "name phone");
-
-  let notificationMessage = null;
-
-  if (waitlistCandidates.length > 0) {
-    const nextInLine = waitlistCandidates[0];
-    const patientWaitlist = nextInLine.patientId;
-    const existingFuture = await Appointment.findOne({
-      patientId: patientWaitlist._id,
-      status: { $in: ["PENDING", "CONFIRMED"] },
-      appointmentDate: { $gte: new Date() },
-    });
-
-    if (!existingFuture) {
-      notificationMessage = `Hola ${patientWaitlist.name}, ¡buenas noticias! Se liberó un espacio hoy. ¿Deseas tomarlo? Responde 1 para aceptar.`;
-      nextInLine.status = "NOTIFIED";
-      nextInLine.notifiedAt = new Date();
-      await nextInLine.save();
-    }
-  }
+  // Notificar al siguiente candidato en waitlist (con criterio semanal)
+  const waitlistTriggered = await notifyNextWaitlistCandidate(
+    appointment.doctorId,
+    appointment.appointmentDate,
+  );
 
   sendResponse(
     res,
     200,
-    {
-      appointment,
-      waitlistTriggered: waitlistCandidates.length > 0,
-      simulatedMessage: notificationMessage,
-    },
+    { appointment, waitlistTriggered },
     "Cita cancelada correctamente.",
   );
 });

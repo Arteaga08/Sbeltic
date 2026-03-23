@@ -451,7 +451,7 @@ const MedicalHistoryPDF = ({ patient }) => {
 
         {/* PADECIMIENTO ACTUAL */}
         {currentCondition ? (
-          <Section title="Padecimiento Actual / Motivo de Visita">
+          <Section title="Motivo de Consulta">
             <Text style={styles.textBlock}>{currentCondition}</Text>
           </Section>
         ) : null}

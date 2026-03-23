@@ -90,11 +90,16 @@ const createProduct = asyncHandler(async (req, res, next) => {
  * @access  Private
  */
 const getProducts = asyncHandler(async (req, res, next) => {
-  const { category, search, isTrackable } = req.query;
+  const { category, search, isTrackable, type } = req.query;
   const query = { isActive: true };
 
   if (category && typeof category === "string") {
     query.category = category;
+  } else if (type && typeof type === "string") {
+    const categoriesOfType = await Category.find({ type, isActive: true }).select("_id");
+    if (categoriesOfType.length > 0) {
+      query.category = { $in: categoriesOfType.map((c) => c._id) };
+    }
   }
 
   if (isTrackable !== undefined) {
@@ -102,7 +107,8 @@ const getProducts = asyncHandler(async (req, res, next) => {
   }
 
   if (search && typeof search === "string") {
-    query.$text = { $search: search.trim() };
+    const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    query.name = { $regex: escaped, $options: "i" };
   }
 
   const products = await Product.find(query)

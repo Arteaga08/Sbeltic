@@ -45,11 +45,31 @@ const INITIAL_FORM_DATA = {
       },
       currentMedications: "",
     },
-    family: {},
+    family: {
+      hypertension: { has: false },
+      diabetes: { has: false },
+      thrombosis: { has: false },
+      bleeding: { has: false },
+      cancer: { has: false },
+    },
     gyneco: {},
     systems: {},
-    pathological: {},
-    habits: {},
+    pathological: {
+      surgeries: { has: false, detail: "", dates: "", complications: "" },
+      hospitalized: { has: false, reason: "", date: "" },
+      accidents: { has: false, detail: "", sequels: "", date: "" },
+      malformations: { has: false, detail: "" },
+      transfusions: { has: false, reaction: "" },
+      covid: { had: false, date: "", sequels: "", vaccine: false, type: "", doses: "" },
+    },
+    habits: {
+      tobacco: { does: false, frequency: "", lastTime: "" },
+      alcohol: { does: false, frequency: "", lastTime: "" },
+      drugs: { does: false, types: { marijuana: false, cocaine: false, crystal: false, other: "" }, frequency: "", lastTime: "" },
+      exercise: { does: false, type: "" },
+      supplements: { does: false, detail: "" },
+      previousTreatments: { massages: false, mesotherapy: false, fillers: false, others: "" },
+    },
     currentCondition: {},
   },
 };
@@ -129,6 +149,46 @@ export default function MedicalHistoryPublicPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Scroll to top on section change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentSection]);
+
+  // Section validation
+  const validateSection = (index) => {
+    const mh = formData.medicalHistory;
+    switch (index) {
+      case 0: // Identificación
+        return !!(mh.identification.age && mh.identification.birthday && mh.identification.address);
+      case 1: // Family History — all conditions must have explicit selection
+        return ["hypertension", "diabetes", "thrombosis", "bleeding", "cancer"].every(
+          (id) => mh.family?.[id]?.has !== undefined
+        );
+      case 2: // Patológicos — all toggles answered (they have defaults so always true)
+        return true;
+      case 3: // Hábitos — all toggles answered (they have defaults so always true)
+        return true;
+      case 4: // Ginecología — siempre válida (opcional, solo mujeres)
+        return true;
+      case 5: // Sistemas — all toggles answered (they have defaults so always true)
+        return true;
+      case 6: // Motivo de consulta
+        return typeof mh.currentCondition === "string" && mh.currentCondition.trim().length > 0;
+      default:
+        return true;
+    }
+  };
+
+  const isSectionValid = validateSection(currentSection);
+
+  const handleNext = () => {
+    if (!isSectionValid) {
+      toast.error("Por favor, completa todos los campos antes de continuar.");
+      return;
+    }
+    setCurrentSection((s) => s + 1);
   };
 
   const isLastSection = currentSection === SECTIONS.length - 1;
@@ -307,32 +367,35 @@ export default function MedicalHistoryPublicPage() {
       </div>
 
       {/* Bottom navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 p-4 flex gap-3">
-        {currentSection > 0 && (
-          <button
-            onClick={() => setCurrentSection((s) => s - 1)}
-            className="px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-[10px] uppercase tracking-widest"
-          >
-            Atrás
-          </button>
-        )}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 p-4">
+        <div className="flex gap-3 md:max-w-md md:mx-auto">
+          {currentSection > 0 && (
+            <button
+              onClick={() => setCurrentSection((s) => s - 1)}
+              className="px-6 py-3 bg-slate-100 text-slate-600 rounded-2xl font-black text-[10px] uppercase tracking-widest"
+            >
+              Atrás
+            </button>
+          )}
 
-        {!isLastSection ? (
-          <button
-            onClick={() => setCurrentSection((s) => s + 1)}
-            className="flex-1 flex items-center justify-center gap-2 py-4 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-100 active:scale-[0.98] transition-all"
-          >
-            Siguiente <ArrowRight size={16} weight="bold" />
-          </button>
-        ) : (
-          <button
-            onClick={handleSubmit}
-            disabled={submitting || !signature}
-            className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-100 active:scale-[0.98] transition-all disabled:opacity-50"
-          >
-            {submitting ? "Guardando..." : "Enviar Historial Médico"}
-          </button>
-        )}
+          {!isLastSection ? (
+            <button
+              onClick={handleNext}
+              disabled={!isSectionValid}
+              className="flex-1 flex items-center justify-center gap-2 py-3 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-100 active:scale-[0.98] transition-all disabled:opacity-50"
+            >
+              Siguiente <ArrowRight size={16} weight="bold" />
+            </button>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              disabled={submitting || !signature}
+              className="flex-1 py-3 bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-100 active:scale-[0.98] transition-all disabled:opacity-50"
+            >
+              {submitting ? "Guardando..." : "Enviar Historial Médico"}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -27,7 +27,7 @@ const CurrentConditionSection = ({ formData, setFormData }) => {
         </div>
         <div>
           <h3 className="text-sm font-black italic uppercase text-slate-800 tracking-widest leading-none">
-            Padecimiento Actual
+            Motivo de Consulta
           </h3>
           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
             Motivo de la visita o interés principal

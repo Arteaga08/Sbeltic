@@ -6,6 +6,7 @@ import FileHeader from "./FileHeader";
 import HistoryTab from "./Tabs/HistoryTab";
 import EvolutionTab from "./Tabs/EvolutionTab";
 import SignatureTab from "./Tabs/SignatureTab";
+import CouponsTab from "./Tabs/CouponsTab";
 import { toast } from "sonner";
 
 const PatientFileModal = ({ isOpen, patientId, onClose, onUpdate }) => {
@@ -92,6 +93,9 @@ const PatientFileModal = ({ isOpen, patientId, onClose, onUpdate }) => {
                     patient={patient}
                     onUpdate={fetchPatientData}
                   />
+                )}
+                {activeTab === "coupons" && (
+                  <CouponsTab patient={patient} />
                 )}
               </div>
             )}

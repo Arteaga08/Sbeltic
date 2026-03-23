@@ -1,7 +1,24 @@
 "use client";
 import { useState } from "react";
-import { CalendarBlank, Tag, Trash, WhatsappLogo } from "@phosphor-icons/react";
+import {
+  CalendarBlank,
+  Tag,
+  Trash,
+  WhatsappLogo,
+  Clock,
+  Copy,
+  Check,
+} from "@phosphor-icons/react";
 import { toast } from "sonner";
+
+const TEMPLATE_LABELS = {
+  sbeltic_bienvenida: "Bienvenida",
+  sbeltic_referidos: "Referidos",
+  sbeltic_mantenimiento: "Mantenimiento",
+  sbeltic_cumple: "Cumpleanos",
+  sbeltic_promo_mensual: "Promo Mensual",
+  sbeltic_liquidacion: "Liquidacion",
+};
 
 const CampaignCard = ({ campaign, onRefresh }) => {
   const {
@@ -13,45 +30,36 @@ const CampaignCard = ({ campaign, onRefresh }) => {
     maxRedemptions,
     expiresAt,
     isActive,
-    whatsappMessageTemplate,
+    whatsappTemplateName,
     schedule,
+    type,
   } = campaign;
 
   const [showWA, setShowWA] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Barra de progreso de canjes
   const usagePercentage = Math.min((usedCount / maxRedemptions) * 100, 100);
 
-  // Formato de descuento
   const displayDiscount =
     discountType === "PERCENTAGE" ? `${discountValue}%` : `$${discountValue}`;
 
-  // Días restantes hasta vencimiento
   const daysLeft = Math.ceil(
     (new Date(expiresAt) - new Date()) / (1000 * 60 * 60 * 24),
   );
   const daysColor =
     daysLeft <= 3 ? "text-rose-500" : daysLeft <= 7 ? "text-amber-500" : "text-slate-400";
 
-  // Mensaje WA con código insertado
-  const resolvedMessage = (whatsappMessageTemplate || "")
-    .replace(/{{nombre}}/g, "[Nombre]")
-    .replace(/{{codigo}}/g, code)
-    .replace(
-      /{{descuento}}/g,
-      discountType === "PERCENTAGE" ? `${discountValue}%` : `$${discountValue}`,
-    );
+  const templateLabel = TEMPLATE_LABELS[whatsappTemplateName] || whatsappTemplateName || "Sin plantilla";
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(resolvedMessage);
+    navigator.clipboard.writeText(code);
     setCopied(true);
-    toast.success("Mensaje copiado");
+    toast.success("Codigo copiado");
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleDeactivate = async () => {
-    if (!confirm("¿Deseas pausar esta campaña?")) return;
+    if (!confirm("Deseas pausar esta campana?")) return;
     try {
       const token = localStorage.getItem("sbeltic_token");
       const res = await fetch(
@@ -59,7 +67,7 @@ const CampaignCard = ({ campaign, onRefresh }) => {
         { method: "PATCH", headers: { Authorization: `Bearer ${token}` } },
       );
       if (res.ok) {
-        toast.success("Campaña pausada");
+        toast.success("Campana pausada");
         if (onRefresh) onRefresh();
       }
     } catch {
@@ -71,7 +79,7 @@ const CampaignCard = ({ campaign, onRefresh }) => {
     <div
       className={`bg-white border-2 ${isActive ? "border-slate-50" : "border-rose-100 opacity-80"} rounded-2xl p-6 shadow-sm hover:shadow-md transition-all relative group`}
     >
-      {/* 🟢 ESTATUS Y ACCIONES */}
+      {/* ESTATUS Y ACCIONES */}
       <div className="flex justify-between items-start mb-6">
         <div
           className={`flex items-center gap-2 px-3 py-1 rounded-full ${
@@ -94,7 +102,7 @@ const CampaignCard = ({ campaign, onRefresh }) => {
         </button>
       </div>
 
-      {/* 🏷️ INFO DE CAMPAÑA */}
+      {/* INFO DE CAMPANA */}
       <div className="space-y-1 mb-8">
         <h4 className="text-3xl font-black italic uppercase text-slate-900 tracking-tighter leading-none">
           {code}
@@ -106,18 +114,26 @@ const CampaignCard = ({ campaign, onRefresh }) => {
           </p>
         </div>
 
-        {/* Badge de próximo envío programado */}
+        {/* Badge de plantilla */}
+        <div className="flex items-center gap-1.5 mt-2">
+          <WhatsappLogo size={12} weight="fill" className="text-emerald-500" />
+          <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">
+            {templateLabel}
+          </span>
+        </div>
+
+        {/* Badge de proximo envio programado */}
         {schedule?.nextSendAt && (
-          <div className="flex items-center gap-1.5 mt-2">
+          <div className="flex items-center gap-1.5 mt-1">
             <Clock size={12} className="text-indigo-400" />
             <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">
-              Próx. envío: {new Date(schedule.nextSendAt).toLocaleDateString()}
+              Prox. envio: {new Date(schedule.nextSendAt).toLocaleDateString()}
             </span>
           </div>
         )}
       </div>
 
-      {/* 📊 MÉTRICAS DE CANJE */}
+      {/* METRICAS DE CANJE */}
       <div className="space-y-2.5 mb-8">
         <div className="flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-widest">
           <span>
@@ -135,7 +151,7 @@ const CampaignCard = ({ campaign, onRefresh }) => {
         </div>
       </div>
 
-      {/* 📅 PIE: VIGENCIA + WA */}
+      {/* PIE: VIGENCIA + COPIAR CODIGO */}
       <div className="flex items-center justify-between pt-5 border-t border-slate-50">
         <div className="flex items-center gap-2">
           <CalendarBlank size={16} weight="bold" className="text-slate-300" />
@@ -144,42 +160,18 @@ const CampaignCard = ({ campaign, onRefresh }) => {
           </span>
         </div>
 
-        {/* Botón WhatsApp — abre el template */}
-        <div className="relative">
-          <button
-            onClick={() => setShowWA(!showWA)}
-            className={`p-2 rounded-lg transition-colors ${showWA ? "bg-emerald-100 text-emerald-700" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"}`}
-          >
-            <WhatsappLogo size={18} weight="fill" />
-          </button>
-
-          {showWA && (
-            <div
-              className="absolute bottom-12 right-0 w-72 bg-white border border-slate-100 rounded-2xl shadow-xl p-4 z-10"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                Template WhatsApp
-              </p>
-              <p className="text-xs text-slate-700 leading-relaxed bg-slate-50 rounded-xl p-3 whitespace-pre-wrap mb-3">
-                {resolvedMessage || "Sin mensaje configurado"}
-              </p>
-              <button
-                onClick={handleCopy}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-colors"
-              >
-                {copied ? <Check size={14} weight="bold" /> : <Copy size={14} weight="bold" />}
-                {copied ? "Copiado" : "Copiar mensaje"}
-              </button>
-            </div>
-          )}
-        </div>
+        <button
+          onClick={handleCopy}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors text-[9px] font-black uppercase tracking-widest ${
+            copied
+              ? "bg-emerald-100 text-emerald-700"
+              : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+          }`}
+        >
+          {copied ? <Check size={14} weight="bold" /> : <Copy size={14} weight="bold" />}
+          {copied ? "Copiado" : "Codigo"}
+        </button>
       </div>
-
-      {/* Cierra el dropdown WA al hacer clic afuera */}
-      {showWA && (
-        <div className="fixed inset-0 z-9" onClick={() => setShowWA(false)} />
-      )}
     </div>
   );
 };

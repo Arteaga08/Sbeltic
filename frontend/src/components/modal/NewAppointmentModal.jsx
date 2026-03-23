@@ -41,11 +41,15 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
   const [staff, setStaff] = useState([]);
   const [treatments, setTreatments] = useState([]);
   const [loadingData, setLoadingData] = useState(false);
+  const [patientSearch, setPatientSearch] = useState("");
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setIsNewPatient(false);
       setSelectedCategory("CIRUGIA");
+      setPatientSearch("");
+      setShowPatientDropdown(false);
       setFormData({
         patientId: "",
         newPatientName: "",
@@ -242,24 +246,80 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
                   </div>
 
                   {!isNewPatient ? (
-                    <select
-                      className="w-full p-3 rounded-xl border border-slate-200 outline-none"
-                      value={formData.patientId}
-                      onChange={(e) =>
-                        setFormData({ ...formData, patientId: e.target.value })
-                      }
-                    >
-                      <option value="">
-                        {patients.length === 0
-                          ? "Sin pacientes registrados"
-                          : "Buscar en base de datos..."}
-                      </option>
-                      {patients.map((p) => (
-                        <option key={p._id} value={p._id}>
-                          {p.name} ({p.phone})
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <div className="flex items-center w-full p-3 rounded-xl border border-slate-200 bg-white">
+                        <input
+                          type="text"
+                          placeholder={
+                            patients.length === 0
+                              ? "Sin pacientes registrados"
+                              : "Buscar por nombre o teléfono..."
+                          }
+                          className="flex-1 outline-none text-sm"
+                          value={patientSearch}
+                          onChange={(e) => {
+                            setPatientSearch(e.target.value);
+                            setShowPatientDropdown(true);
+                            if (!e.target.value.trim()) {
+                              setFormData({ ...formData, patientId: "" });
+                            }
+                          }}
+                          onFocus={() => setShowPatientDropdown(true)}
+                        />
+                        {formData.patientId && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPatientSearch("");
+                              setFormData({ ...formData, patientId: "" });
+                              setShowPatientDropdown(false);
+                            }}
+                            className="ml-2 text-slate-400 hover:text-slate-600 text-lg leading-none"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                      {showPatientDropdown && patientSearch.trim() && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-10 max-h-48 overflow-y-auto">
+                          {patients
+                            .filter((p) => {
+                              const term = patientSearch.toLowerCase();
+                              return (
+                                (p.name || "").toLowerCase().includes(term) ||
+                                (p.phone || "").includes(term)
+                              );
+                            })
+                            .slice(0, 8)
+                            .map((p) => (
+                              <button
+                                key={p._id}
+                                type="button"
+                                onClick={() => {
+                                  setFormData({ ...formData, patientId: p._id });
+                                  setPatientSearch(`${p.name} (${p.phone})`);
+                                  setShowPatientDropdown(false);
+                                }}
+                                className="w-full px-4 py-3 text-left text-sm hover:bg-slate-50 flex justify-between items-center border-b border-slate-100 last:border-b-0"
+                              >
+                                <span className="font-medium">{p.name}</span>
+                                <span className="text-xs text-slate-400">{p.phone}</span>
+                              </button>
+                            ))}
+                          {patients.filter((p) => {
+                            const term = patientSearch.toLowerCase();
+                            return (
+                              (p.name || "").toLowerCase().includes(term) ||
+                              (p.phone || "").includes(term)
+                            );
+                          }).length === 0 && (
+                            <div className="px-4 py-3 text-sm text-slate-400 text-center">
+                              Sin resultados
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div className="space-y-3">
                       <input

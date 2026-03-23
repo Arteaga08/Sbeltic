@@ -11,6 +11,7 @@ const patientSchema = new mongoose.Schema(
       set: (v) => (v === "" ? null : v),
     },
     allowsWhatsAppNotifications: { type: Boolean, default: true },
+    dateOfBirth: { type: Date },
     patientType: {
       type: String,
       enum: ["SPA", "INJECTION", "LEAD", "SURGERY", "POST_OP", "OTHER"],

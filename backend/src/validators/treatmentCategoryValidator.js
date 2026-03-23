@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const ROOM_IDS = ["CABINA_1", "CABINA_2", "CABINA_3", "SPA", "CONSULTORIO", "QUIROFANO"];
-const BOT_FLOWS = ["AGENDAR", "COTIZAR", "BOTH", "NONE"];
+const BOT_FLOWS = ["AGENDAR", "CONSULTA", "BOTH", "NONE"];
 
 const createTreatmentCategorySchema = z
   .object({

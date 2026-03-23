@@ -1,11 +1,12 @@
 "use client";
-import { X, IdentificationCard, ActivityIcon, PenNib } from "@phosphor-icons/react";
+import { X, IdentificationCard, ActivityIcon, PenNib, Tag } from "@phosphor-icons/react";
 
 const FileHeader = ({ patient, activeTab, setActiveTab, onClose }) => {
   const tabs = [
     { id: "history", label: "Historial", icon: IdentificationCard },
     { id: "evolution", label: "Evolución", icon: ActivityIcon },
     { id: "signatures", label: "Firmas", icon: PenNib },
+    { id: "coupons", label: "Cupones", icon: Tag },
   ];
 
   const typeStyles = {
@@ -43,7 +44,7 @@ const FileHeader = ({ patient, activeTab, setActiveTab, onClose }) => {
       </div>
 
       {/* 🚥 NAVEGACIÓN RESPONSIVA */}
-      <nav className="grid grid-cols-3 gap-2 bg-slate-100/50 p-1.5 rounded-4xl w-full md:w-fit md:flex md:self-end">
+      <nav className="grid grid-cols-4 gap-2 bg-slate-100/50 p-1.5 rounded-4xl w-full md:w-fit md:flex md:self-end">
         {tabs.map((tab) => (
           <button
             key={tab.id}

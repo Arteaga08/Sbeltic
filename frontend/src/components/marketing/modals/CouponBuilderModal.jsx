@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   X,
   Tag,
@@ -10,6 +10,32 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
+const API = process.env.NEXT_PUBLIC_API_URL;
+
+const TEMPLATE_MAP = {
+  WELCOME: "sbeltic_bienvenida",
+  REFERRAL: "sbeltic_referidos",
+  MAINTENANCE: "sbeltic_mantenimiento",
+  BIRTHDAY: "sbeltic_cumple",
+  SEASONAL: "sbeltic_promo_mensual",
+  CLEARANCE: "sbeltic_liquidacion",
+};
+
+const TEMPLATE_PREVIEWS = {
+  WELCOME:
+    "Hola {{nombre}}, notamos tu interes en Sbeltic. Queremos consentirte en tu primera visita: Aqui tienes un cupon del {{descuento}} de descuento. Usa el codigo {{codigo}} al agendar.",
+  REFERRAL:
+    "Gracias por tu visita a Sbeltic, {{nombre}}! Regalale a tus amigas {{descuento}} de descuento en su primera cita compartiendo tu codigo: {{codigo}}. Por cada amiga que lo use, tu ganaras {{recompensa}} en tu cuenta!",
+  MAINTENANCE:
+    "Hola {{nombre}}, han pasado {{tiempo_transcurrido}} desde tu tratamiento de {{tratamiento}}. Es el momento ideal para tu sesion de mantenimiento. Agenda esta semana y recibe {{descuento}} de descuento.",
+  BIRTHDAY:
+    "Feliz cumpleanos, {{nombre}}! {{mensaje_personalizado}} Como regalo, te enviamos {{regalo}}. Usa el codigo {{codigo}} al agendar. Dejanos consentirte!",
+  SEASONAL:
+    "Hola {{nombre}}. Tenemos una sorpresa para tu rutina de skincare. Llevate el {{producto}} con un {{descuento}} de descuento. Pidelo usando el codigo {{codigo}}.",
+  CLEARANCE:
+    "Hola {{nombre}}. Tenemos una sorpresa para tu rutina de skincare. Llevate el {{producto}} con un {{descuento}} de descuento. Solo nos quedan pocas piezas. Pidelo usando el codigo {{codigo}}.",
+};
+
 const INITIAL_STATE = {
   code: "",
   type: "WELCOME",
@@ -18,7 +44,18 @@ const INITIAL_STATE = {
   expiresAt: "",
   maxRedemptions: "",
   maxUsesPerUser: 1,
-  whatsappMessage: "",
+  // Campos específicos por tipo
+  templateVariables: {
+    recompensa: "",
+    producto: "",
+    regalo: "",
+    mensajePersonalizado: "",
+    daysBeforeBirthday: 0,
+  },
+  maintenanceConfig: {
+    treatmentId: "",
+    touchUpDays: "",
+  },
   schedule: {
     frequency: "ONCE",
     sendHour: 8,
@@ -29,34 +66,69 @@ const INITIAL_STATE = {
   },
 };
 
-// Defaults de schedule por tipo de cupón
 const SCHEDULE_DEFAULTS = {
-  WELCOME: {
-    frequency: "AUTO",
-    triggerEvent: "ON_APPOINTMENT_COMPLETE",
-    delayDays: 0,
-  },
-  REFERRAL: {
-    frequency: "AUTO",
-    triggerEvent: "ON_APPOINTMENT_COMPLETE",
-    delayDays: 14,
-  },
+  WELCOME: { frequency: "AUTO", triggerEvent: "ON_APPOINTMENT_COMPLETE", delayDays: 0 },
+  REFERRAL: { frequency: "AUTO", triggerEvent: "ON_APPOINTMENT_COMPLETE", delayDays: 14 },
   SEASONAL: { frequency: "ONCE", triggerEvent: "MANUAL", delayDays: 0 },
   CLEARANCE: { frequency: "AUTO", triggerEvent: "ON_LOW_STOCK", delayDays: 0 },
+  BIRTHDAY: { frequency: "AUTO", triggerEvent: "ON_BIRTHDAY", delayDays: 0 },
+  MAINTENANCE: { frequency: "AUTO", triggerEvent: "ON_MAINTENANCE_DUE", delayDays: 0 },
 };
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const DAYS_OF_WEEK = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const DAYS_OF_WEEK = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
+
+function getToken() {
+  if (typeof window !== "undefined") return localStorage.getItem("sbeltic_token");
+  return null;
+}
 
 const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
   const [formData, setFormData] = useState(INITIAL_STATE);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mobileTab, setMobileTab] = useState("RULES");
+  const [treatments, setTreatments] = useState([]);
+  const [products, setProducts] = useState([]);
+
+  // Cargar tratamientos y productos al abrir
+  useEffect(() => {
+    if (!isOpen) return;
+    const token = getToken();
+    const headers = { Authorization: `Bearer ${token}` };
+
+    fetch(`${API}/treatments?limit=200`, { headers })
+      .then((r) => r.json())
+      .then((data) => {
+        const list = data.data?.results ?? data.data ?? data.results ?? data;
+        setTreatments(Array.isArray(list) ? list : []);
+      })
+      .catch(() => {});
+
+    fetch(`${API}/products?limit=200`, { headers })
+      .then((r) => r.json())
+      .then((data) => {
+        const list = data.data?.results ?? data.data ?? data.results ?? data;
+        setProducts(Array.isArray(list) ? list : []);
+      })
+      .catch(() => {});
+  }, [isOpen]);
 
   const setSchedule = (patch) =>
     setFormData((prev) => ({
       ...prev,
       schedule: { ...prev.schedule, ...patch },
+    }));
+
+  const setTemplateVar = (key, value) =>
+    setFormData((prev) => ({
+      ...prev,
+      templateVariables: { ...prev.templateVariables, [key]: value },
+    }));
+
+  const setMaintenanceConfig = (patch) =>
+    setFormData((prev) => ({
+      ...prev,
+      maintenanceConfig: { ...prev.maintenanceConfig, ...patch },
     }));
 
   const handleTypeChange = (type) => {
@@ -69,32 +141,11 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
     setMobileTab("RULES");
   };
 
-  const insertVariable = (variable) => {
-    setFormData((prev) => ({
-      ...prev,
-      whatsappMessage: prev.whatsappMessage + ` {{${variable}}}`,
-    }));
-  };
-
-  const generatePreviewParts = () => {
-    if (!formData.whatsappMessage) return null;
-
-    const discountStr = formData.discountValue
-      ? formData.discountType === "PERCENTAGE"
-        ? `${formData.discountValue}%`
-        : `$${formData.discountValue}`
-      : "...";
-    const codeStr = formData.code || "[Codigo]";
-
-    // Dividir el mensaje por variables y crear un array de partes texto/badge
-    const regex = /(\{\{nombre\}\}|\{\{descuento\}\}|\{\{codigo\}\})/g;
-    const parts = formData.whatsappMessage.split(regex);
-
-    return parts.map((part, i) => {
-      if (part === "{{nombre}}") return <strong key={i} className="text-indigo-600">[Nombre]</strong>;
-      if (part === "{{descuento}}") return <strong key={i} className="text-indigo-600">{discountStr}</strong>;
-      if (part === "{{codigo}}") return <strong key={i} className="text-indigo-600">{codeStr}</strong>;
-      return <span key={i}>{part}</span>;
+  const handleTreatmentSelect = (treatmentId) => {
+    const treatment = treatments.find((t) => t._id === treatmentId);
+    setMaintenanceConfig({
+      treatmentId,
+      touchUpDays: treatment?.suggestedTouchUpDays || "",
     });
   };
 
@@ -102,7 +153,8 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem("sbeltic_token");
+      const token = getToken();
+      const templateName = TEMPLATE_MAP[formData.type];
 
       const schedulePayload = {
         frequency: formData.schedule.frequency,
@@ -123,13 +175,43 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
         discountType: formData.discountType,
         discountValue: Number(formData.discountValue),
         expiresAt: formData.expiresAt,
-        whatsappMessageTemplate: formData.whatsappMessage,
+        whatsappTemplateName: templateName,
         maxRedemptions: Number(formData.maxRedemptions) || 100,
         maxUsesPerUser: Number(formData.maxUsesPerUser) || 1,
         schedule: schedulePayload,
       };
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/coupons`, {
+      // Agregar templateVariables según tipo
+      const tv = formData.templateVariables;
+      if (formData.type === "REFERRAL" && tv.recompensa) {
+        payload.templateVariables = { recompensa: tv.recompensa };
+      }
+      if (formData.type === "BIRTHDAY") {
+        payload.templateVariables = {
+          regalo: tv.regalo,
+          mensajePersonalizado: tv.mensajePersonalizado,
+          daysBeforeBirthday: Number(tv.daysBeforeBirthday) || 0,
+        };
+      }
+      if (formData.type === "SEASONAL" && tv.producto) {
+        payload.templateVariables = { producto: tv.producto };
+      }
+      if (formData.type === "CLEARANCE") {
+        payload.templateVariables = { producto: tv.producto };
+        if (formData.clearanceProducts?.length) {
+          payload.clearanceConfig = { applicableProducts: formData.clearanceProducts };
+        }
+      }
+      if (formData.type === "MAINTENANCE" && formData.maintenanceConfig.treatmentId) {
+        payload.maintenanceConfig = {
+          treatmentId: formData.maintenanceConfig.treatmentId,
+          ...(formData.maintenanceConfig.touchUpDays && {
+            touchUpDays: Number(formData.maintenanceConfig.touchUpDays),
+          }),
+        };
+      }
+
+      const res = await fetch(`${API}/coupons`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -141,12 +223,12 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
       const data = await res.json();
 
       if (res.ok || data.success) {
-        toast.success("¡Campaña guardada en la base de datos!");
+        toast.success("Campana guardada!");
         if (onRefresh) onRefresh();
         setFormData(INITIAL_STATE);
         onClose();
       } else {
-        toast.error(data.message || "Error al crear la campaña");
+        toast.error(data.message || "Error al crear la campana");
       }
     } catch (error) {
       console.error("Error en POST Coupon:", error);
@@ -158,7 +240,7 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
 
   if (!isOpen) return null;
 
-  const isAutoSchedule = ["WELCOME", "CLEARANCE"].includes(formData.type);
+  const isAutoSchedule = ["WELCOME", "CLEARANCE", "BIRTHDAY", "MAINTENANCE"].includes(formData.type);
 
   return (
     <div
@@ -177,7 +259,7 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
             </div>
             <div>
               <h2 className="text-xl md:text-2xl font-black italic uppercase text-slate-900 leading-none tracking-tight">
-                Campaña
+                Campana
               </h2>
               <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
                 Sbeltic Engine
@@ -192,7 +274,7 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
           </button>
         </header>
 
-        {/* TABS MÓVIL */}
+        {/* TABS MOVIL */}
         <div className="flex md:hidden border-b border-slate-100 bg-slate-50/50 p-2 gap-2 shrink-0">
           <button
             type="button"
@@ -203,36 +285,36 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
           </button>
           <button
             type="button"
-            onClick={() => setMobileTab("WHATSAPP")}
-            className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex justify-center items-center gap-2 ${mobileTab === "WHATSAPP" ? "bg-white text-emerald-600 shadow-sm border border-slate-200" : "text-slate-400"}`}
+            onClick={() => setMobileTab("CONFIG")}
+            className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex justify-center items-center gap-2 ${mobileTab === "CONFIG" ? "bg-white text-emerald-600 shadow-sm border border-slate-200" : "text-slate-400"}`}
           >
-            <WhatsappLogo size={16} /> Difusión
+            <WhatsappLogo size={16} /> Plantilla
           </button>
           <button
             type="button"
             onClick={() => setMobileTab("SCHEDULE")}
             className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex justify-center items-center gap-2 ${mobileTab === "SCHEDULE" ? "bg-white text-violet-600 shadow-sm border border-slate-200" : "text-slate-400"}`}
           >
-            <CalendarBlank size={16} /> Envío
+            <CalendarBlank size={16} /> Envio
           </button>
         </div>
 
         {/* BODY */}
         <div className="flex-1 overflow-y-auto scrollbar-hide bg-slate-50/30 p-5 md:p-10">
           <form id="couponForm" onSubmit={handleSubmit} className="space-y-8">
-            {/* FILA 1: Parámetros + WhatsApp (2 columnas en desktop) */}
+            {/* FILA 1: Parametros + Plantilla/Config (2 columnas en desktop) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12">
-              {/* COLUMNA IZQUIERDA: Parámetros */}
+              {/* COLUMNA IZQUIERDA: Parametros */}
               <div
                 className={`${mobileTab === "RULES" ? "block" : "hidden"} md:block space-y-5 md:space-y-6 animate-in fade-in duration-300`}
               >
                 <h3 className="hidden md:flex text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] items-center gap-2 border-b border-slate-100 pb-2">
-                  <Tag size={16} /> 1. Parámetros
+                  <Tag size={16} /> 1. Parametros
                 </h3>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
-                      Objetivo Estratégico
+                      Objetivo Estrategico
                     </label>
                     <select
                       value={formData.type}
@@ -241,17 +323,17 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
                     >
                       <option value="WELCOME">Bienvenida (1ra Visita)</option>
                       <option value="REFERRAL">Programa de Referidos</option>
-                      <option value="SEASONAL">Promoción de Temporada</option>
-                      <option value="CLEARANCE">
-                        Liquidación de Inventario
-                      </option>
+                      <option value="SEASONAL">Promocion Mensual</option>
+                      <option value="CLEARANCE">Liquidacion de Inventario</option>
+                      <option value="BIRTHDAY">Cumpleanos</option>
+                      <option value="MAINTENANCE">Mantenimiento / Retoque</option>
                     </select>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
-                        Código
+                        Codigo
                       </label>
                       <input
                         type="text"
@@ -308,18 +390,12 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
                       Vigencia
                     </label>
                     <div className="flex items-center bg-white border border-slate-100 rounded-2xl px-4 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100">
-                      <CalendarBlank
-                        size={16}
-                        className="text-slate-400 shrink-0"
-                      />
+                      <CalendarBlank size={16} className="text-slate-400 shrink-0" />
                       <input
                         type="date"
                         value={formData.expiresAt}
                         onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            expiresAt: e.target.value,
-                          })
+                          setFormData({ ...formData, expiresAt: e.target.value })
                         }
                         className="w-full p-4 bg-transparent text-base md:text-sm font-bold text-slate-700 outline-none"
                         required
@@ -329,78 +405,188 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
                 </div>
               </div>
 
-              {/* COLUMNA DERECHA: WhatsApp */}
+              {/* COLUMNA DERECHA: Plantilla + Configuracion por tipo */}
               <div
-                className={`${mobileTab === "WHATSAPP" ? "block" : "hidden"} md:block space-y-5 md:space-y-6 animate-in fade-in duration-300`}
+                className={`${mobileTab === "CONFIG" ? "block" : "hidden"} md:block space-y-5 md:space-y-6 animate-in fade-in duration-300`}
               >
                 <h3 className="hidden md:flex text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] items-center gap-2 border-b border-slate-100 pb-2">
-                  <WhatsappLogo size={16} className="text-emerald-500" /> 2.
-                  Difusión
+                  <WhatsappLogo size={16} className="text-emerald-500" /> 2. Plantilla & Config
                 </h3>
 
-                <div className="bg-white border border-slate-100 rounded-3xl p-4 shadow-sm">
-                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">
-                    Cuerpo del Mensaje
-                  </label>
-                  <div className="flex flex-wrap gap-1.5 mb-3 p-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                    {["nombre", "descuento", "codigo"].map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        onClick={() => insertVariable(v)}
-                        className="px-2 py-1.5 bg-white border border-slate-100 text-indigo-700 rounded-md text-[9px] font-black uppercase tracking-widest hover:bg-indigo-50"
-                      >
-                        + {v.charAt(0).toUpperCase() + v.slice(1)}
-                      </button>
-                    ))}
+                {/* Preview de la plantilla Meta (read-only) */}
+                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <WhatsappLogo size={16} weight="fill" className="text-emerald-600" />
+                    <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">
+                      Plantilla Meta: {TEMPLATE_MAP[formData.type]}
+                    </span>
                   </div>
-                  <textarea
-                    rows="3"
-                    placeholder="Redacta el mensaje..."
-                    value={formData.whatsappMessage}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        whatsappMessage: e.target.value,
-                      })
-                    }
-                    className="w-full p-4 bg-slate-50/50 border border-slate-100 rounded-2xl text-base md:text-sm text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 resize-none leading-relaxed"
-                  />
+                  <p className="text-xs text-emerald-800 leading-relaxed">
+                    {TEMPLATE_PREVIEWS[formData.type]}
+                  </p>
                 </div>
 
-                <div className="pb-4 md:pb-0">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 text-center">
-                    Previsualización
-                  </label>
-                  <div className="bg-[#EFEAE2] p-4 rounded-4xl shadow-inner max-w-sm mx-auto border-[3px] border-white/50">
-                    {formData.whatsappMessage ? (
-                      <div className="bg-[#d9fdd3] text-[#111b21] p-3 rounded-xl rounded-tr-none shadow-sm text-xs inline-block max-w-[90%] float-right">
-                        {generatePreviewParts()}
-                        <span className="text-[9px] text-slate-400 float-right mt-1 ml-2">
-                          12:00 PM
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="text-center py-4 text-slate-400 italic text-xs">
-                        Empieza a escribir...
-                      </div>
-                    )}
-                    <div className="clear-both" />
+                {/* Campos dinamicos segun tipo */}
+                {formData.type === "REFERRAL" && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                        Recompensa para quien refiere
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ej. 10% en tu proxima visita"
+                        value={formData.templateVariables.recompensa}
+                        onChange={(e) => setTemplateVar("recompensa", e.target.value)}
+                        className="w-full p-4 bg-white border border-slate-100 rounded-2xl text-base md:text-sm font-bold outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {formData.type === "BIRTHDAY" && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                        Regalo
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ej. Facial hidratante gratis"
+                        value={formData.templateVariables.regalo}
+                        onChange={(e) => setTemplateVar("regalo", e.target.value)}
+                        className="w-full p-4 bg-white border border-slate-100 rounded-2xl text-base md:text-sm font-bold outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                        Mensaje personalizado
+                      </label>
+                      <textarea
+                        rows="2"
+                        placeholder="Ej. Te deseamos lo mejor en tu dia especial..."
+                        value={formData.templateVariables.mensajePersonalizado}
+                        onChange={(e) => setTemplateVar("mensajePersonalizado", e.target.value)}
+                        className="w-full p-4 bg-white border border-slate-100 rounded-2xl text-base md:text-sm text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                        Dias antes del cumpleanos para enviar
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="30"
+                        value={formData.templateVariables.daysBeforeBirthday}
+                        onChange={(e) => setTemplateVar("daysBeforeBirthday", e.target.value)}
+                        className="w-32 p-4 bg-white border border-slate-100 rounded-2xl text-base md:text-sm font-black outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {formData.type === "MAINTENANCE" && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                        Tratamiento
+                      </label>
+                      <select
+                        value={formData.maintenanceConfig.treatmentId}
+                        onChange={(e) => handleTreatmentSelect(e.target.value)}
+                        className="w-full p-4 bg-white border border-slate-100 rounded-2xl text-base md:text-sm font-bold text-slate-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 appearance-none"
+                      >
+                        <option value="">Seleccionar tratamiento...</option>
+                        {treatments
+                          .filter((t) => t.isActive !== false)
+                          .map((t) => (
+                            <option key={t._id} value={t._id}>
+                              {t.name} {t.suggestedTouchUpDays ? `(${t.suggestedTouchUpDays} dias)` : ""}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                        Dias para retoque (override)
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="Se usa el del tratamiento si esta vacio"
+                        value={formData.maintenanceConfig.touchUpDays}
+                        onChange={(e) => setMaintenanceConfig({ touchUpDays: e.target.value })}
+                        className="w-full p-4 bg-white border border-slate-100 rounded-2xl text-base md:text-sm font-black outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {formData.type === "SEASONAL" && (
+                  <div>
+                    <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                      Producto a promocionar
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ej. Suero Vitamina C"
+                      value={formData.templateVariables.producto}
+                      onChange={(e) => setTemplateVar("producto", e.target.value)}
+                      className="w-full p-4 bg-white border border-slate-100 rounded-2xl text-base md:text-sm font-bold outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                    />
+                  </div>
+                )}
+
+                {formData.type === "CLEARANCE" && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                        Producto
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ej. Crema Retinol"
+                        value={formData.templateVariables.producto}
+                        onChange={(e) => setTemplateVar("producto", e.target.value)}
+                        className="w-full p-4 bg-white border border-slate-100 rounded-2xl text-base md:text-sm font-bold outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                        Productos vinculados (inventario)
+                      </label>
+                      <select
+                        multiple
+                        value={formData.clearanceProducts || []}
+                        onChange={(e) => {
+                          const selected = Array.from(e.target.selectedOptions, (o) => o.value);
+                          setFormData((prev) => ({ ...prev, clearanceProducts: selected }));
+                        }}
+                        className="w-full p-3 bg-white border border-slate-100 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:border-indigo-400 min-h-[100px]"
+                      >
+                        {products
+                          .filter((p) => p.isActive !== false)
+                          .map((p) => (
+                            <option key={p._id} value={p._id}>
+                              {p.name} (Stock: {p.currentStock})
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* FILA 2: Programación (full width en desktop, tab en móvil) */}
+            {/* FILA 2: Programacion (full width en desktop, tab en movil) */}
             <div
               className={`${mobileTab === "SCHEDULE" ? "block" : "hidden"} md:block animate-in fade-in duration-300`}
             >
               <h3 className="hidden md:flex text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] items-center gap-2 border-b border-slate-100 pb-2 mb-6">
-                <Sparkle size={16} className="text-violet-500" /> 3.
-                Programación de Envío
+                <Sparkle size={16} className="text-violet-500" /> 3. Programacion de Envio
               </h3>
 
-              {/* WELCOME y CLEARANCE: automáticos, solo informativo */}
               {isAutoSchedule ? (
                 <div className="bg-violet-50 border border-violet-100 rounded-2xl p-5 flex items-start gap-4">
                   <div className="p-3 bg-violet-100 text-violet-600 rounded-xl shrink-0">
@@ -408,17 +594,21 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
                   </div>
                   <div>
                     <p className="text-xs font-black text-violet-700 uppercase tracking-widest mb-1">
-                      Envío Automático
+                      Envio Automatico
                     </p>
                     <p className="text-xs text-violet-600 leading-relaxed">
-                      {formData.type === "WELCOME"
-                        ? "Este cupón se enviará automáticamente cada vez que se registre un paciente nuevo."
-                        : "Este cupón se activará automáticamente cuando un producto vinculado llegue a stock crítico."}
+                      {formData.type === "WELCOME" &&
+                        "Este cupon se enviara automaticamente cuando se complete la primera cita del paciente."}
+                      {formData.type === "CLEARANCE" &&
+                        "Este cupon se activara automaticamente cuando un producto vinculado llegue a stock critico."}
+                      {formData.type === "BIRTHDAY" &&
+                        "Este cupon se enviara automaticamente cuando sea el cumpleanos del paciente (requiere fecha de nacimiento registrada)."}
+                      {formData.type === "MAINTENANCE" &&
+                        "Este cupon se enviara automaticamente cuando se cumplan los dias de retoque despues del tratamiento."}
                     </p>
                   </div>
                 </div>
               ) : formData.type === "REFERRAL" ? (
-                /* REFERRAL: configurable solo el delay */
                 <div className="bg-white border border-slate-100 rounded-2xl p-5 space-y-4">
                   <div className="flex items-start gap-4 mb-2">
                     <div className="p-3 bg-purple-50 text-purple-600 rounded-xl shrink-0">
@@ -426,34 +616,30 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
                     </div>
                     <div>
                       <p className="text-xs font-black text-slate-700 uppercase tracking-widest mb-1">
-                        Envío Automático Post-Cita
+                        Envio Automatico Post-Cita
                       </p>
                       <p className="text-xs text-slate-400 leading-relaxed">
-                        Se enviará N días después de que el paciente complete su
-                        primera cita.
+                        Se enviara N dias despues de que el paciente complete su cita.
                       </p>
                     </div>
                   </div>
                   <div>
                     <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
-                      Días de espera después de la cita
+                      Dias de espera despues de la cita
                     </label>
                     <input
                       type="number"
                       min="1"
                       max="365"
                       value={formData.schedule.delayDays}
-                      onChange={(e) =>
-                        setSchedule({ delayDays: e.target.value })
-                      }
+                      onChange={(e) => setSchedule({ delayDays: e.target.value })}
                       className="w-32 p-4 bg-white border border-slate-100 rounded-2xl text-base md:text-sm font-black text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                     />
                   </div>
                 </div>
               ) : (
-                /* SEASONAL: configuración completa */
+                /* SEASONAL: configuracion completa */
                 <div className="bg-white border border-slate-100 rounded-2xl p-5 space-y-5">
-                  {/* Frecuencia */}
                   <div>
                     <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">
                       Frecuencia
@@ -481,16 +667,13 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {/* Hora de envío */}
                     <div>
                       <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
-                        Hora de Envío
+                        Hora de Envio
                       </label>
                       <select
                         value={formData.schedule.sendHour}
-                        onChange={(e) =>
-                          setSchedule({ sendHour: Number(e.target.value) })
-                        }
+                        onChange={(e) => setSchedule({ sendHour: Number(e.target.value) })}
                         className="w-full p-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 appearance-none"
                       >
                         {HOURS.map((h) => (
@@ -501,17 +684,14 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
                       </select>
                     </div>
 
-                    {/* Día de la semana (WEEKLY) */}
                     {formData.schedule.frequency === "WEEKLY" && (
                       <div>
                         <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
-                          Día de la Semana
+                          Dia de la Semana
                         </label>
                         <select
                           value={formData.schedule.dayOfWeek}
-                          onChange={(e) =>
-                            setSchedule({ dayOfWeek: Number(e.target.value) })
-                          }
+                          onChange={(e) => setSchedule({ dayOfWeek: Number(e.target.value) })}
                           className="w-full p-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 appearance-none"
                         >
                           {DAYS_OF_WEEK.map((d, i) => (
@@ -523,20 +703,17 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
                       </div>
                     )}
 
-                    {/* Día del mes (MONTHLY) */}
                     {formData.schedule.frequency === "MONTHLY" && (
                       <div>
                         <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
-                          Día del Mes
+                          Dia del Mes
                         </label>
                         <input
                           type="number"
                           min="1"
                           max="31"
                           value={formData.schedule.dayOfMonth}
-                          onChange={(e) =>
-                            setSchedule({ dayOfMonth: Number(e.target.value) })
-                          }
+                          onChange={(e) => setSchedule({ dayOfMonth: Number(e.target.value) })}
                           className="w-full p-4 bg-white border border-slate-100 rounded-2xl text-sm font-black text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                         />
                       </div>
@@ -559,40 +736,34 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
           </button>
 
           <div className="w-full sm:w-auto flex gap-3">
-            {/* Botón "Siguiente" móvil */}
             {mobileTab === "RULES" && (
               <button
                 type="button"
-                onClick={() => setMobileTab("WHATSAPP")}
+                onClick={() => setMobileTab("CONFIG")}
                 className="md:hidden flex-1 px-6 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl"
               >
-                Siguiente ➔
+                Siguiente
               </button>
             )}
-            {mobileTab === "WHATSAPP" && (
+            {mobileTab === "CONFIG" && (
               <button
                 type="button"
                 onClick={() => setMobileTab("SCHEDULE")}
                 className="md:hidden flex-1 px-6 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl"
               >
-                Programar ➔
+                Programar
               </button>
             )}
 
             <button
               type="submit"
               form="couponForm"
-              disabled={
-                isSubmitting ||
-                !formData.code ||
-                !formData.expiresAt ||
-                !formData.whatsappMessage
-              }
+              disabled={isSubmitting || !formData.code || !formData.expiresAt}
               className={`flex-1 sm:w-auto px-6 py-4 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-100 disabled:opacity-50 ${
                 mobileTab === "SCHEDULE" ? "block" : "hidden md:block"
               }`}
             >
-              {isSubmitting ? "Guardando..." : "Crear Campaña"}
+              {isSubmitting ? "Guardando..." : "Crear Campana"}
             </button>
           </div>
         </footer>

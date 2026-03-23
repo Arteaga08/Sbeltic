@@ -31,14 +31,14 @@ const treatmentCategorySchema = new mongoose.Schema(
 
     /**
      * Define en qué flujo del bot WhatsApp aparece esta categoría.
-     * AGENDAR → spa/láser (BOT_RECEPTIONIST_ID)
-     * COTIZAR → médico (BOT_DOCTOR_ID)
-     * BOTH    → ambos flujos
-     * NONE    → no aparece en el bot
+     * AGENDAR  → spa/láser (BOT_RECEPTIONIST_ID)
+     * CONSULTA → médico (BOT_DOCTOR_ID)
+     * BOTH     → ambos flujos
+     * NONE     → no aparece en el bot
      */
     botFlow: {
       type: String,
-      enum: ["AGENDAR", "COTIZAR", "BOTH", "NONE"],
+      enum: ["AGENDAR", "CONSULTA", "BOTH", "NONE"],
       default: "NONE",
     },
 
