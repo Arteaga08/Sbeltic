@@ -42,6 +42,12 @@ export const createCouponSchema = z
       })
       .optional(),
 
+    seasonalConfig: z
+      .object({
+        applicableProducts: z.array(objectIdSchema).optional(),
+      })
+      .optional(),
+
     maintenanceConfig: z
       .object({
         treatmentId: objectIdSchema,
@@ -65,6 +71,8 @@ export const createCouponSchema = z
   })
   .strict();
 
+const updateCouponSchema = createCouponSchema.partial().strict();
+
 // Middleware de validación para la ruta
 export const validateCreateCoupon = (req, res, next) => {
   const result = createCouponSchema.safeParse(req.body);
@@ -73,6 +81,20 @@ export const validateCreateCoupon = (req, res, next) => {
     return res.status(400).json({
       status: "fail",
       // 🌟 CAMBIO CLAVE: Usamos result.error.issues en lugar de errors para evitar el crasheo del map
+      message: result.error.issues.map((e) => e.message).join(", "),
+    });
+  }
+
+  req.body = result.data;
+  next();
+};
+
+export const validateUpdateCoupon = (req, res, next) => {
+  const result = updateCouponSchema.safeParse(req.body);
+
+  if (!result.success) {
+    return res.status(400).json({
+      status: "fail",
       message: result.error.issues.map((e) => e.message).join(", "),
     });
   }

@@ -346,6 +346,7 @@ const updateAppointment = asyncHandler(async (req, res, next) => {
           dictatedAmount -= totalDiscount;
           appointment.appliedCoupon = coupon._id;
           coupon.usedCount += 1;
+          coupon.usedBy.push({ patientId: appointment.patientId, usedAt: new Date() });
 
           if (coupon.usedCount >= coupon.maxRedemptions)
             coupon.isActive = false;

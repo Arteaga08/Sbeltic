@@ -10,7 +10,7 @@ import Treatment from "../models/clinical/Treatment.js";
 // 🗺️ MAPEO DE PLANTILLAS META POR TIPO
 // ==========================================
 
-const TEMPLATE_MAP = {
+export const TEMPLATE_MAP = {
   WELCOME: "sbeltic_bienvenida",
   REFERRAL: "sbeltic_referidos",
   MAINTENANCE: "sbeltic_mantenimiento",
@@ -23,19 +23,24 @@ const TEMPLATE_MAP = {
  * Construye el array de components para la API de Meta WhatsApp Templates.
  * El orden de parámetros sigue el orden del texto de cada plantilla.
  */
-const buildTemplateComponents = (coupon, patient, context = {}) => {
+export const buildTemplateComponents = (coupon, patient, context = {}) => {
   const firstName = patient.name?.split(" ")[0] || "Paciente";
   const discountStr = coupon.discountType === "PERCENTAGE"
     ? `${coupon.discountValue}%`
     : `$${coupon.discountValue}`;
   const vars = coupon.templateVariables || {};
 
+  // Cada entrada puede ser string (variable numerada {{1}}) u objeto {text, name} (variable nombrada {{nombre}})
   const paramMap = {
     WELCOME: [firstName, discountStr, coupon.code],
     REFERRAL: [firstName, discountStr, coupon.code, vars.recompensa || ""],
     MAINTENANCE: [firstName, context.tiempoTranscurrido || "", context.tratamiento || "", discountStr],
     BIRTHDAY: [firstName, vars.mensajePersonalizado || "", vars.regalo || "", coupon.code],
-    SEASONAL: [firstName, vars.producto || "", discountStr, coupon.code],
+    SEASONAL: [
+      { text: firstName, name: "nombre" },
+      { text: vars.promocion || discountStr, name: "promocion" },
+      { text: coupon.code, name: "codigo" },
+    ],
     CLEARANCE: [firstName, vars.producto || "", discountStr, coupon.code],
   };
 
@@ -43,7 +48,11 @@ const buildTemplateComponents = (coupon, patient, context = {}) => {
 
   return [{
     type: "body",
-    parameters: params.map((text) => ({ type: "text", text: String(text) })),
+    parameters: params.map((p) =>
+      typeof p === "object" && p.name
+        ? { type: "text", text: String(p.text), parameter_name: p.name }
+        : { type: "text", text: String(p) }
+    ),
   }];
 };
 
@@ -145,7 +154,11 @@ export const processScheduledCoupons = async () => {
 
     for (const patient of eligiblePatients) {
       const components = buildTemplateComponents(coupon, patient);
-      await sendWhatsAppTemplate(patient.phone, templateName, "es", components);
+      const result = await sendWhatsAppTemplate(patient.phone, templateName, "es_MX", components);
+      if (result.success) {
+        await Patient.updateOne({ _id: patient._id }, { $addToSet: { walletCoupons: coupon._id } });
+        coupon.sentTo.push({ patientId: patient._id, sentAt: new Date() });
+      }
     }
 
     // Actualizar lastSentAt y calcular nuevo nextSendAt
@@ -187,7 +200,7 @@ export const processReferralCampaign = async () => {
     for (const appt of targets) {
       const patient = appt.patientId;
       const components = buildTemplateComponents(coupon, patient);
-      await sendWhatsAppTemplate(patient.phone, templateName, "es", components);
+      await sendWhatsAppTemplate(patient.phone, templateName, "es_MX", components);
     }
   }
 };
@@ -228,7 +241,7 @@ export const processTriggerCoupons = async (event, patient, context = {}) => {
 
       coupon.schedule.lastSentAt = new Date();
       await coupon.save();
-      await sendWhatsAppTemplate(patient.phone, templateName, "es", components);
+      await sendWhatsAppTemplate(patient.phone, templateName, "es_MX", components);
     }
   } catch (error) {
     console.error(`❌ Error en processTriggerCoupons [${event}]:`, error);
@@ -339,7 +352,7 @@ const processBirthdayCoupons = async () => {
       if (alreadySent) continue;
 
       const components = buildTemplateComponents(coupon, patient);
-      await sendWhatsAppTemplate(patient.phone, templateName, "es", components);
+      await sendWhatsAppTemplate(patient.phone, templateName, "es_MX", components);
 
       // Registrar envío
       coupon.sentTo.push({ patientId: patient._id, sentAt: new Date(), year: currentYear });
@@ -398,7 +411,7 @@ const processMaintenanceCoupons = async () => {
         tiempoTranscurrido: `${touchUpDays} días`,
         tratamiento: treatment.name,
       });
-      await sendWhatsAppTemplate(patient.phone, templateName, "es", components);
+      await sendWhatsAppTemplate(patient.phone, templateName, "es_MX", components);
 
       coupon.sentTo.push({ patientId: patient._id, sentAt: new Date() });
     }

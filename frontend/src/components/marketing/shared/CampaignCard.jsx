@@ -4,10 +4,12 @@ import {
   CalendarBlank,
   Tag,
   Trash,
+  PencilSimple,
   WhatsappLogo,
   Clock,
   Copy,
   Check,
+  PaperPlaneTilt,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
@@ -18,9 +20,11 @@ const TEMPLATE_LABELS = {
   sbeltic_cumple: "Cumpleanos",
   sbeltic_promo_mensual: "Promo Mensual",
   sbeltic_liquidacion: "Liquidacion",
+  // 👇 Agregar aquí el nombre de la 2da plantilla mensual cuando esté lista en Meta:
+  // NOMBRE_PLANTILLA_META: "Promo Mensual 2",
 };
 
-const CampaignCard = ({ campaign, onRefresh }) => {
+const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
   const {
     _id,
     code,
@@ -35,8 +39,8 @@ const CampaignCard = ({ campaign, onRefresh }) => {
     type,
   } = campaign;
 
-  const [showWA, setShowWA] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [sending, setSending] = useState(false);
 
   const usagePercentage = Math.min((usedCount / maxRedemptions) * 100, 100);
 
@@ -58,20 +62,58 @@ const CampaignCard = ({ campaign, onRefresh }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDeactivate = async () => {
-    if (!confirm("Deseas pausar esta campana?")) return;
+  const handleSendNow = async () => {
+    if (!confirm("Enviar este cupón a todos los pacientes con WhatsApp habilitado ahora?")) return;
+    const token = localStorage.getItem("sbeltic_token");
+    setSending(true);
     try {
-      const token = localStorage.getItem("sbeltic_token");
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/coupons/${_id}/deactivate`,
-        { method: "PATCH", headers: { Authorization: `Bearer ${token}` } },
+        `${process.env.NEXT_PUBLIC_API_URL}/coupons/${_id}/send-now`,
+        { method: "POST", headers: { Authorization: `Bearer ${token}` } },
       );
+      const data = await res.json();
       if (res.ok) {
-        toast.success("Campana pausada");
-        if (onRefresh) onRefresh();
+        toast.success(`Enviado a ${data.data?.sent ?? 0} paciente(s)`);
+      } else {
+        toast.error(data.message || "Error al enviar");
       }
     } catch {
-      toast.error("Error al desactivar");
+      toast.error("Error de conexión");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleTrashClick = async () => {
+    const token = localStorage.getItem("sbeltic_token");
+    if (isActive) {
+      if (!confirm("Deseas pausar esta campana?")) return;
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/coupons/${_id}/deactivate`,
+          { method: "PATCH", headers: { Authorization: `Bearer ${token}` } },
+        );
+        if (res.ok) {
+          toast.success("Campana pausada");
+          if (onRefresh) onRefresh();
+        }
+      } catch {
+        toast.error("Error al pausar");
+      }
+    } else {
+      if (!confirm("Eliminar esta campana permanentemente? Esta accion no se puede deshacer.")) return;
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/coupons/${_id}`,
+          { method: "DELETE", headers: { Authorization: `Bearer ${token}` } },
+        );
+        if (res.ok) {
+          toast.success("Campana eliminada");
+          if (onRefresh) onRefresh();
+        }
+      } catch {
+        toast.error("Error al eliminar");
+      }
     }
   };
 
@@ -94,12 +136,34 @@ const CampaignCard = ({ campaign, onRefresh }) => {
           </span>
         </div>
 
-        <button
-          onClick={handleDeactivate}
-          className="text-slate-300 hover:text-rose-500 transition-colors"
-        >
-          <Trash size={20} weight="bold" />
-        </button>
+        <div className="flex items-center gap-2">
+          {isActive && onEdit && (
+            <button
+              onClick={() => onEdit(campaign)}
+              className="text-slate-300 hover:text-indigo-500 transition-colors"
+              title="Editar campaña"
+            >
+              <PencilSimple size={20} weight="bold" />
+            </button>
+          )}
+          {isActive && (
+            <button
+              onClick={handleSendNow}
+              disabled={sending}
+              className="text-slate-300 hover:text-emerald-500 transition-colors disabled:opacity-40"
+              title="Enviar ahora a todos los pacientes"
+            >
+              <PaperPlaneTilt size={20} weight="bold" className={sending ? "animate-pulse" : ""} />
+            </button>
+          )}
+          <button
+            onClick={handleTrashClick}
+            className="text-slate-300 hover:text-rose-500 transition-colors"
+            title={isActive ? "Pausar campaña" : "Eliminar permanentemente"}
+          >
+            <Trash size={20} weight="bold" />
+          </button>
+        </div>
       </div>
 
       {/* INFO DE CAMPANA */}

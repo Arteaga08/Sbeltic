@@ -2,13 +2,21 @@ import express from "express";
 import {
   createCoupon,
   getCoupons,
+  getCouponById,
+  updateCoupon,
   deactivateCoupon,
   validateCouponCode,
   getCouponStats,
+  deleteCoupon,
+  sendCouponNow,
 } from "../controllers/couponController.js";
 import checkAuth from "../middlewares/checkAuth.js";
 import authorizeRole from "../middlewares/authorizeRole.js";
-import { validateCreateCoupon } from "../validators/couponValidator.js";
+import validateObjectId from "../middlewares/validateObjectId.js";
+import {
+  validateCreateCoupon,
+  validateUpdateCoupon,
+} from "../validators/couponValidator.js";
 
 const router = express.Router();
 
@@ -16,7 +24,7 @@ const router = express.Router();
 router.use(checkAuth);
 
 /**
- * 🔐 RUTAS ADMINISTRATIVAS
+ * 🔐 RUTAS LITERALES (antes de las parametrizadas)
  */
 router
   .route("/")
@@ -24,13 +32,30 @@ router
   .post(authorizeRole("ADMIN"), validateCreateCoupon, createCoupon);
 
 router.get("/stats", authorizeRole("ADMIN", "RECEPTIONIST"), getCouponStats);
-
-router.route("/:id/deactivate").patch(authorizeRole("ADMIN"), deactivateCoupon);
+router.post("/validate", validateCouponCode);
 
 /**
- * 🏷️ RUTA DE VALIDACIÓN (Motor de Marketing)
- * Cambiamos a POST para poder enviar { code, patientId }
+ * 🔐 RUTAS PARAMETRIZADAS
  */
-router.post("/validate", validateCouponCode);
+router
+  .route("/:id")
+  .all(validateObjectId)
+  .get(authorizeRole("ADMIN", "RECEPTIONIST"), getCouponById)
+  .put(authorizeRole("ADMIN"), validateUpdateCoupon, updateCoupon)
+  .delete(authorizeRole("ADMIN"), deleteCoupon);
+
+router.patch(
+  "/:id/deactivate",
+  validateObjectId,
+  authorizeRole("ADMIN"),
+  deactivateCoupon,
+);
+
+router.post(
+  "/:id/send-now",
+  validateObjectId,
+  authorizeRole("ADMIN"),
+  sendCouponNow,
+);
 
 export default router;

@@ -12,28 +12,33 @@ import { toast } from "sonner";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
-const TEMPLATE_MAP = {
-  WELCOME: "sbeltic_bienvenida",
-  REFERRAL: "sbeltic_referidos",
-  MAINTENANCE: "sbeltic_mantenimiento",
-  BIRTHDAY: "sbeltic_cumple",
-  SEASONAL: "sbeltic_promo_mensual",
-  CLEARANCE: "sbeltic_liquidacion",
-};
-
-const TEMPLATE_PREVIEWS = {
-  WELCOME:
-    "Hola {{nombre}}, notamos tu interes en Sbeltic. Queremos consentirte en tu primera visita: Aqui tienes un cupon del {{descuento}} de descuento. Usa el codigo {{codigo}} al agendar.",
-  REFERRAL:
-    "Gracias por tu visita a Sbeltic, {{nombre}}! Regalale a tus amigas {{descuento}} de descuento en su primera cita compartiendo tu codigo: {{codigo}}. Por cada amiga que lo use, tu ganaras {{recompensa}} en tu cuenta!",
-  MAINTENANCE:
-    "Hola {{nombre}}, han pasado {{tiempo_transcurrido}} desde tu tratamiento de {{tratamiento}}. Es el momento ideal para tu sesion de mantenimiento. Agenda esta semana y recibe {{descuento}} de descuento.",
-  BIRTHDAY:
-    "Feliz cumpleanos, {{nombre}}! {{mensaje_personalizado}} Como regalo, te enviamos {{regalo}}. Usa el codigo {{codigo}} al agendar. Dejanos consentirte!",
-  SEASONAL:
-    "Hola {{nombre}}. Tenemos una sorpresa para tu rutina de skincare. Llevate el {{producto}} con un {{descuento}} de descuento. Pidelo usando el codigo {{codigo}}.",
-  CLEARANCE:
-    "Hola {{nombre}}. Tenemos una sorpresa para tu rutina de skincare. Llevate el {{producto}} con un {{descuento}} de descuento. Solo nos quedan pocas piezas. Pidelo usando el codigo {{codigo}}.",
+// ============================================================
+// 🗺️ CONFIGURACIÓN DE PLANTILLAS META
+// Para agregar una nueva plantilla:
+//   1. Agrega un objeto { name, label, preview } al array del tipo correspondiente
+//   2. Agrega el label en CampaignCard.jsx → TEMPLATE_LABELS
+// ============================================================
+const TEMPLATES_CONFIG = {
+  WELCOME: [
+    { name: "sbeltic_bienvenida", label: "Bienvenida", preview: "Hola {{nombre}}, notamos tu interes en Sbeltic. Queremos consentirte en tu primera visita: Aqui tienes un cupon del {{descuento}} de descuento. Usa el codigo {{codigo}} al agendar." },
+  ],
+  REFERRAL: [
+    { name: "sbeltic_referidos", label: "Referidos", preview: "Gracias por tu visita a Sbeltic, {{nombre}}! Regalale a tus amigas {{descuento}} de descuento en su primera cita compartiendo tu codigo: {{codigo}}. Por cada amiga que lo use, tu ganaras {{recompensa}} en tu cuenta!" },
+  ],
+  MAINTENANCE: [
+    { name: "sbeltic_mantenimiento", label: "Mantenimiento", preview: "Hola {{nombre}}, han pasado {{tiempo_transcurrido}} desde tu tratamiento de {{tratamiento}}. Es el momento ideal para tu sesion de mantenimiento. Agenda esta semana y recibe {{descuento}} de descuento." },
+  ],
+  BIRTHDAY: [
+    { name: "sbeltic_cumple", label: "Cumpleanos", preview: "Feliz cumpleanos, {{nombre}}! {{mensaje_personalizado}} Como regalo, te enviamos {{regalo}}. Usa el codigo {{codigo}} al agendar. Dejanos consentirte!" },
+  ],
+  CLEARANCE: [
+    { name: "sbeltic_liquidacion", label: "Liquidacion", preview: "Hola {{nombre}}. Tenemos una sorpresa para tu rutina de skincare. Llevate el {{producto}} con un {{descuento}} de descuento. Solo nos quedan pocas piezas. Pidelo usando el codigo {{codigo}}." },
+  ],
+  SEASONAL: [
+    { name: "sbeltic_promo_mensual", label: "Promo Mensual", preview: "Hola {{nombre}}. Tenemos una sorpresa para tu rutina de skincare. Llevate el {{producto}} con un {{descuento}} de descuento. Pidelo usando el codigo {{codigo}}." },
+    // 👇 Agrega la 2da plantilla aqui cuando este registrada en Meta:
+    // { name: "NOMBRE_EN_META", label: "Promo Mensual 2", preview: "Texto de la plantilla..." },
+  ],
 };
 
 const INITIAL_STATE = {
@@ -44,6 +49,7 @@ const INITIAL_STATE = {
   expiresAt: "",
   maxRedemptions: "",
   maxUsesPerUser: 1,
+  whatsappTemplateName: "sbeltic_bienvenida",
   // Campos específicos por tipo
   templateVariables: {
     recompensa: "",
@@ -52,6 +58,7 @@ const INITIAL_STATE = {
     mensajePersonalizado: "",
     daysBeforeBirthday: 0,
   },
+  seasonalProducts: [],
   maintenanceConfig: {
     treatmentId: "",
     touchUpDays: "",
@@ -83,16 +90,53 @@ function getToken() {
   return null;
 }
 
-const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
+const CouponBuilderModal = ({ isOpen, onClose, onRefresh, coupon }) => {
+  const isEditMode = !!coupon;
   const [formData, setFormData] = useState(INITIAL_STATE);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mobileTab, setMobileTab] = useState("RULES");
   const [treatments, setTreatments] = useState([]);
   const [products, setProducts] = useState([]);
+  const [productSearch, setProductSearch] = useState("");
 
-  // Cargar tratamientos y productos al abrir
+  // Cargar tratamientos y productos al abrir (y resetear/poblar form)
   useEffect(() => {
     if (!isOpen) return;
+
+    if (coupon) {
+      setFormData({
+        code: coupon.code || "",
+        type: coupon.type || "WELCOME",
+        discountType: coupon.discountType || "PERCENTAGE",
+        discountValue: coupon.discountValue || "",
+        expiresAt: coupon.expiresAt
+          ? new Date(coupon.expiresAt).toISOString().split("T")[0]
+          : "",
+        maxRedemptions: coupon.maxRedemptions || "",
+        maxUsesPerUser: coupon.maxUsesPerUser || 1,
+        whatsappTemplateName: coupon.whatsappTemplateName || "",
+        templateVariables: coupon.templateVariables || INITIAL_STATE.templateVariables,
+        seasonalProducts: coupon.seasonalConfig?.applicableProducts || [],
+        clearanceProducts: coupon.clearanceConfig?.applicableProducts || [],
+        maintenanceConfig: {
+          treatmentId: coupon.maintenanceConfig?.treatmentId || "",
+          touchUpDays: coupon.maintenanceConfig?.touchUpDays || "",
+        },
+        schedule: {
+          frequency: coupon.schedule?.frequency || "ONCE",
+          sendHour: coupon.schedule?.sendHour ?? 8,
+          dayOfWeek: coupon.schedule?.dayOfWeek ?? 1,
+          dayOfMonth: coupon.schedule?.dayOfMonth ?? 1,
+          triggerEvent: coupon.schedule?.triggerEvent || "MANUAL",
+          delayDays: coupon.schedule?.delayDays ?? 0,
+        },
+      });
+    } else {
+      setFormData(INITIAL_STATE);
+    }
+
+    setMobileTab("RULES");
+    setProductSearch("");
     const token = getToken();
     const headers = { Authorization: `Bearer ${token}` };
 
@@ -104,14 +148,14 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
       })
       .catch(() => {});
 
-    fetch(`${API}/products?limit=200`, { headers })
+    fetch(`${API}/products?type=RETAIL&limit=200`, { headers })
       .then((r) => r.json())
       .then((data) => {
         const list = data.data?.results ?? data.data ?? data.results ?? data;
         setProducts(Array.isArray(list) ? list : []);
       })
       .catch(() => {});
-  }, [isOpen]);
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setSchedule = (patch) =>
     setFormData((prev) => ({
@@ -133,9 +177,12 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
 
   const handleTypeChange = (type) => {
     const defaults = SCHEDULE_DEFAULTS[type];
+    const defaultTemplate = TEMPLATES_CONFIG[type]?.[0]?.name || "";
     setFormData((prev) => ({
       ...prev,
       type,
+      whatsappTemplateName: defaultTemplate,
+      seasonalProducts: [],
       schedule: { ...prev.schedule, ...defaults },
     }));
     setMobileTab("RULES");
@@ -154,7 +201,7 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
     setIsSubmitting(true);
     try {
       const token = getToken();
-      const templateName = TEMPLATE_MAP[formData.type];
+      const templateName = formData.whatsappTemplateName || TEMPLATES_CONFIG[formData.type]?.[0]?.name;
 
       const schedulePayload = {
         frequency: formData.schedule.frequency,
@@ -202,6 +249,9 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
           payload.clearanceConfig = { applicableProducts: formData.clearanceProducts };
         }
       }
+      if (formData.type === "SEASONAL" && formData.seasonalProducts?.length) {
+        payload.seasonalConfig = { applicableProducts: formData.seasonalProducts };
+      }
       if (formData.type === "MAINTENANCE" && formData.maintenanceConfig.treatmentId) {
         payload.maintenanceConfig = {
           treatmentId: formData.maintenanceConfig.treatmentId,
@@ -211,8 +261,11 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
         };
       }
 
-      const res = await fetch(`${API}/coupons`, {
-        method: "POST",
+      const url = isEditMode ? `${API}/coupons/${coupon._id}` : `${API}/coupons`;
+      const method = isEditMode ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -223,15 +276,15 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
       const data = await res.json();
 
       if (res.ok || data.success) {
-        toast.success("Campana guardada!");
+        toast.success(isEditMode ? "Campana actualizada!" : "Campana guardada!");
         if (onRefresh) onRefresh();
         setFormData(INITIAL_STATE);
         onClose();
       } else {
-        toast.error(data.message || "Error al crear la campana");
+        toast.error(data.message || (isEditMode ? "Error al actualizar la campana" : "Error al crear la campana"));
       }
     } catch (error) {
-      console.error("Error en POST Coupon:", error);
+      console.error(`Error en ${isEditMode ? "PUT" : "POST"} Coupon:`, error);
       toast.error("No se pudo conectar con el servidor");
     } finally {
       setIsSubmitting(false);
@@ -259,7 +312,7 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
             </div>
             <div>
               <h2 className="text-xl md:text-2xl font-black italic uppercase text-slate-900 leading-none tracking-tight">
-                Campana
+                {isEditMode ? "Editar Campana" : "Nueva Campana"}
               </h2>
               <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
                 Sbeltic Engine
@@ -413,18 +466,50 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
                   <WhatsappLogo size={16} className="text-emerald-500" /> 2. Plantilla & Config
                 </h3>
 
-                {/* Preview de la plantilla Meta (read-only) */}
-                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <WhatsappLogo size={16} weight="fill" className="text-emerald-600" />
-                    <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">
-                      Plantilla Meta: {TEMPLATE_MAP[formData.type]}
-                    </span>
+                {/* Selector de plantilla (solo visible si el tipo tiene más de una) */}
+                {TEMPLATES_CONFIG[formData.type]?.length > 1 && (
+                  <div>
+                    <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">
+                      Plantilla WhatsApp
+                    </label>
+                    <div className="flex gap-2 flex-wrap">
+                      {TEMPLATES_CONFIG[formData.type].map((tpl) => (
+                        <button
+                          key={tpl.name}
+                          type="button"
+                          onClick={() => setFormData((prev) => ({ ...prev, whatsappTemplateName: tpl.name }))}
+                          className={`px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${
+                            formData.whatsappTemplateName === tpl.name
+                              ? "bg-emerald-600 text-white border-emerald-600 shadow-md"
+                              : "bg-white text-slate-500 border-slate-200 hover:border-emerald-300"
+                          }`}
+                        >
+                          {tpl.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <p className="text-xs text-emerald-800 leading-relaxed">
-                    {TEMPLATE_PREVIEWS[formData.type]}
-                  </p>
-                </div>
+                )}
+
+                {/* Preview de la plantilla Meta (read-only) */}
+                {(() => {
+                  const activeTpl = TEMPLATES_CONFIG[formData.type]?.find(
+                    (t) => t.name === formData.whatsappTemplateName
+                  ) || TEMPLATES_CONFIG[formData.type]?.[0];
+                  return (
+                    <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <WhatsappLogo size={16} weight="fill" className="text-emerald-600" />
+                        <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">
+                          Plantilla Meta: {activeTpl?.name}
+                        </span>
+                      </div>
+                      <p className="text-xs text-emerald-800 leading-relaxed">
+                        {activeTpl?.preview}
+                      </p>
+                    </div>
+                  );
+                })()}
 
                 {/* Campos dinamicos segun tipo */}
                 {formData.type === "REFERRAL" && (
@@ -524,17 +609,66 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
                 )}
 
                 {formData.type === "SEASONAL" && (
-                  <div>
-                    <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
-                      Producto a promocionar
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Ej. Suero Vitamina C"
-                      value={formData.templateVariables.producto}
-                      onChange={(e) => setTemplateVar("producto", e.target.value)}
-                      className="w-full p-4 bg-white border border-slate-100 rounded-2xl text-base md:text-sm font-bold outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                    />
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                        Producto a promocionar
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ej. Suero Vitamina C"
+                        value={formData.templateVariables.producto}
+                        onChange={(e) => setTemplateVar("producto", e.target.value)}
+                        className="w-full p-4 bg-white border border-slate-100 rounded-2xl text-base md:text-sm font-bold outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                        Vincular productos retail (inventario)
+                      </label>
+                      {products.length === 0 ? (
+                        <p className="text-[9px] text-slate-400 italic px-1">No hay productos retail registrados.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            placeholder="Buscar producto..."
+                            value={productSearch}
+                            onChange={(e) => setProductSearch(e.target.value)}
+                            className="w-full px-4 py-3 bg-white border border-slate-100 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                          />
+                          <select
+                            multiple
+                            value={formData.seasonalProducts}
+                            onChange={(e) => {
+                              const selected = Array.from(e.target.selectedOptions, (o) => o.value);
+                              setFormData((prev) => {
+                                const firstProduct = products.find((p) => p._id === selected[0]);
+                                return {
+                                  ...prev,
+                                  seasonalProducts: selected,
+                                  templateVariables: {
+                                    ...prev.templateVariables,
+                                    producto: selected.length > 0 && firstProduct
+                                      ? firstProduct.name
+                                      : prev.templateVariables.producto,
+                                  },
+                                };
+                              });
+                            }}
+                            className="w-full p-3 bg-white border border-slate-100 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:border-indigo-400 min-h-25"
+                          >
+                            {products
+                              .filter((p) => p.isActive !== false && p.name.toLowerCase().includes(productSearch.toLowerCase()))
+                              .map((p) => (
+                                <option key={p._id} value={p._id}>
+                                  {p.name} (Stock: {p.currentStock})
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -556,23 +690,32 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
                       <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
                         Productos vinculados (inventario)
                       </label>
-                      <select
-                        multiple
-                        value={formData.clearanceProducts || []}
-                        onChange={(e) => {
-                          const selected = Array.from(e.target.selectedOptions, (o) => o.value);
-                          setFormData((prev) => ({ ...prev, clearanceProducts: selected }));
-                        }}
-                        className="w-full p-3 bg-white border border-slate-100 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:border-indigo-400 min-h-[100px]"
-                      >
-                        {products
-                          .filter((p) => p.isActive !== false)
-                          .map((p) => (
-                            <option key={p._id} value={p._id}>
-                              {p.name} (Stock: {p.currentStock})
-                            </option>
-                          ))}
-                      </select>
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          placeholder="Buscar producto..."
+                          value={productSearch}
+                          onChange={(e) => setProductSearch(e.target.value)}
+                          className="w-full px-4 py-3 bg-white border border-slate-100 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                        />
+                        <select
+                          multiple
+                          value={formData.clearanceProducts || []}
+                          onChange={(e) => {
+                            const selected = Array.from(e.target.selectedOptions, (o) => o.value);
+                            setFormData((prev) => ({ ...prev, clearanceProducts: selected }));
+                          }}
+                          className="w-full p-3 bg-white border border-slate-100 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:border-indigo-400 min-h-25"
+                        >
+                          {products
+                            .filter((p) => p.isActive !== false && p.name.toLowerCase().includes(productSearch.toLowerCase()))
+                            .map((p) => (
+                              <option key={p._id} value={p._id}>
+                                {p.name} (Stock: {p.currentStock})
+                              </option>
+                            ))}
+                        </select>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -763,7 +906,7 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh }) => {
                 mobileTab === "SCHEDULE" ? "block" : "hidden md:block"
               }`}
             >
-              {isSubmitting ? "Guardando..." : "Crear Campana"}
+              {isSubmitting ? "Guardando..." : isEditMode ? "Guardar Cambios" : "Crear Campana"}
             </button>
           </div>
         </footer>

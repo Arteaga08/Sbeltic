@@ -64,6 +64,11 @@ const couponSchema = new mongoose.Schema(
         { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
       ],
     },
+    seasonalConfig: {
+      applicableProducts: [
+        { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+      ],
+    },
     maintenanceConfig: {
       treatmentId: { type: mongoose.Schema.Types.ObjectId, ref: "Treatment" },
       touchUpDays: { type: Number },

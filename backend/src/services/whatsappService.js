@@ -72,7 +72,7 @@ export const sendWhatsAppMessage = async (phone, message) => {
  * Envía un mensaje con template pre-aprobado de Meta.
  * Útil para mensajes fuera de la ventana de 24h.
  */
-export const sendWhatsAppTemplate = async (phone, templateName, languageCode = "es", components = []) => {
+export const sendWhatsAppTemplate = async (phone, templateName, languageCode = "es_MX", components = []) => {
   console.log(`📱 [WA-TEMPLATE] ${templateName} → ${phone}`);
 
   if (!PHONE_NUMBER_ID || !ACCESS_TOKEN) {
@@ -81,28 +81,31 @@ export const sendWhatsAppTemplate = async (phone, templateName, languageCode = "
   }
 
   try {
+    const payload = {
+      messaging_product: "whatsapp",
+      to: phone.replace(/[^\d]/g, ""),
+      type: "template",
+      template: {
+        name: templateName,
+        language: { code: languageCode },
+        components,
+      },
+    };
+    console.log("📤 [WA-TEMPLATE] Body:", JSON.stringify(payload, null, 2));
+
     const response = await fetch(`${BASE_URL}/messages`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${ACCESS_TOKEN}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: phone.replace(/[^\d]/g, ""),
-        type: "template",
-        template: {
-          name: templateName,
-          language: { code: languageCode },
-          components,
-        },
-      }),
+      body: JSON.stringify(payload),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("❌ [WA-TEMPLATE] Error:", data.error?.message || data);
+      console.error("❌ [WA-TEMPLATE] Error completo:", JSON.stringify(data, null, 2));
       return { success: false, error: data.error };
     }
 

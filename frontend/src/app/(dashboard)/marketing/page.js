@@ -23,6 +23,7 @@ export default function MarketingPage() {
   const [currentView, setCurrentView] = useState("DASHBOARD");
   const [selectedCategory, setSelectedCategory] = useState("WELCOME");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [couponToEdit, setCouponToEdit] = useState(null);
 
   const [campaigns, setCampaigns] = useState([]);
   const [loadingCampaigns, setLoadingCampaigns] = useState(false);
@@ -33,6 +34,7 @@ export default function MarketingPage() {
     savings: "$0",
   });
   const [loadingStats, setLoadingStats] = useState(true);
+  const [statsError, setStatsError] = useState(false);
 
   // 🌟 3. ESTADÍSTICAS: Conexión preparada
   useEffect(() => {
@@ -56,6 +58,7 @@ export default function MarketingPage() {
         }
       } catch (error) {
         console.error("Error al cargar estadísticas reales");
+        setStatsError(true);
       } finally {
         setLoadingStats(false);
       }
@@ -146,6 +149,11 @@ export default function MarketingPage() {
   const handleCategoryClick = (categoryId) => {
     setSelectedCategory(categoryId);
     setCurrentView("LIST");
+  };
+
+  const handleEdit = (campaign) => {
+    setCouponToEdit(campaign);
+    setIsModalOpen(true);
   };
 
   const activeCategoryData = categories.find((c) => c.id === selectedCategory);
@@ -255,6 +263,10 @@ export default function MarketingPage() {
                     </p>
                     {loadingStats ? (
                       <div className="h-8 w-24 bg-slate-100 animate-pulse rounded mt-1" />
+                    ) : statsError ? (
+                      <p className="text-sm font-bold text-slate-300 uppercase tracking-widest mt-1">
+                        Sin datos
+                      </p>
                     ) : (
                       <p className="text-3xl md:text-4xl font-black text-slate-900">
                         {stat.value}
@@ -299,6 +311,7 @@ export default function MarketingPage() {
                     key={campaign._id}
                     campaign={campaign}
                     onRefresh={fetchCampaigns}
+                    onEdit={handleEdit}
                   />
                 ))
               )}
@@ -309,8 +322,12 @@ export default function MarketingPage() {
 
       <CouponBuilderModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setCouponToEdit(null);
+        }}
         onRefresh={fetchCampaigns}
+        coupon={couponToEdit}
       />
     </div>
   );
