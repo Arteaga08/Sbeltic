@@ -26,5 +26,8 @@ const waitlistSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+waitlistSchema.index({ doctorId: 1, desiredDate: 1, status: 1 });
+waitlistSchema.index({ status: 1, notifiedAt: 1 });
+
 const Waitlist = mongoose.model("Waitlist", waitlistSchema);
 export default Waitlist;

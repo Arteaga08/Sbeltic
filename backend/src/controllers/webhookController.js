@@ -67,8 +67,9 @@ export const handleWhatsAppWebhook = async (req, res) => {
     // --- FLUJO LEGACY: confirmación/cancelación de citas ("1" / "2") ---
     if (!rawText) return;
 
+    const last10 = from.slice(-10);
     const patient = await Patient.findOne({
-      phone: { $regex: from.slice(-10) },
+      $or: [{ phone: from }, { phone: last10 }, { phone: `+${from}` }],
     });
 
     if (!patient) {

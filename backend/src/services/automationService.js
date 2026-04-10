@@ -108,7 +108,7 @@ export const processDailyReminders = async () => {
 /**
  * Calcula la próxima fecha de envío según la frecuencia del cupón
  */
-const calcNextSendAt = (coupon) => {
+export const calcNextSendAt = (coupon) => {
   const { frequency, sendHour = 8, dayOfWeek, dayOfMonth } = coupon.schedule;
   const now = new Date();
 
@@ -117,7 +117,10 @@ const calcNextSendAt = (coupon) => {
 
   if (frequency === "WEEKLY") {
     const next = addWeeks(now, 1);
-    if (dayOfWeek !== undefined) next.setDay?.(dayOfWeek);
+    if (dayOfWeek !== undefined) {
+      const daysToAdd = (dayOfWeek - next.getDay() + 7) % 7 || 7;
+      next.setDate(next.getDate() + daysToAdd);
+    }
     return atHour(next);
   }
 
@@ -157,14 +160,19 @@ export const processScheduledCoupons = async () => {
       const result = await sendWhatsAppTemplate(patient.phone, templateName, "es_MX", components);
       if (result.success) {
         await Patient.updateOne({ _id: patient._id }, { $addToSet: { walletCoupons: coupon._id } });
-        coupon.sentTo.push({ patientId: patient._id, sentAt: new Date() });
+        await Coupon.findByIdAndUpdate(coupon._id, {
+          $push: { sentTo: { patientId: patient._id, sentAt: new Date() } },
+        });
       }
     }
 
-    // Actualizar lastSentAt y calcular nuevo nextSendAt
-    coupon.schedule.lastSentAt = now;
-    coupon.schedule.nextSendAt = calcNextSendAt(coupon);
-    await coupon.save();
+    // Actualizar lastSentAt y calcular nuevo nextSendAt (operación atómica)
+    await Coupon.findByIdAndUpdate(coupon._id, {
+      $set: {
+        "schedule.lastSentAt": now,
+        "schedule.nextSendAt": calcNextSendAt(coupon),
+      },
+    });
   }
 };
 
@@ -347,7 +355,7 @@ const processBirthdayCoupons = async () => {
     for (const patient of patients) {
       // Verificar que no se haya enviado este año
       const alreadySent = coupon.sentTo?.some(
-        (s) => s.patientId?.toString() === patient._id.toString() && s.year === currentYear,
+        (s) => s.patientId?.toString() === patient._id.toString() && s.year != null && s.year === currentYear,
       );
       if (alreadySent) continue;
 

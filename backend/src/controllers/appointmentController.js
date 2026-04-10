@@ -135,6 +135,12 @@ const createAppointment = asyncHandler(async (req, res, next) => {
     .populate("doctorId", "name");
 
   sendResponse(res, 201, populated, "Cita agendada correctamente");
+
+  // Disparar cupón ON_NEW_APPOINTMENT (fire-and-forget, no bloquea respuesta)
+  if (populated.patientId?.allowsWhatsAppNotifications) {
+    processTriggerCoupons("ON_NEW_APPOINTMENT", populated.patientId, {})
+      .catch((err) => console.error("❌ [TRIGGER] ON_NEW_APPOINTMENT:", err.message));
+  }
 });
 
 const getAppointments = asyncHandler(async (req, res, next) => {
@@ -338,6 +344,14 @@ const updateAppointment = asyncHandler(async (req, res, next) => {
         }).session(session);
 
         if (coupon) {
+          // Verificar límite de usos por paciente
+          const usageByPatient = coupon.usedBy.filter(
+            (u) => u.patientId?.toString() === appointment.patientId.toString()
+          ).length;
+          if (usageByPatient >= coupon.maxUsesPerUser) {
+            return next(new AppError("Este cupón ya fue usado el máximo de veces por este paciente.", 400));
+          }
+
           totalDiscount =
             coupon.discountType === "PERCENTAGE"
               ? dictatedAmount * (coupon.discountValue / 100)

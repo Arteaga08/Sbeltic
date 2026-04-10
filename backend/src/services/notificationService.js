@@ -2,14 +2,25 @@
  * 📢 SERVICIO DE NOTIFICACIONES
  * Centraliza los canales de salida (Telegram, UI, etc.)
  */
-const sendTelegramAlert = async (message, botToken, chatId) => {
+const sendTelegramAlert = async (message, chatId) => {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken || !chatId) {
+    console.warn("[Telegram Alert]: Bot token o chatId no configurado. Mensaje no enviado.");
+    return;
+  }
   try {
-    // Aquí irá el fetch a la API de Telegram que configuraremos
-    console.log(`[Telegram Alert]: ${message}`);
-    // const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-    // await fetch(url, { ... });
+    const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: "Markdown" }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      console.error("[Telegram Alert]: Error de API:", data.description);
+    }
   } catch (error) {
-    console.error("Error enviando alerta a Telegram:", error);
+    console.error("[Telegram Alert]: Error enviando alerta:", error.message);
   }
 };
 

@@ -90,9 +90,9 @@ const couponSchema = new mongoose.Schema(
         enum: ["ONCE", "WEEKLY", "MONTHLY", "AUTO"],
         default: "ONCE",
       },
-      sendHour: { type: Number, default: 8 },       // hora del día 0-23
-      dayOfWeek: { type: Number },                   // 0=Dom ... 6=Sáb (WEEKLY)
-      dayOfMonth: { type: Number },                  // 1-31 (MONTHLY)
+      sendHour: { type: Number, default: 8, min: 0, max: 23 },   // hora del día 0-23
+      dayOfWeek: { type: Number, min: 0, max: 6 },               // 0=Dom ... 6=Sáb (WEEKLY)
+      dayOfMonth: { type: Number, min: 1, max: 31 },             // 1-31 (MONTHLY)
       triggerEvent: {
         type: String,
         enum: ["MANUAL", "ON_NEW_PATIENT", "ON_LOW_STOCK", "ON_APPOINTMENT_COMPLETE", "ON_BIRTHDAY", "ON_MAINTENANCE_DUE"],
@@ -105,6 +105,8 @@ const couponSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+couponSchema.index({ "sentTo.patientId": 1, "sentTo.year": 1 });
 
 // 🌟 LA SOLUCIÓN MÁGICA PARA NEXT.JS + MONGOOSE
 // Si el modelo ya existe en memoria, lo usa. Si no, lo crea. Esto evita el Error 500.

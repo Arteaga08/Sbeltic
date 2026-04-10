@@ -126,7 +126,9 @@ export const findNextAvailableSlot = async (durationMinutes, searchStartDate, ma
         if (slotStart <= searchStartDate) continue;
 
         // Saltar si el slot excede el horario de negocio
-        if (slotEnd.getHours() >= BUSINESS_HOURS.end && slotEnd.getMinutes() > 0) continue;
+        const businessEnd = new Date(slotStart);
+        businessEnd.setHours(BUSINESS_HOURS.end, 0, 0, 0);
+        if (slotEnd > businessEnd) continue;
 
         // Filtrar citas que se traslapen con este slot
         const overlapping = dayAppointments.filter((a) => {

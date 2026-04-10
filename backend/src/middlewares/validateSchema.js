@@ -1,4 +1,5 @@
 import { z } from "zod";
+import AppError from "../utils/appError.js";
 
 export const validateSchema = (schemas) => (req, res, next) => {
   try {
@@ -14,17 +15,14 @@ export const validateSchema = (schemas) => (req, res, next) => {
   } catch (error) {
     // 🌟 EL CAMBIO: Usamos z.ZodError
     if (error instanceof z.ZodError) {
-      const humanErrors = error.errors?.map((err) => {
+      const humanErrors = (error.issues || error.errors)?.map((err) => {
         const field = err.path ? err.path.join(".") : "campo desconocido";
         return `${field}: ${err.message}`;
       }) || ["Error de validación desconocido"];
 
-      return res.status(400).json({
-        success: false,
-        status: "fail",
-        message: "Errores de validación",
-        errors: humanErrors,
-      });
+      const err = new AppError("Errores de validación: " + humanErrors.join(" | "), 400);
+      err.errors = humanErrors;
+      return next(err);
     }
     console.log("Error no identificado en middleware:", error);
     return next(error);

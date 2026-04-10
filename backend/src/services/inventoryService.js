@@ -12,7 +12,11 @@ const getUniqueSKU = async (categoryName) => {
   let isUnique = false;
   let sku = "";
 
+  let attempts = 0;
   while (!isUnique) {
+    if (++attempts > 100) {
+      throw new AppError(`No se pudo generar un SKU único para la categoría "${categoryName}" después de 100 intentos`, 500);
+    }
     const randomDigits = Math.floor(1000 + Math.random() * 9000);
     sku = `${prefix}-${randomDigits}`;
 

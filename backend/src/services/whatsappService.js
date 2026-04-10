@@ -243,5 +243,8 @@ export const verifyWebhookSignature = (rawBody, signature) => {
     .update(rawBody)
     .digest("hex");
 
-  return `sha256=${expectedSignature}` === signature;
+  const expectedBuf = Buffer.from(`sha256=${expectedSignature}`);
+  const receivedBuf = Buffer.from(signature);
+  if (expectedBuf.length !== receivedBuf.length) return false;
+  return crypto.timingSafeEqual(expectedBuf, receivedBuf);
 };
