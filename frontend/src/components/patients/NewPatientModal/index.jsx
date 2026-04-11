@@ -185,7 +185,7 @@ const NewPatientModal = ({ isOpen, onClose, onRefresh }) => {
           className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
           onClick={onClose}
         />
-        <div className="relative w-full max-w-md bg-white rounded-[3.5rem] shadow-2xl p-10 flex flex-col items-center text-center animate-in zoom-in-95 duration-500">
+        <div className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-10 flex flex-col items-center text-center animate-in zoom-in-95 duration-500">
           <div className="w-24 h-24 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center shadow-inner mb-6">
             <CheckCircle size={50} weight="fill" />
           </div>
@@ -226,7 +226,7 @@ const NewPatientModal = ({ isOpen, onClose, onRefresh }) => {
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-2xl bg-white rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] md:max-h-[90vh] animate-in slide-in-from-top-4 duration-300">
+      <div className="relative w-full max-w-2xl bg-white rounded-[2.5rem] md:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] md:max-h-[90vh] animate-in slide-in-from-top-4 duration-300">
         <header className="p-6 md:p-8 border-b border-slate-50 flex items-center justify-between bg-white sticky top-0 z-10">
           <div className="flex items-center gap-4">
             {step > 0 && (

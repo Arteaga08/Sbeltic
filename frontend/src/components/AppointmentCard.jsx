@@ -1,3 +1,5 @@
+import { MapPin, User } from "@phosphor-icons/react";
+
 export default function AppointmentCard({ appointment }) {
   // Formatear hora (de appointmentDate)
   const time = new Date(appointment.appointmentDate).toLocaleTimeString(
@@ -42,9 +44,9 @@ export default function AppointmentCard({ appointment }) {
           {appointment.patientId?.name || "Sin Paciente"}
         </p>
         <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
-          <span className="font-bold">📍 {appointment.roomId}</span>
+          <span className="font-bold flex items-center gap-1"><MapPin size={12} weight="bold" /> {appointment.roomId}</span>
           <span>•</span>
-          <span>👤 Dr. {appointment.doctorId?.name}</span>
+          <span className="flex items-center gap-1"><User size={12} weight="bold" /> Dr. {appointment.doctorId?.name}</span>
         </div>
       </div>
 

@@ -12,7 +12,7 @@ export default function TeamModal({
 
   return (
    <div className="fixed inset-0 w-full h-dvh z-999 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300 overflow-y-auto">
-      <div className="bg-white w-full max-w-2xl rounded-[40px] border-2 border-slate-900 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-white w-full max-w-2xl rounded-[2.5rem] border-2 border-slate-900 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header - Respetando estilos originales */}
         <div className="p-8 pb-4 flex justify-between items-start">
           <div>

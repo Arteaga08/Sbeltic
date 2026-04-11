@@ -171,7 +171,7 @@ const EvolutionTab = ({ patient, userRole, onUpdate }) => {
         </section>
 
         {/* 3. DIAGNÓSTICO Y PLAN */}
-        <section className="space-y-6 bg-slate-900 p-8 md:p-12 rounded-[3.5rem] text-white">
+        <section className="space-y-6 bg-slate-900 p-8 md:p-12 rounded-[2.5rem] text-white">
           <div className="flex items-center gap-3 border-b border-white/10 pb-6 mb-6">
             <NotePencil size={24} weight="fill" className="text-indigo-400" />
             <h4 className="text-[11px] font-black uppercase tracking-widest italic text-indigo-100">
@@ -311,7 +311,7 @@ const EvolutionTab = ({ patient, userRole, onUpdate }) => {
       {/* TIMELINE DE EVOLUCIONES */}
       <div className="space-y-4">
         {patient.evolutions?.length === 0 ? (
-          <div className="py-20 text-center bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-100">
+          <div className="py-20 text-center bg-slate-50/50 rounded-[2.5rem] border-2 border-dashed border-slate-100">
             <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
               Aún no hay notas de evolución para este paciente
             </p>

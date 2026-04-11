@@ -1,13 +1,14 @@
 "use client";
+import { Warning } from "@phosphor-icons/react";
 
 export default function DeleteModal({ isOpen, onClose, onConfirm, userName }) {
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 w-screen h-dvh z-1000 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-white w-full max-w-md rounded-[40px] border-2 border-slate-900 shadow-2xl p-8 text-center animate-in zoom-in-95 duration-200">
-        <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-6 text-3xl">
-          ⚠️
+      <div className="bg-white w-full max-w-md rounded-[2.5rem] border-2 border-slate-900 shadow-2xl p-8 text-center animate-in zoom-in-95 duration-200">
+        <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
+          <Warning size={32} weight="duotone" />
         </div>
 
         <h3 className="text-2xl font-extrabold italic uppercase text-slate-900 leading-tight mb-2">

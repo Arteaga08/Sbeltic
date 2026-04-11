@@ -201,7 +201,7 @@ const CouponsTab = ({ patient }) => {
       </div>
 
       {coupons.length === 0 ? (
-        <div className="py-20 text-center bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-100">
+        <div className="py-20 text-center bg-slate-50/50 rounded-[2.5rem] border-2 border-dashed border-slate-100">
           <Tag size={32} weight="thin" className="text-slate-200 mx-auto mb-3" />
           <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
             Aun no hay cupones en la cartera

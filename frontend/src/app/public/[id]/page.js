@@ -140,7 +140,7 @@ export default function PublicSignaturePage() {
         <div className="flex-1 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 relative overflow-hidden">
           <SignatureCanvas
             ref={sigCanvas}
-            penColor="#1e293b"
+            penColor="#4f46e5"
             canvasProps={{
               className: "w-full h-full cursor-crosshair touch-none",
             }}

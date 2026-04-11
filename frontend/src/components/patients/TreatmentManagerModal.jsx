@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { Pill } from "@phosphor-icons/react";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -376,7 +377,7 @@ export default function TreatmentManagerModal({ isOpen, onClose }) {
               </div>
             ) : categoryTreatments.length === 0 ? (
               <div className="text-center py-6 text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                <p className="text-xl mb-1">💊</p>
+                <p className="text-xl mb-1"><Pill size={20} weight="duotone" /></p>
                 <p className="text-[11px] font-bold uppercase tracking-wide">
                   Sin tratamientos
                 </p>

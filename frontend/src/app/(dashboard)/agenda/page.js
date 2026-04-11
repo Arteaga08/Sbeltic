@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
 import AgendaHeader from "@/components/agenda/AgendaHeader";
 import CalendarGrid from "@/components/agenda/CalendarGrid";
@@ -17,17 +17,18 @@ function getToken() {
   return null;
 }
 
-function todayDate() {
-  const d = new Date();
+function getWeekStart(date) {
+  const d = new Date(date);
   d.setHours(0, 0, 0, 0);
+  const day = d.getDay();
+  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1)); // lunes
   return d;
 }
 
 export default function AgendaPage() {
-  const [selectedDate, setSelectedDate] = useState(todayDate());
+  const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
   const [appointments, setAppointments] = useState([]);
   const [waitlist, setWaitlist] = useState([]);
-  const [daySummary, setDaySummary] = useState(null);
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,15 +40,13 @@ export default function AgendaPage() {
   const [upcomingSurgeries, setUpcomingSurgeries] = useState([]);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
 
-  // ── ISO de medianoche local → enviado al backend para range queries ──
-  const dateStr = selectedDate.toISOString(); // e.g. "2026-03-17T06:00:00.000Z" en UTC-6
-
   // ── Fetches ──
-  const fetchAppointments = async (date = dateStr) => {
+  const fetchWeekAppointments = async (start) => {
     try {
-      const res = await fetch(`${API}/appointments?date=${date}`, {
-        headers: { Authorization: `Bearer ${getToken()}`, "Cache-Control": "no-cache" },
-      });
+      const res = await fetch(
+        `${API}/appointments?date=${start.toISOString()}&days=6`,
+        { headers: { Authorization: `Bearer ${getToken()}`, "Cache-Control": "no-cache" } },
+      );
       const data = await res.json();
       const arr = data.data || data.appointments || (Array.isArray(data) ? data : []);
       setAppointments(arr);
@@ -68,24 +67,12 @@ export default function AgendaPage() {
     }
   };
 
-  const fetchDaySummary = async (date = dateStr) => {
-    try {
-      const res = await fetch(`${API}/appointments/day-summary?date=${date}`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      const data = await res.json();
-      setDaySummary(data.data || null);
-    } catch {
-      // summary is non-critical
-    }
-  };
-
   const fetchUpcomingSurgeries = async () => {
     try {
       const from = new Date();
       from.setHours(0, 0, 0, 0);
       const res = await fetch(
-        `${API}/appointments?date=${from.toISOString()}&days=7`,
+        `${API}/appointments?date=${from.toISOString()}&days=6`,
         { headers: { Authorization: `Bearer ${getToken()}` } },
       );
       const data = await res.json();
@@ -114,15 +101,14 @@ export default function AgendaPage() {
     }
   };
 
-  // ── Carga inicial y al cambiar fecha ──
+  // ── Carga inicial y al cambiar semana ──
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      fetchAppointments(dateStr),
+      fetchWeekAppointments(weekStart),
       fetchWaitlist(),
-      fetchDaySummary(dateStr),
     ]).finally(() => setLoading(false));
-  }, [selectedDate]);
+  }, [weekStart]);
 
   useEffect(() => {
     fetchStaff();
@@ -130,21 +116,43 @@ export default function AgendaPage() {
   }, []);
 
   // ── Filtrar appointments por doctor si aplica ──
-  const visibleAppointments =
-    filterDoctor === "ALL"
-      ? appointments
-      : appointments.filter((a) => String(a.doctorId?._id || a.doctorId) === filterDoctor);
+  const visibleAppointments = useMemo(
+    () =>
+      filterDoctor === "ALL"
+        ? appointments
+        : appointments.filter((a) => String(a.doctorId?._id || a.doctorId) === filterDoctor),
+    [appointments, filterDoctor],
+  );
+
+  // ── Agrupar por fecha (clave "YYYY-MM-DD" en hora local) ──
+  const appointmentsByDate = useMemo(() => {
+    return visibleAppointments.reduce((acc, a) => {
+      const key = new Date(a.appointmentDate).toLocaleDateString("en-CA");
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(a);
+      return acc;
+    }, {});
+  }, [visibleAppointments]);
+
+  // ── Resumen semanal calculado client-side ──
+  const weeklySummary = useMemo(() => {
+    const active = visibleAppointments.filter((a) => a.status !== "CANCELLED");
+    return {
+      total: active.length,
+      confirmed: active.filter((a) => ["CONFIRMED", "IN_PROGRESS"].includes(a.status)).length,
+      revenue: active
+        .filter((a) => a.status === "COMPLETED")
+        .reduce((s, a) => s + (a.originalQuote || 0), 0),
+    };
+  }, [visibleAppointments]);
 
   // ── Handlers ──
   const handleAppointmentClick = (appt) => setSelectedAppointment(appt);
 
   const handleSuperModalSave = (updatedAppt) => {
-    // Actualizar el appointment en la lista local sin refetch completo
     setAppointments((prev) =>
       prev.map((a) => (a._id === updatedAppt._id ? updatedAppt : a)),
     );
-    // Refrescar resumen del día
-    fetchDaySummary(dateStr);
     toast.success("Cita actualizada");
   };
 
@@ -154,7 +162,6 @@ export default function AgendaPage() {
         a._id === cancelledAppt._id ? { ...a, status: "CANCELLED" } : a,
       ),
     );
-    fetchDaySummary(dateStr);
     toast.success("Cita cancelada");
   };
 
@@ -195,10 +202,8 @@ export default function AgendaPage() {
       if (apptRes.ok) {
         toast.success("¡Cita agendada con éxito!");
         setIsNewModalOpen(false);
-        fetchAppointments(dateStr);
-        fetchDaySummary(dateStr);
+        fetchWeekAppointments(weekStart);
       } else {
-        // El backend puede devolver { message } o { errors: [{message}] } de Zod
         const errMsg =
           apptResult.message ||
           apptResult.errors?.[0]?.message ||
@@ -210,6 +215,8 @@ export default function AgendaPage() {
     }
   };
 
+  const handleWeekChange = (date) => setWeekStart(getWeekStart(date));
+
   const panelBadgeCount =
     upcomingSurgeries.length + waitlist.filter((w) => w.status === "WAITING").length;
 
@@ -218,8 +225,8 @@ export default function AgendaPage() {
 
       {/* Header */}
       <AgendaHeader
-        selectedDate={selectedDate}
-        onDateChange={setSelectedDate}
+        weekStart={weekStart}
+        onWeekChange={handleWeekChange}
         filterRoom={filterRoom}
         onFilterRoom={setFilterRoom}
         staff={staff}
@@ -241,17 +248,16 @@ export default function AgendaPage() {
           </div>
         ) : (
           <CalendarGrid
-            appointments={visibleAppointments}
+            weekStart={weekStart}
+            appointmentsByDate={appointmentsByDate}
             filterRoom={filterRoom}
             onAppointmentClick={handleAppointmentClick}
-            isToday={selectedDate.toDateString() === new Date().toDateString()}
           />
         )}
 
         <SidePanels
-          appointments={visibleAppointments}
           waitlist={waitlist}
-          daySummary={daySummary}
+          weeklySummary={weeklySummary}
           upcomingSurgeries={upcomingSurgeries}
           mobileOpen={isPanelOpen}
           onClose={() => setIsPanelOpen(false)}

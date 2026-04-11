@@ -40,7 +40,7 @@ const CurrentConditionSection = ({ formData, setFormData }) => {
         <textarea
           // 🌟 Nuevo placeholder más directo
           placeholder="DESCRIBE EL MOTIVO DE LA CONSULTA, PROCEDIMIENTO DE INTERÉS O SÍNTOMAS QUE PRESENTA EL PACIENTE..."
-          className="w-full p-8 bg-slate-50 border-2 border-transparent rounded-[3rem] font-bold text-[11px] uppercase outline-none focus:bg-white focus:border-indigo-100 focus:ring-4 ring-indigo-50/50 transition-all min-h-62.5 resize-none leading-relaxed text-slate-700"
+          className="w-full p-8 bg-slate-50 border-2 border-transparent rounded-[2.5rem] font-bold text-[11px] uppercase outline-none focus:bg-white focus:border-indigo-100 focus:ring-4 ring-indigo-50/50 transition-all min-h-62.5 resize-none leading-relaxed text-slate-700"
           // 🌟 Usamos currentValue para evitar el bug de [object Object]
           value={currentValue}
           onChange={(e) => updateCondition(e.target.value)}

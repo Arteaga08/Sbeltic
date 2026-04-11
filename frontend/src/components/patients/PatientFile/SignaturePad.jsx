@@ -36,7 +36,7 @@ const SignaturePad = ({ onSave, label, existingSignature }) => {
       ) : (
         /* PAD DE FIRMA PARA NUEVOS REGISTROS */
         <div className="relative group">
-          <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[3rem] overflow-hidden transition-all group-hover:border-indigo-200">
+          <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2.5rem] overflow-hidden transition-all group-hover:border-indigo-200">
             <SignatureCanvas
               ref={sigRef}
               penColor="#4f46e5"

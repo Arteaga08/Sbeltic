@@ -55,6 +55,7 @@ const MENU_ITEMS = [
     icon: <Gear size={24} weight="duotone" />,
     roles: ["ADMIN"],
     activeColor: "text-blue-600",
+    mobileHidden: true,
   },
 ];
 
@@ -74,6 +75,9 @@ export default function Sidebar() {
     item.roles.includes(userRole),
   );
 
+  // Mobile nav: máximo 5 ítems, excluimos los marcados como mobileHidden
+  const mobileItems = filteredItems.filter((item) => !item.mobileHidden);
+
   return (
     <>
       {/* DESKTOP SIDEBAR */}
@@ -85,6 +89,11 @@ export default function Sidebar() {
           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
             Vidix Studio
           </p>
+          {user && (
+            <span className="inline-flex items-center mt-2 px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-500">
+              {user.role === "ADMIN" ? "Administrador" : "Recepción"}
+            </span>
+          )}
         </div>
 
         <nav className="flex-1 space-y-2">
@@ -113,8 +122,8 @@ export default function Sidebar() {
       </aside>
 
       {/* MOBILE NAV */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-2xl border-t border-slate-200 flex justify-around items-center p-3 z-10000 h-20 shadow-[0_-10px_40px_rgba(0,0,0,0.08)] pb-safe">
-        {filteredItems.map((item) => {
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-2xl border-t border-slate-200 flex justify-around items-center p-3 z-50 h-20 shadow-nav pb-safe">
+        {mobileItems.map((item) => {
           const isActive = pathname === item.path;
           return (
             <Link

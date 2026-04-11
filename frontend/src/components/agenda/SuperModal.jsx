@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
+import { FileText, ClipboardText, Package } from "@phosphor-icons/react";
 import AppointmentPDF from "./AppointmentPDF";
 import MedicalHistoryPDF from "../patients/PatientFile/Tabs/MedicalHistoryPDF";
 
@@ -384,7 +385,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                     className="w-full py-3 border-2 border-dashed border-slate-200 rounded-2xl text-xs font-black uppercase
                       text-slate-400 hover:border-teal-300 hover:text-teal-500 transition-colors flex items-center justify-center gap-2"
                   >
-                    <span>📄</span>
+                    <FileText size={16} weight="bold" />
                     {loading ? "Generando PDF..." : "Descargar Registro de Cita"}
                   </button>
                 )}
@@ -401,7 +402,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                       className="w-full py-3 border-2 border-dashed border-indigo-200 rounded-2xl text-xs font-black uppercase
                         text-indigo-400 hover:border-indigo-400 hover:text-indigo-600 transition-colors flex items-center justify-center gap-2"
                     >
-                      <span>📋</span>
+                      <ClipboardText size={16} weight="bold" />
                       {loading ? "Generando PDF..." : "Descargar Historial Médico PDF"}
                     </button>
                   )}
@@ -412,7 +413,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                   className="w-full py-3 border-2 border-dashed border-slate-100 rounded-2xl text-xs font-black uppercase
                     text-slate-300 flex items-center justify-center gap-2 cursor-not-allowed"
                 >
-                  <span>📋</span>
+                  <ClipboardText size={16} weight="bold" />
                   {loadingPatient ? "Cargando historial..." : "Historial Médico PDF"}
                 </button>
               )}
@@ -497,7 +498,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
               {/* Lista de insumos */}
               {form.consumedSupplies?.length === 0 ? (
                 <div className="text-center py-8 text-slate-400">
-                  <p className="text-3xl mb-2">📦</p>
+                  <p className="mb-2"><Package size={32} weight="duotone" /></p>
                   <p className="text-sm font-bold">Sin insumos registrados</p>
                 </div>
               ) : (

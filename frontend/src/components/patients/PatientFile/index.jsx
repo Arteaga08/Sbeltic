@@ -55,7 +55,7 @@ const PatientFileModal = ({ isOpen, patientId, onClose, onUpdate }) => {
       />
 
       <div className="fixed inset-0 flex items-center justify-center p-2 md:p-4">
-        <Dialog.Panel className="w-full max-w-5xl h-[95vh] md:h-[90vh] bg-white rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col">
+        <Dialog.Panel className="w-full max-w-5xl h-[95vh] md:h-[90vh] bg-white rounded-[2.5rem] md:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col">
           <FileHeader
             patient={patient}
             activeTab={activeTab}

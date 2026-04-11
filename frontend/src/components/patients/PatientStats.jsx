@@ -69,7 +69,7 @@ const PatientStats = ({ counts, onSelectCategory }) => {
           <button
             key={stat.id}
             onClick={() => onSelectCategory(stat.id)}
-            className="group relative flex flex-col p-7 md:p-10 bg-white border border-slate-100 rounded-[2.5rem] md:rounded-[3rem] hover:shadow-2xl hover:shadow-slate-200/60 hover:border-indigo-300 transition-all text-left overflow-hidden active:scale-[0.96]"
+            className="group relative flex flex-col p-7 md:p-10 bg-white border border-slate-100 rounded-[2.5rem] md:rounded-[2.5rem] hover:shadow-2xl hover:shadow-slate-200/60 hover:border-indigo-300 transition-all text-left overflow-hidden active:scale-[0.96]"
           >
             {/* Círculo de fondo decorativo al hacer hover */}
             <div

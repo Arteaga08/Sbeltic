@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+html {
+  overflow-x: hidden;
+}
+
 @theme {
   /* Colores Identidad Sbeltic */
   --color-primary: #0d9488; /* Teal Médico: Confianza y limpieza */
@@ -10,6 +14,23 @@
   --color-bg-main: #f8fafc;
   --color-text-main: #1e293b;
   --color-border-soft: #e2e8f0;
+
+  /* Typography Scale */
+  --font-size-2xs: 9px;
+  --font-size-xs-tight: 10px;
+  --font-size-xs-plus: 11px;
+
+  /* Border Radius Scale */
+  --radius-card: 1.5rem;
+  --radius-modal: 2.5rem;
+  --radius-pill: 9999px;
+
+  /* Shadows */
+  --shadow-nav: 0 -10px 40px rgba(0, 0, 0, 0.08);
+
+  /* Letter Spacing */
+  --tracking-label: 0.2em;
+  --tracking-wide-label: 0.3em;
 }
 
 :root {
@@ -21,4 +42,5 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-feature-settings: "cv02", "cv03", "cv04"; /* Mejoras de legibilidad */
+  overflow-x: hidden; /* Prevent horizontal scroll on mobile */
 }
