@@ -18,28 +18,28 @@ const MENU_ITEMS = [
     name: "Inicio",
     path: "/",
     icon: <House size={24} weight="duotone" />,
-    roles: ["ADMIN", "RECEPTION"],
+    roles: ["ADMIN", "RECEPTIONIST"],
     activeColor: "text-indigo-600",
   },
   {
     name: "Agenda",
     path: "/agenda",
     icon: <CalendarCheck size={24} weight="duotone" />,
-    roles: ["ADMIN", "RECEPTION"],
+    roles: ["ADMIN", "RECEPTIONIST", "MARKETING"],
     activeColor: "text-purple-600",
   },
   {
     name: "Pacientes",
     path: "/patients",
     icon: <Users size={24} weight="duotone" />,
-    roles: ["ADMIN", "RECEPTION"],
+    roles: ["ADMIN", "RECEPTIONIST"],
     activeColor: "text-rose-600",
   },
   {
     name: "Marketing",
     path: "/marketing",
     icon: <Megaphone size={24} weight="duotone" />,
-    roles: ["ADMIN"],
+    roles: ["ADMIN", "MARKETING"],
     activeColor: "text-amber-600",
   },
   {
@@ -55,9 +55,15 @@ const MENU_ITEMS = [
     icon: <Gear size={24} weight="duotone" />,
     roles: ["ADMIN"],
     activeColor: "text-blue-600",
-    mobileHidden: true,
   },
 ];
+
+const ROLE_LABEL = {
+  ADMIN: "Administrador",
+  RECEPTIONIST: "Recepción",
+  DOCTOR: "Doctor",
+  MARKETING: "Marketing",
+};
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -91,7 +97,7 @@ export default function Sidebar() {
           </p>
           {user && (
             <span className="inline-flex items-center mt-2 px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-500">
-              {user.role === "ADMIN" ? "Administrador" : "Recepción"}
+              {ROLE_LABEL[user.role] ?? user.role}
             </span>
           )}
         </div>

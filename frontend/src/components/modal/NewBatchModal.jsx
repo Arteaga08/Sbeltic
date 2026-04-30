@@ -9,8 +9,10 @@ import {
   CircleNotch,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 const NewBatchModal = ({ isOpen, onClose, productId, onRefresh }) => {
+  useScrollLock(isOpen);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     batchNumber: "",

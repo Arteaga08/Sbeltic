@@ -35,7 +35,7 @@ const BasicInfoForm = ({ formData, setFormData }) => {
       {/* 🌟 MOTIVO DE VISITA (Solo para "OTHER") */}
       {formData?.patientType === "OTHER" && (
         <div className="space-y-2 animate-in zoom-in-95 duration-300">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 ml-2 flex items-center gap-2">
+          <label className="text-[10px] font-black uppercase tracking-label text-indigo-600 ml-2 flex items-center gap-2">
             <Notepad size={14} weight="fill" /> ¿A qué se debe la visita?
           </label>
           <textarea
@@ -50,7 +50,7 @@ const BasicInfoForm = ({ formData, setFormData }) => {
 
       {/* NOMBRE COMPLETO */}
       <div className="space-y-2">
-        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">
+        <label className="text-[10px] font-black uppercase tracking-label text-slate-400 ml-2">
           Nombre del Paciente o Visitante
         </label>
         <div className="relative group">
@@ -72,7 +72,7 @@ const BasicInfoForm = ({ formData, setFormData }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* TELÉFONO */}
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">
+          <label className="text-[10px] font-black uppercase tracking-label text-slate-400 ml-2">
             WhatsApp / Teléfono
           </label>
           <div className="relative group">
@@ -93,7 +93,7 @@ const BasicInfoForm = ({ formData, setFormData }) => {
 
         {/* EMAIL */}
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">
+          <label className="text-[10px] font-black uppercase tracking-label text-slate-400 ml-2">
             Correo (Opcional)
           </label>
           <div className="relative group">
@@ -115,7 +115,7 @@ const BasicInfoForm = ({ formData, setFormData }) => {
 
       {/* FECHA DE NACIMIENTO */}
       <div className="space-y-2">
-        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2 flex items-center gap-2">
+        <label className="text-[10px] font-black uppercase tracking-label text-slate-400 ml-2 flex items-center gap-2">
           <CalendarBlank size={14} /> Fecha de Nacimiento (Opcional)
         </label>
         <div className="relative group">
@@ -135,7 +135,7 @@ const BasicInfoForm = ({ formData, setFormData }) => {
 
       {/* REFERIDO POR */}
       <div className="space-y-2">
-        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2 flex items-center gap-2">
+        <label className="text-[10px] font-black uppercase tracking-label text-slate-400 ml-2 flex items-center gap-2">
           <UsersThree size={14} /> ¿Cómo se enteró de nosotros?
         </label>
         <input
@@ -149,7 +149,7 @@ const BasicInfoForm = ({ formData, setFormData }) => {
       </div>
 
       {/* WHATSAPP TOGGLE */}
-      <div className="flex items-center justify-between p-6 bg-emerald-50/50 rounded-[2.5rem] border border-emerald-100/50 mt-4">
+      <div className="flex items-center justify-between p-6 bg-emerald-50/50 rounded-modal border border-emerald-100/50 mt-4">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-emerald-500 text-white rounded-2xl shadow-lg shadow-emerald-200">
             <WhatsappLogo size={24} weight="fill" />

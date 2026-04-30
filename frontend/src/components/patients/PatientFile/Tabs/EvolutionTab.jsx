@@ -102,7 +102,7 @@ const EvolutionTab = ({ patient, userRole, onUpdate }) => {
               Signos Vitales
             </h4>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 bg-slate-50 p-6 rounded-[2.5rem]">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 bg-slate-50 p-6 rounded-modal">
             {[
               { id: "ta", label: "TA", sub: "MMHG" },
               { id: "fc", label: "FC", sub: "X'" },
@@ -171,7 +171,7 @@ const EvolutionTab = ({ patient, userRole, onUpdate }) => {
         </section>
 
         {/* 3. DIAGNÓSTICO Y PLAN */}
-        <section className="space-y-6 bg-slate-900 p-8 md:p-12 rounded-[2.5rem] text-white">
+        <section className="space-y-6 bg-slate-900 p-8 md:p-12 rounded-modal text-white">
           <div className="flex items-center gap-3 border-b border-white/10 pb-6 mb-6">
             <NotePencil size={24} weight="fill" className="text-indigo-400" />
             <h4 className="text-[11px] font-black uppercase tracking-widest italic text-indigo-100">
@@ -233,7 +233,7 @@ const EvolutionTab = ({ patient, userRole, onUpdate }) => {
 
         {/* 4. FIRMAS FINALES Y REMOTA 🌟 */}
         <section className="space-y-6 pt-10 border-t border-slate-100">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-emerald-50/50 p-6 md:p-8 rounded-[2.5rem] border border-emerald-100/50">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-emerald-50/50 p-6 md:p-8 rounded-modal border border-emerald-100/50">
             <div className="space-y-1">
               <h4 className="text-[11px] font-black uppercase text-emerald-800 italic">
                 Firma Remota de Paciente
@@ -270,7 +270,7 @@ const EvolutionTab = ({ patient, userRole, onUpdate }) => {
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="w-full py-6 bg-indigo-600 text-white rounded-[2.5rem] font-black text-xs uppercase tracking-[0.3em] shadow-2xl shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-[0.98]"
+          className="w-full py-6 bg-indigo-600 text-white rounded-modal font-black text-xs uppercase tracking-wide-label shadow-2xl shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-[0.98]"
         >
           {isSaving
             ? "Finalizando Consulta..."
@@ -283,7 +283,7 @@ const EvolutionTab = ({ patient, userRole, onUpdate }) => {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* MODO LISTA (Timeline) */}
-      <div className="flex items-center justify-between bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100">
+      <div className="flex items-center justify-between bg-slate-50 p-6 rounded-modal border border-slate-100">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-white rounded-2xl shadow-sm text-slate-400">
             <ClockCounterClockwise size={24} weight="bold" />
@@ -311,7 +311,7 @@ const EvolutionTab = ({ patient, userRole, onUpdate }) => {
       {/* TIMELINE DE EVOLUCIONES */}
       <div className="space-y-4">
         {patient.evolutions?.length === 0 ? (
-          <div className="py-20 text-center bg-slate-50/50 rounded-[2.5rem] border-2 border-dashed border-slate-100">
+          <div className="py-20 text-center bg-slate-50/50 rounded-modal border-2 border-dashed border-slate-100">
             <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
               Aún no hay notas de evolución para este paciente
             </p>
@@ -320,7 +320,7 @@ const EvolutionTab = ({ patient, userRole, onUpdate }) => {
           [...patient.evolutions].reverse().map((ev, idx) => (
             <div
               key={idx}
-              className="group bg-white border border-slate-100 p-6 rounded-[2.5rem] hover:border-indigo-200 transition-all"
+              className="group bg-white border border-slate-100 p-6 rounded-modal hover:border-indigo-200 transition-all"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">

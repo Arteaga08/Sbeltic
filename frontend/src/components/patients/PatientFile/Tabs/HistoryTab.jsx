@@ -40,10 +40,32 @@ const DEFAULT_HABITS = {
   previousTreatments: { massages: false, mesotherapy: false, fillers: false, others: "" },
 };
 
+const DEFAULT_VITAL = { bloodType: "" };
+
+const DEFAULT_ALLERGIES = {
+  food: { has: false, items: [] },
+  medications: { has: false, items: [] },
+  others: { has: false, items: [] },
+};
+
+const DEFAULT_COMORBIDITIES = {
+  hasDisease: false,
+  diseases: {},
+};
+
+const nullsToStrings = (obj) =>
+  Object.fromEntries(
+    Object.entries(obj ?? {}).map(([k, v]) => [k, v === null ? "" : v])
+  );
+
 const mergePatient = (p) => ({
   ...p,
   medicalHistory: {
     ...p.medicalHistory,
+    identification: nullsToStrings(p.medicalHistory?.identification),
+    vital: { ...DEFAULT_VITAL, ...p.medicalHistory?.vital },
+    allergies: { ...DEFAULT_ALLERGIES, ...p.medicalHistory?.allergies },
+    comorbidities: { ...DEFAULT_COMORBIDITIES, ...p.medicalHistory?.comorbidities },
     pathological: { ...DEFAULT_PATHOLOGICAL, ...p.medicalHistory?.pathological },
     habits: { ...DEFAULT_HABITS, ...p.medicalHistory?.habits },
   },
@@ -59,12 +81,18 @@ const HistoryTab = ({ patient, userRole, onUpdate, onClose }) => {
   }, [patient]);
 
   const canEdit = userRole === "DOCTOR";
+  const isDeepProfile = ["SURGERY", "INJECTION", "LEAD", "POST_OP"].includes(
+    formData.patientType,
+  );
+  // Solo mostramos las secciones clínicas si el paciente fue capturado con el wizard
+  // profundo (su medicalHistory.identification existe). Un SPA típico no la tiene.
+  const hasClinicalRecord = !!formData.medicalHistory?.identification;
 
   if (!patient || !formData._id) {
     return (
       <div className="flex flex-col items-center justify-center py-20 animate-pulse">
         <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4" />
-        <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
+        <p className="text-[10px] font-black uppercase text-slate-400 tracking-label">
           Sincronizando...
         </p>
       </div>
@@ -246,7 +274,7 @@ const HistoryTab = ({ patient, userRole, onUpdate, onClose }) => {
         className={`${!isEditing ? "pointer-events-none opacity-90" : "pointer-events-auto"} space-y-12`}
       >
         {/* ... Resto del componente original de Categorías y Secciones ... */}
-        <section className="bg-slate-50/50 p-6 md:p-8 rounded-[2.5rem] border border-slate-100">
+        <section className="bg-slate-50/50 p-6 md:p-8 rounded-modal border border-slate-100">
           <header className="flex items-center gap-3 mb-6">
             <div className="p-3 bg-white text-indigo-600 rounded-2xl shadow-sm">
               <Tag size={20} weight="fill" />
@@ -286,42 +314,57 @@ const HistoryTab = ({ patient, userRole, onUpdate, onClose }) => {
 
         <section className="max-w-4xl mx-auto space-y-12">
           <BasicInfoForm formData={formData} setFormData={setFormData} />
-          <div className="border-t border-slate-100 pt-10">
-            <IdentificationSection
-              formData={formData}
-              setFormData={setFormData}
-            />
-          </div>
-          <div className="border-t border-slate-100 pt-10">
-            <FamilyHistorySection
-              formData={formData}
-              setFormData={setFormData}
-            />
-          </div>
-          <div className="border-t border-slate-100 pt-10">
-            <PathologicalSection
-              formData={formData}
-              setFormData={setFormData}
-            />
-          </div>
-          <div className="border-t border-slate-100 pt-10">
-            <BackgroundHabitsSection
-              formData={formData}
-              setFormData={setFormData}
-            />
-          </div>
-          <div className="border-t border-slate-100 pt-10">
-            <GynecoSection formData={formData} setFormData={setFormData} />
-          </div>
-          <div className="border-t border-slate-100 pt-10">
-            <SystemsSection formData={formData} setFormData={setFormData} />
-          </div>
-          <div className="border-t border-slate-100 pt-10">
-            <CurrentConditionSection
-              formData={formData}
-              setFormData={setFormData}
-            />
-          </div>
+          {isDeepProfile && hasClinicalRecord ? (
+            <>
+              <div className="border-t border-slate-100 pt-10">
+                <IdentificationSection
+                  formData={formData}
+                  setFormData={setFormData}
+                />
+              </div>
+              <div className="border-t border-slate-100 pt-10">
+                <FamilyHistorySection
+                  formData={formData}
+                  setFormData={setFormData}
+                />
+              </div>
+              <div className="border-t border-slate-100 pt-10">
+                <PathologicalSection
+                  formData={formData}
+                  setFormData={setFormData}
+                />
+              </div>
+              <div className="border-t border-slate-100 pt-10">
+                <BackgroundHabitsSection
+                  formData={formData}
+                  setFormData={setFormData}
+                />
+              </div>
+              <div className="border-t border-slate-100 pt-10">
+                <GynecoSection formData={formData} setFormData={setFormData} />
+              </div>
+              <div className="border-t border-slate-100 pt-10">
+                <SystemsSection formData={formData} setFormData={setFormData} />
+              </div>
+              <div className="border-t border-slate-100 pt-10">
+                <CurrentConditionSection
+                  formData={formData}
+                  setFormData={setFormData}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="border-t border-slate-100 pt-10">
+              <div className="bg-slate-50/50 border border-slate-100 rounded-3xl p-8 text-center">
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                  Sin historial clínico capturado
+                </p>
+                <p className="text-xs font-bold text-slate-500 mt-2">
+                  Este paciente solo tiene la información básica del agendamiento.
+                </p>
+              </div>
+            </div>
+          )}
         </section>
       </div>
     </div>

@@ -244,7 +244,7 @@ const GynecoSection = ({ formData, setFormData }) => {
       </div>
 
       {/* 5. SECCIÓN CRÍTICA: MÉTODOS ANTICONCEPTIVOS (Estilo Tipo de Sangre) */}
-      <div className="bg-pink-50/30 p-6 md:p-8 rounded-[2.5rem] border border-pink-100/50 space-y-6">
+      <div className="bg-pink-50/30 p-6 md:p-8 rounded-modal border border-pink-100/50 space-y-6">
         <h4 className="text-[10px] font-black uppercase text-pink-500 tracking-widest flex items-center gap-2">
           <ShieldCheck size={16} weight="fill" /> Método Anticonceptivo
         </h4>

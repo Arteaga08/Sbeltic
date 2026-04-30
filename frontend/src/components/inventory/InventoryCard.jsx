@@ -27,7 +27,7 @@ const InventoryCard = ({ product }) => {
   const displayExpiry = expiryDate || nextExpiryDate;
 
   return (
-    <div className="relative flex flex-col h-full p-5 transition-all bg-white border border-slate-200 rounded-3xl hover:shadow-xl hover:shadow-indigo-100/50 hover:border-indigo-300 group">
+    <div className="relative flex flex-col h-full p-3 md:p-5 transition-all bg-white border border-slate-200 rounded-3xl hover:shadow-xl hover:shadow-indigo-100/50 hover:border-indigo-300 group">
       <div className="absolute z-10 top-4 right-4">
         <StatusBadge
           isLowStock={isLowStock}
@@ -56,7 +56,7 @@ const InventoryCard = ({ product }) => {
           )}
         </div>
 
-        <h3 className="text-lg font-bold leading-tight text-slate-800 group-hover:text-indigo-600 line-clamp-2 pr-14">
+        <h3 className="text-sm sm:text-lg font-bold leading-tight text-slate-800 group-hover:text-indigo-600 line-clamp-2 pr-10 sm:pr-14">
           {name}
         </h3>
 
@@ -80,13 +80,13 @@ const InventoryCard = ({ product }) => {
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4 pt-4 mt-auto border-t border-slate-100">
+        <div className="grid grid-cols-2 gap-2 md:gap-4 pt-3 mt-auto border-t border-slate-100">
           <div>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1">
               <Archive size={12} /> Stock Físico
             </p>
             <p
-              className={`text-2xl font-black flex items-baseline gap-1 ${isLowStock ? "text-rose-600" : "text-slate-900"}`}
+              className={`text-lg md:text-2xl font-black flex items-baseline gap-1 ${isLowStock ? "text-rose-600" : "text-slate-900"}`}
             >
               {currentStock}
               <span className="text-slate-300 font-medium mx-0.5">/</span>
@@ -96,17 +96,17 @@ const InventoryCard = ({ product }) => {
             </p>
           </div>
 
-          <div className="text-right border-l border-slate-100 pl-4">
+          <div className="text-right border-l border-slate-100 pl-2 md:pl-4">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
               Precio Venta
             </p>
-            <p className="text-xl font-bold text-emerald-600 truncate">
+            <p className="text-sm md:text-xl font-bold text-emerald-600 truncate">
               ${salePrice?.toLocaleString("es-MX") || "0"}
             </p>
           </div>
         </div>
 
-        <button className="flex items-center justify-center w-full gap-2 py-3 mt-5 text-sm font-bold transition-all bg-slate-50 text-slate-600 rounded-xl hover:bg-indigo-600 hover:text-white">
+        <button className="flex items-center justify-center w-full gap-2 py-2 md:py-3 mt-3 md:mt-5 text-sm font-bold transition-all bg-slate-50 text-slate-600 rounded-xl hover:bg-indigo-600 hover:text-white">
           Ver Lotes y Detalles
           <CaretRight size={16} weight="bold" />
         </button>

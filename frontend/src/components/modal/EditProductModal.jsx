@@ -8,8 +8,10 @@ import {
   CurrencyDollar,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 const EditProductModal = ({ isOpen, onClose, onRefresh, product }) => {
+  useScrollLock(isOpen);
   const [categories, setCategories] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 

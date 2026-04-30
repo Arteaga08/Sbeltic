@@ -29,6 +29,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "cheerio": "^1.2.0",
     "nodemon": "^3.1.14",
     "vitest": "^4.1.4"
   }

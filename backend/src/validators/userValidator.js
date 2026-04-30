@@ -33,7 +33,7 @@ const createUserSchema = z
       .regex(/(?=.*[A-Z])/, "Debe contener al menos una mayúscula")
       .regex(/(?=.*[0-9])/, "Debe contener al menos un número")
       .regex(/(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])/, "Debe contener al menos un carácter especial"),
-    role: z.enum(["ADMIN", "RECEPTIONIST", "DOCTOR"]).default("RECEPTIONIST"),
+    role: z.enum(["ADMIN", "RECEPTIONIST", "DOCTOR", "MARKETING"]).default("RECEPTIONIST"),
     phone: z
       .string()
       .regex(phoneRegex, "El número debe tener exactamente 10 dígitos") // 👈 Mensaje claro

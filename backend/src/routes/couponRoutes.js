@@ -28,10 +28,10 @@ router.use(checkAuth);
  */
 router
   .route("/")
-  .get(authorizeRole("ADMIN", "RECEPTIONIST"), getCoupons)
-  .post(authorizeRole("ADMIN"), validateCreateCoupon, createCoupon);
+  .get(authorizeRole("ADMIN", "RECEPTIONIST", "MARKETING"), getCoupons)
+  .post(authorizeRole("ADMIN", "MARKETING"), validateCreateCoupon, createCoupon);
 
-router.get("/stats", authorizeRole("ADMIN", "RECEPTIONIST"), getCouponStats);
+router.get("/stats", authorizeRole("ADMIN", "RECEPTIONIST", "MARKETING"), getCouponStats);
 router.post("/validate", validateCouponCode);
 
 /**
@@ -40,21 +40,21 @@ router.post("/validate", validateCouponCode);
 router
   .route("/:id")
   .all(validateObjectId)
-  .get(authorizeRole("ADMIN", "RECEPTIONIST"), getCouponById)
-  .put(authorizeRole("ADMIN"), validateUpdateCoupon, updateCoupon)
-  .delete(authorizeRole("ADMIN"), deleteCoupon);
+  .get(authorizeRole("ADMIN", "RECEPTIONIST", "MARKETING"), getCouponById)
+  .put(authorizeRole("ADMIN", "MARKETING"), validateUpdateCoupon, updateCoupon)
+  .delete(authorizeRole("ADMIN", "MARKETING"), deleteCoupon);
 
 router.patch(
   "/:id/deactivate",
   validateObjectId,
-  authorizeRole("ADMIN"),
+  authorizeRole("ADMIN", "MARKETING"),
   deactivateCoupon,
 );
 
 router.post(
   "/:id/send-now",
   validateObjectId,
-  authorizeRole("ADMIN"),
+  authorizeRole("ADMIN", "MARKETING"),
   sendCouponNow,
 );
 

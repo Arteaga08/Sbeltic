@@ -5,6 +5,7 @@ import { PDFDownloadLink } from "@react-pdf/renderer";
 import { FileText, ClipboardText, Package } from "@phosphor-icons/react";
 import AppointmentPDF from "./AppointmentPDF";
 import MedicalHistoryPDF from "../patients/PatientFile/Tabs/MedicalHistoryPDF";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 const STATUS_CONFIG = {
   PENDING: { label: "Pendiente", active: "bg-amber-400 text-white", dot: "bg-amber-400" },
@@ -24,7 +25,8 @@ function getToken() {
   return null;
 }
 
-export default function SuperModal({ appointment, isOpen, onClose, onSave, onCancelAppointment }) {
+export default function SuperModal({ appointment, isOpen, onClose, onSave, onCancelAppointment, isReadOnly = false }) {
+  useScrollLock(isOpen);
   const [activeTab, setActiveTab] = useState(0);
   const [form, setForm] = useState({});
   const [couponCode, setCouponCode] = useState("");
@@ -293,7 +295,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
   };
 
   return (
-   <div className="fixed top-0 left-0 w-screen h-[100dvh] bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+   <div className="fixed top-0 left-0 w-screen h-dvh bg-slate-900/60 backdrop-blur-sm z-9999 flex items-center justify-center p-4">
       <div className="bg-white w-full md:max-w-2xl rounded-3xl shadow-2xl flex flex-col max-h-[88vh] overflow-hidden">
 
         {/* Header */}
@@ -360,18 +362,30 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
               {/* Selector de estado */}
               <div>
                 <p className="text-[10px] font-black uppercase text-slate-400 mb-2">Estado de la cita</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-                    <button
-                      key={key}
-                      onClick={() => setForm((f) => ({ ...f, status: key }))}
-                      className={`py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-wide transition-all
-                        ${form.status === key ? cfg.active : "bg-slate-100 text-slate-400 hover:bg-slate-200"}`}
-                    >
-                      {cfg.label}
-                    </button>
-                  ))}
-                </div>
+                {isReadOnly ? (
+                  <div
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-wide
+                      ${STATUS_CONFIG[form.status]?.active || "bg-slate-100 text-slate-400"}`}
+                  >
+                    <span
+                      className={`w-2 h-2 rounded-full ${STATUS_CONFIG[form.status]?.dot || "bg-slate-300"}`}
+                    />
+                    {STATUS_CONFIG[form.status]?.label || form.status || "—"}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+                      <button
+                        key={key}
+                        onClick={() => setForm((f) => ({ ...f, status: key }))}
+                        className={`py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-wide transition-all
+                          ${form.status === key ? cfg.active : "bg-slate-100 text-slate-400 hover:bg-slate-200"}`}
+                      >
+                        {cfg.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Botones PDF */}
@@ -424,20 +438,23 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
           {activeTab === 1 && (
             <div className="space-y-4">
               {/* Toggle Médico / Retail */}
-              <div className="flex gap-2 bg-slate-100 rounded-xl p-1">
-                {["INSUMO", "RETAIL"].map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => { setSupplyType(type); setSupplySearch(""); setSupplyResults([]); }}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all
-                      ${supplyType === type ? "bg-white text-slate-800 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
-                  >
-                    {type === "INSUMO" ? "Médico" : "Retail"}
-                  </button>
-                ))}
-              </div>
+              {!isReadOnly && (
+                <div className="flex gap-2 bg-slate-100 rounded-xl p-1">
+                  {["INSUMO", "RETAIL"].map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => { setSupplyType(type); setSupplySearch(""); setSupplyResults([]); }}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all
+                        ${supplyType === type ? "bg-white text-slate-800 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
+                    >
+                      {type === "INSUMO" ? "Médico" : "Retail"}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* Buscar insumo */}
+              {!isReadOnly && (
               <div className="relative">
                 <input
                   type="text"
@@ -494,6 +511,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                   </div>
                 )}
               </div>
+              )}
 
               {/* Lista de insumos */}
               {form.consumedSupplies?.length === 0 ? (
@@ -512,19 +530,27 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                         {supply.productName || supply.productId}
                       </p>
                       <div className="flex items-center gap-2 shrink-0">
-                        <input
-                          type="number"
-                          min="1"
-                          value={supply.quantity}
-                          onChange={(e) => updateSupplyQty(idx, e.target.value)}
-                          className="w-16 p-2 border border-slate-200 rounded-xl text-center font-black text-sm focus:outline-none focus:border-teal-400"
-                        />
-                        <button
-                          onClick={() => removeSupply(idx)}
-                          className="w-8 h-8 flex items-center justify-center text-rose-400 hover:text-rose-600 font-bold rounded-xl hover:bg-rose-50 transition-colors"
-                        >
-                          ✕
-                        </button>
+                        {isReadOnly ? (
+                          <span className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-center font-black text-sm text-slate-700">
+                            ×{supply.quantity}
+                          </span>
+                        ) : (
+                          <>
+                            <input
+                              type="number"
+                              min="1"
+                              value={supply.quantity}
+                              onChange={(e) => updateSupplyQty(idx, e.target.value)}
+                              className="w-16 p-2 border border-slate-200 rounded-xl text-center font-black text-sm focus:outline-none focus:border-teal-400"
+                            />
+                            <button
+                              onClick={() => removeSupply(idx)}
+                              className="w-8 h-8 flex items-center justify-center text-rose-400 hover:text-rose-600 font-bold rounded-xl hover:bg-rose-50 transition-colors"
+                            >
+                              ✕
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -543,6 +569,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                 </label>
                 <textarea
                   rows={3}
+                  readOnly={isReadOnly}
                   value={form.consultationRecord?.reasonForVisit || ""}
                   onChange={(e) =>
                     setForm((f) => ({
@@ -554,7 +581,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                     }))
                   }
                   placeholder="Observaciones, diagnóstico, indicaciones..."
-                  className="w-full px-4 py-3 border border-slate-200 rounded-2xl text-sm resize-none focus:outline-none focus:border-teal-400"
+                  className={`w-full px-4 py-3 border border-slate-200 rounded-2xl text-sm resize-none focus:outline-none focus:border-teal-400 ${isReadOnly ? "bg-slate-50 cursor-default" : ""}`}
                 />
               </div>
 
@@ -570,17 +597,18 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                     <input
                       type="number"
                       min="0"
+                      readOnly={isReadOnly}
                       value={form.originalQuote || 0}
                       onChange={(e) =>
                         setForm((f) => ({ ...f, originalQuote: Number(e.target.value) }))
                       }
-                      className="w-28 py-1.5 px-3 border border-slate-200 rounded-xl text-right font-black text-sm focus:outline-none focus:border-teal-400 bg-white"
+                      className={`w-28 py-1.5 px-3 border border-slate-200 rounded-xl text-right font-black text-sm focus:outline-none focus:border-teal-400 ${isReadOnly ? "bg-slate-100 cursor-default" : "bg-white"}`}
                     />
                   </div>
                 </div>
 
                 {/* Cupones del paciente */}
-                {availableCoupons.length > 0 && (
+                {!isReadOnly && availableCoupons.length > 0 && (
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1.5">
                       Cupones disponibles
@@ -610,6 +638,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                 )}
 
                 {/* Cupón manual */}
+                {!isReadOnly && (
                 <div>
                   <label className="text-[10px] font-black uppercase text-slate-400 block mb-1.5">
                     Código de cupón
@@ -649,6 +678,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                     </div>
                   )}
                 </div>
+                )}
 
                 {/* Total */}
                 <div className="flex items-center justify-between border-t border-slate-200 pt-4">
@@ -660,21 +690,23 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
               </div>
 
               {/* Botón guardar */}
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="w-full py-4 bg-slate-900 text-white font-black uppercase rounded-2xl
-                  hover:bg-teal-600 transition-colors text-sm tracking-widest disabled:opacity-50"
-              >
-                {isSaving
-                  ? "Guardando..."
-                  : form.status === "COMPLETED"
-                    ? "Finalizar y cobrar"
-                    : "Guardar cambios"}
-              </button>
+              {!isReadOnly && (
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="w-full py-4 bg-slate-900 text-white font-black uppercase rounded-2xl
+                    hover:bg-teal-600 transition-colors text-sm tracking-widest disabled:opacity-50"
+                >
+                  {isSaving
+                    ? "Guardando..."
+                    : form.status === "COMPLETED"
+                      ? "Finalizar y cobrar"
+                      : "Guardar cambios"}
+                </button>
+              )}
 
               {/* Cancelar cita */}
-              {!["COMPLETED", "CANCELLED"].includes(form.status) && (
+              {!isReadOnly && !["COMPLETED", "CANCELLED"].includes(form.status) && (
                 <button
                   onClick={handleCancel}
                   disabled={isCancelling}
@@ -689,7 +721,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
         </div>
 
         {/* Footer fijo (solo Tab 0 y Tab 1 muestran botón rápido de guardar) */}
-        {activeTab !== 2 && (
+        {!isReadOnly && activeTab !== 2 && (
           <div className="px-6 py-4 border-t border-slate-100 shrink-0">
             <button
               onClick={handleSave}

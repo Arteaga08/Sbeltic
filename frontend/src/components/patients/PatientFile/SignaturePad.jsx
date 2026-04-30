@@ -23,7 +23,7 @@ const SignaturePad = ({ onSave, label, existingSignature }) => {
 
       {existingSignature ? (
         /* MUESTRA LA FIRMA SI YA EXISTE */
-        <div className="bg-emerald-50 border-2 border-emerald-100 rounded-[2.5rem] p-8 flex flex-col items-center justify-center animate-in zoom-in-95">
+        <div className="bg-emerald-50 border-2 border-emerald-100 rounded-modal p-8 flex flex-col items-center justify-center animate-in zoom-in-95">
           <img
             src={existingSignature}
             alt="Firma del paciente"
@@ -36,7 +36,7 @@ const SignaturePad = ({ onSave, label, existingSignature }) => {
       ) : (
         /* PAD DE FIRMA PARA NUEVOS REGISTROS */
         <div className="relative group">
-          <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2.5rem] overflow-hidden transition-all group-hover:border-indigo-200">
+          <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-modal overflow-hidden transition-all group-hover:border-indigo-200">
             <SignatureCanvas
               ref={sigRef}
               penColor="#4f46e5"

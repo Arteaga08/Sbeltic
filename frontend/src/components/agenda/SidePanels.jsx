@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "@phosphor-icons/react";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 function formatTime(dateStr) {
   return new Date(dateStr).toLocaleTimeString("es-MX", {
@@ -152,6 +153,7 @@ export default function SidePanels({
   mobileOpen = false,
   onClose = () => {},
 }) {
+  useScrollLock(mobileOpen);
   const priorityList = waitlist.filter((w) => w.status === "WAITING");
 
   return (

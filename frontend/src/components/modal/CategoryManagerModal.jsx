@@ -2,8 +2,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { X, Tag, Plus, Trash, CircleNotch } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 const CategoryManagerModal = ({ isOpen, onClose, type }) => {
+  useScrollLock(isOpen);
   const [categories, setCategories] = useState([]);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isLoading, setIsLoading] = useState(true);

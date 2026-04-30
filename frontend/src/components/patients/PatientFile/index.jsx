@@ -7,9 +7,13 @@ import HistoryTab from "./Tabs/HistoryTab";
 import EvolutionTab from "./Tabs/EvolutionTab";
 import SignatureTab from "./Tabs/SignatureTab";
 import CouponsTab from "./Tabs/CouponsTab";
+import PostOpNotesTab from "./Tabs/PostOpNotesTab";
+import PrescriptionsTab from "./Tabs/PrescriptionsTab";
 import { toast } from "sonner";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 const PatientFileModal = ({ isOpen, patientId, onClose, onUpdate }) => {
+  useScrollLock(isOpen);
   const [activeTab, setActiveTab] = useState("history");
   const [patient, setPatient] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -55,7 +59,7 @@ const PatientFileModal = ({ isOpen, patientId, onClose, onUpdate }) => {
       />
 
       <div className="fixed inset-0 flex items-center justify-center p-2 md:p-4">
-        <Dialog.Panel className="w-full max-w-5xl h-[95vh] md:h-[90vh] bg-white rounded-[2.5rem] md:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col">
+        <Dialog.Panel className="w-full max-w-5xl h-[95vh] md:h-[90vh] bg-white rounded-modal md:rounded-modal shadow-2xl overflow-hidden flex flex-col">
           <FileHeader
             patient={patient}
             activeTab={activeTab}
@@ -91,6 +95,20 @@ const PatientFileModal = ({ isOpen, patientId, onClose, onUpdate }) => {
                 {activeTab === "signatures" && (
                   <SignatureTab
                     patient={patient}
+                    onUpdate={fetchPatientData}
+                  />
+                )}
+                {activeTab === "postOpNotes" && (
+                  <PostOpNotesTab
+                    patient={patient}
+                    userRole="DOCTOR"
+                    onUpdate={fetchPatientData}
+                  />
+                )}
+                {activeTab === "prescriptions" && (
+                  <PrescriptionsTab
+                    patient={patient}
+                    userRole="DOCTOR"
                     onUpdate={fetchPatientData}
                   />
                 )}

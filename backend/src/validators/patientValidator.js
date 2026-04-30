@@ -60,4 +60,39 @@ const createEvolutionSchema = z.object({
   doctorLicense: z.string().optional(),
 });
 
-export { createPatientSchema, updatePatientSchema, createEvolutionSchema };
+// 📝 NOTAS POST-OPERATORIAS (anidadas en Patient)
+const createPostOpNoteSchema = z.object({
+  title: z.string().trim().min(3, "El título es obligatorio"),
+  body: z.string().trim().min(5, "El contenido es obligatorio"),
+  templateId: objectIdSchema.optional(),
+});
+
+// 💊 RECETAS MÉDICAS (anidadas en Patient)
+const prescriptionMedicationSchema = z.object({
+  name: z.string().trim().min(1, "El nombre del medicamento es obligatorio"),
+  presentation: z.string().trim().optional().or(z.literal("")),
+  dose: z.string().trim().optional().or(z.literal("")),
+  route: z.string().trim().optional().or(z.literal("")),
+  frequency: z.string().trim().optional().or(z.literal("")),
+  duration: z.string().trim().optional().or(z.literal("")),
+});
+
+const createPrescriptionSchema = z.object({
+  title: z.string().trim().min(3, "El título es obligatorio"),
+  medications: z
+    .array(prescriptionMedicationSchema)
+    .min(1, "Agrega al menos un medicamento"),
+  generalIndications: z.string().optional().or(z.literal("")),
+  templateId: objectIdSchema.optional(),
+  doctorName: z.string().optional().or(z.literal("")),
+  doctorLicense: z.string().optional().or(z.literal("")),
+  doctorSignature: z.string().optional().or(z.literal("")),
+});
+
+export {
+  createPatientSchema,
+  updatePatientSchema,
+  createEvolutionSchema,
+  createPostOpNoteSchema,
+  createPrescriptionSchema,
+};

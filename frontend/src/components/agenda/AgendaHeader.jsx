@@ -50,6 +50,7 @@ export default function AgendaHeader({
   filterDoctor,
   onFilterDoctor,
   onNewAppointment,
+  isReadOnly = false,
 }) {
   const goWeek = (delta) => {
     const d = new Date(weekStart);
@@ -66,13 +67,15 @@ export default function AgendaHeader({
         <h1 className="text-lg font-black italic uppercase text-slate-900">
           Agenda
         </h1>
-        <button
-          onClick={onNewAppointment}
-          className="px-4 py-2 bg-slate-900 text-white text-xs font-black uppercase rounded-xl hover:bg-teal-600 transition-colors tracking-wider flex items-center gap-2"
-        >
-          <Plus size={14} weight="bold" />
-          <span>Agendar</span>
-        </button>
+        {!isReadOnly && (
+          <button
+            onClick={onNewAppointment}
+            className="px-4 py-2 bg-slate-900 text-white text-xs font-black uppercase rounded-xl hover:bg-teal-600 transition-colors tracking-wider flex items-center gap-2"
+          >
+            <Plus size={14} weight="bold" />
+            <span>Agendar</span>
+          </button>
+        )}
       </div>
 
       {/* ── Fila 2 (móvil): Navegación ── */}
@@ -191,13 +194,15 @@ export default function AgendaHeader({
 
         <div className="flex-1" />
 
-        <button
-          onClick={onNewAppointment}
-          className="px-5 py-2.5 bg-slate-900 text-white text-xs font-black uppercase rounded-xl hover:bg-teal-600 transition-colors tracking-wider flex items-center gap-2"
-        >
-          <Plus size={16} weight="bold" />
-          <span>Agendar</span>
-        </button>
+        {!isReadOnly && (
+          <button
+            onClick={onNewAppointment}
+            className="px-5 py-2.5 bg-slate-900 text-white text-xs font-black uppercase rounded-xl hover:bg-teal-600 transition-colors tracking-wider flex items-center gap-2"
+          >
+            <Plus size={16} weight="bold" />
+            <span>Agendar</span>
+          </button>
+        )}
       </div>
     </header>
   );

@@ -9,6 +9,7 @@ import {
   Sparkle,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -91,6 +92,7 @@ function getToken() {
 }
 
 const CouponBuilderModal = ({ isOpen, onClose, onRefresh, coupon }) => {
+  useScrollLock(isOpen);
   const isEditMode = !!coupon;
   const [formData, setFormData] = useState(INITIAL_STATE);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -361,7 +363,7 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh, coupon }) => {
               <div
                 className={`${mobileTab === "RULES" ? "block" : "hidden"} md:block space-y-5 md:space-y-6 animate-in fade-in duration-300`}
               >
-                <h3 className="hidden md:flex text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] items-center gap-2 border-b border-slate-100 pb-2">
+                <h3 className="hidden md:flex text-[11px] font-black text-slate-400 uppercase tracking-label items-center gap-2 border-b border-slate-100 pb-2">
                   <Tag size={16} /> 1. Parametros
                 </h3>
                 <div className="space-y-4">
@@ -462,7 +464,7 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh, coupon }) => {
               <div
                 className={`${mobileTab === "CONFIG" ? "block" : "hidden"} md:block space-y-5 md:space-y-6 animate-in fade-in duration-300`}
               >
-                <h3 className="hidden md:flex text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] items-center gap-2 border-b border-slate-100 pb-2">
+                <h3 className="hidden md:flex text-[11px] font-black text-slate-400 uppercase tracking-label items-center gap-2 border-b border-slate-100 pb-2">
                   <WhatsappLogo size={16} className="text-emerald-500" /> 2. Plantilla & Config
                 </h3>
 
@@ -726,7 +728,7 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh, coupon }) => {
             <div
               className={`${mobileTab === "SCHEDULE" ? "block" : "hidden"} md:block animate-in fade-in duration-300`}
             >
-              <h3 className="hidden md:flex text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] items-center gap-2 border-b border-slate-100 pb-2 mb-6">
+              <h3 className="hidden md:flex text-[11px] font-black text-slate-400 uppercase tracking-label items-center gap-2 border-b border-slate-100 pb-2 mb-6">
                 <Sparkle size={16} className="text-violet-500" /> 3. Programacion de Envio
               </h3>
 

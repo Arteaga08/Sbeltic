@@ -102,14 +102,14 @@ export default function PublicSignaturePage() {
         <h1 className="text-xl font-black italic text-slate-900 uppercase">
           Sbeltic
         </h1>
-        <p className="text-[9px] font-black text-indigo-600 uppercase tracking-[0.3em] mt-1">
+        <p className="text-[9px] font-black text-indigo-600 uppercase tracking-wide-label mt-1">
           {data?.type === "HISTORY"
             ? "Firma de Historia Clínica"
             : "Firma de Nota Médica"}
         </p>
       </header>
 
-      <div className="flex-1 bg-white rounded-[2.5rem] shadow-xl p-6 flex flex-col border border-slate-100 max-w-md mx-auto w-full">
+      <div className="flex-1 bg-white rounded-modal shadow-xl p-6 flex flex-col border border-slate-100 max-w-md mx-auto w-full">
         <div className="flex items-start justify-between mb-4">
           <div>
             <p className="text-[10px] font-bold text-slate-400 uppercase">

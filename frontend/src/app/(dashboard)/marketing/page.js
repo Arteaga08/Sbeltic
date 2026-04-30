@@ -175,7 +175,7 @@ export default function MarketingPage() {
               ? "Marketing"
               : activeCategoryData.label}
           </h2>
-          <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">
+          <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-label">
             {currentView === "DASHBOARD"
               ? "Gestión de Lealtad y Campañas"
               : activeCategoryData.description}
@@ -280,7 +280,7 @@ export default function MarketingPage() {
         </div>
       ) : (
         <div className="animate-in fade-in slide-in-from-right-8 duration-300">
-          <div className="bg-slate-50/50 rounded-[2.5rem] border-2 border-slate-50 p-6 md:p-12 min-h-120">
+          <div className="bg-slate-50/50 rounded-modal border-2 border-slate-50 p-6 md:p-12 min-h-120">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {loadingCampaigns ? (
                 <div className="col-span-full text-center py-32">

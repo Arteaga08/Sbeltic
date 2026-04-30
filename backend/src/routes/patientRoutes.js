@@ -12,13 +12,17 @@ import {
   getPatients,
   updatePatient,
   addEvolution,
+  addPostOpNote,
+  addPrescription,
   requestSignatureToken,
   generateMedicalHistoryToken,
 } from "../controllers/patientController.js";
 import {
   createPatientSchema,
   updatePatientSchema,
-  createEvolutionSchema
+  createEvolutionSchema,
+  createPostOpNoteSchema,
+  createPrescriptionSchema,
 } from "../validators/patientValidator.js";
 
 const router = express.Router();
@@ -46,6 +50,22 @@ router.post(
   authorizeRole("DOCTOR", "ADMIN"),
   validateSchema({ body: createEvolutionSchema }),
   addEvolution,
+);
+
+// 📝 Notas post-operatorias
+router.post(
+  "/:id/post-op-notes",
+  authorizeRole("DOCTOR", "ADMIN"),
+  validateSchema({ params: paramsIdSchema, body: createPostOpNoteSchema }),
+  addPostOpNote,
+);
+
+// 💊 Recetas médicas
+router.post(
+  "/:id/prescriptions",
+  authorizeRole("DOCTOR", "ADMIN"),
+  validateSchema({ params: paramsIdSchema, body: createPrescriptionSchema }),
+  addPrescription,
 );
 
 // Generar token temporal para link de firma (botón WhatsApp del frontend)

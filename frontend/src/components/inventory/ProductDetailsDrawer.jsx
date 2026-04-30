@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
 
 import NewBatchModal from "@/components/modal/NewBatchModal";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 const ProductDetailsDrawer = ({
   isOpen,
@@ -28,6 +29,7 @@ const ProductDetailsDrawer = ({
   onDelete,
   onRefresh,
 }) => {
+  useScrollLock(isOpen);
   const [batches, setBatches] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
@@ -137,8 +139,8 @@ const ProductDetailsDrawer = ({
             </button>
           </div>
 
-          <div className="bg-white border border-slate-100 rounded-[2.5rem] p-7 shadow-sm space-y-6">
-            <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-50 pb-3 text-center">
+          <div className="bg-white border border-slate-100 rounded-modal p-7 shadow-sm space-y-6">
+            <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-label border-b border-slate-50 pb-3 text-center">
               Información General
             </h3>
 
@@ -271,7 +273,7 @@ const ProductDetailsDrawer = ({
           {/* SECCIÓN DE LOTES */}
           <div>
             <div className="flex items-center justify-between border-b border-indigo-50 pb-3 mb-5">
-              <h3 className="text-[10px] font-black uppercase text-indigo-600 tracking-[0.2em]">
+              <h3 className="text-[10px] font-black uppercase text-indigo-600 tracking-label">
                 Desglose de Lotes Activos
               </h3>
               <button

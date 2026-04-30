@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Pill } from "@phosphor-icons/react";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -106,6 +107,7 @@ const emptyCatForm = {
 };
 
 export default function TreatmentManagerModal({ isOpen, onClose }) {
+  useScrollLock(isOpen);
   const [categories, setCategories] = useState([]);
   const [activeCategory, setActiveCategory] = useState(null);
   const [treatments, setTreatments] = useState([]);

@@ -106,6 +106,8 @@ const getPatientById = asyncHandler(async (req, res, next) => {
     .populate("createdBy", "name role")
     .populate("clinicalNotes.createdBy", "name role")
     .populate("evolutions.createdBy", "name role")
+    .populate("postOpNotes.createdBy", "name role")
+    .populate("prescriptions.createdBy", "name role")
     .populate("walletCoupons");
 
   if (!patient || !patient.isActive)
@@ -187,6 +189,36 @@ const deletePatient = asyncHandler(async (req, res, next) => {
   sendResponse(res, 200, null, "Paciente desactivado correctamente");
 });
 
+// 📝 Agregar nota post-operatoria al expediente
+const addPostOpNote = asyncHandler(async (req, res, next) => {
+  const patient = await Patient.findById(req.params.id);
+  if (!patient) return next(new AppError("Paciente no encontrado", 404));
+
+  patient.postOpNotes.push({
+    ...req.body,
+    createdBy: req.user._id,
+    createdAt: new Date(),
+  });
+
+  await patient.save();
+  sendResponse(res, 201, patient, "Nota post-operatoria registrada");
+});
+
+// 💊 Agregar receta médica al expediente
+const addPrescription = asyncHandler(async (req, res, next) => {
+  const patient = await Patient.findById(req.params.id);
+  if (!patient) return next(new AppError("Paciente no encontrado", 404));
+
+  patient.prescriptions.push({
+    ...req.body,
+    createdBy: req.user._id,
+    createdAt: new Date(),
+  });
+
+  await patient.save();
+  sendResponse(res, 201, patient, "Receta médica registrada");
+});
+
 // 🔑 Generar token de firma on-demand (para botón WhatsApp del frontend)
 const requestSignatureToken = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
@@ -244,6 +276,8 @@ export {
   getPatientById,
   updatePatient,
   addEvolution,
+  addPostOpNote,
+  addPrescription,
   deletePatient,
   requestSignatureToken,
   generateMedicalHistoryToken,

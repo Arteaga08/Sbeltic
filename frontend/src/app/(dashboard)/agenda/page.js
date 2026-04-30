@@ -39,6 +39,19 @@ export default function AgendaPage() {
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [upcomingSurgeries, setUpcomingSurgeries] = useState([]);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [userRole, setUserRole] = useState("");
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem("sbeltic_user");
+      const user = userStr ? JSON.parse(userStr) : null;
+      setUserRole(user?.role || "");
+    } catch {
+      setUserRole("");
+    }
+  }, []);
+
+  const isReadOnly = userRole === "MARKETING";
 
   // ── Fetches ──
   const fetchWeekAppointments = async (start) => {
@@ -233,6 +246,7 @@ export default function AgendaPage() {
         filterDoctor={filterDoctor}
         onFilterDoctor={setFilterDoctor}
         onNewAppointment={() => setIsNewModalOpen(true)}
+        isReadOnly={isReadOnly}
       />
 
       {/* Cuerpo principal */}
@@ -284,14 +298,17 @@ export default function AgendaPage() {
         onClose={() => setSelectedAppointment(null)}
         onSave={handleSuperModalSave}
         onCancelAppointment={handleSuperModalCancel}
+        isReadOnly={isReadOnly}
       />
 
-      {/* Modal Nueva Cita */}
-      <NewAppointmentModal
-        isOpen={isNewModalOpen}
-        onClose={() => setIsNewModalOpen(false)}
-        onSave={handleSaveNewAppointment}
-      />
+      {/* Modal Nueva Cita — no se renderiza en modo solo lectura */}
+      {!isReadOnly && (
+        <NewAppointmentModal
+          isOpen={isNewModalOpen}
+          onClose={() => setIsNewModalOpen(false)}
+          onSave={handleSaveNewAppointment}
+        />
+      )}
     </div>
   );
 }

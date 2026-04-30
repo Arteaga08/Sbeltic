@@ -38,7 +38,7 @@ const SignatureTab = ({ patient, onUpdate }) => {
   return (
     <div className="max-w-4xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* SECCIÓN LEGAL / CONSENTIMIENTO */}
-      <div className="bg-slate-50 p-8 md:p-12 rounded-[2.5rem] border border-slate-100 space-y-6">
+      <div className="bg-slate-50 p-8 md:p-12 rounded-modal border border-slate-100 space-y-6">
         <div className="flex items-center gap-4 mb-4">
           <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-100">
             <Scroll size={24} weight="bold" />

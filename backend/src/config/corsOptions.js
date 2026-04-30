@@ -1,7 +1,8 @@
 const allowedOrigins = [
-  "http://localhost:3000", // Tu Frontend de Next.js
+  "http://localhost:3000",
   "http://127.0.0.1:3000",
-];
+  ...(process.env.FRONTEND_ORIGINS || "").split(",").map((o) => o.trim()).filter(Boolean),
+].filter(Boolean);
 
 const corsOptions = {
   origin: (origin, callback) => {

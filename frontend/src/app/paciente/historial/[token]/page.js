@@ -271,7 +271,7 @@ export default function MedicalHistoryPublicPage() {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-slate-100 px-4 py-4 flex items-center justify-between">
         <div>
-          <p className="text-[9px] font-black text-indigo-600 uppercase tracking-[0.3em]">
+          <p className="text-[9px] font-black text-indigo-600 uppercase tracking-wide-label">
             Sbeltic — Historial Médico
           </p>
           <p className="text-sm font-black italic text-slate-800 uppercase">

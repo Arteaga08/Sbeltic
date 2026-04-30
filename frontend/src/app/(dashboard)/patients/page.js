@@ -101,7 +101,7 @@ export default function PatientsPage() {
               ? "Directorio"
               : categoryNames[selectedCategory]}
           </h2>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-label">
             {currentView === "DASHBOARD"
               ? "Gestión de Pacientes Sbeltic"
               : `Estructura organizacional Sbeltic`}
@@ -150,7 +150,7 @@ export default function PatientsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPatients.length === 0 ? (
-              <div className="text-center py-20 bg-slate-50/50 rounded-[2.5rem] border-2 border-dashed border-slate-100 mt-6 col-span-full">
+              <div className="text-center py-20 bg-slate-50/50 rounded-modal border-2 border-dashed border-slate-100 mt-6 col-span-full">
                 <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">
                   No hay pacientes en {categoryNames[selectedCategory]}
                 </p>

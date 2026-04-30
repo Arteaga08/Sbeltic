@@ -1,0 +1,86 @@
+version: "3.9"
+
+services:
+  # ─────────────────────────────────────────
+  # 🗄️  BASE DE DATOS
+  # ─────────────────────────────────────────
+  mongo:
+    image: mongo:7
+    container_name: sbeltic-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: sbeltic
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - sbeltic-net
+    # Solo accesible internamente, no expone puerto al exterior
+
+  # ─────────────────────────────────────────
+  # ⚙️  BACKEND (Node.js + Express)
+  # ─────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sbeltic-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.production
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/sbeltic
+      - NODE_ENV=production
+    ports:
+      - "5009:5009"
+    depends_on:
+      - mongo
+    networks:
+      - sbeltic-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5009/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ─────────────────────────────────────────
+  # 🖥️  FRONTEND (Next.js)
+  # ─────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=https://api.sbelticsystem.com/api
+    container_name: sbeltic-frontend
+    restart: unless-stopped
+    environment:
+      - NEXT_PUBLIC_API_URL=https://api.sbelticsystem.com/api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - sbeltic-net
+
+  # ─────────────────────────────────────────
+  # 🌐  CLOUDFLARE TUNNEL
+  # ─────────────────────────────────────────
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: sbeltic-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - sbeltic-net
+
+volumes:
+  mongo_data:
+    driver: local
+
+networks:
+  sbeltic-net:
+    driver: bridge

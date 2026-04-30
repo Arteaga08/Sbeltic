@@ -64,6 +64,47 @@ const patientSchema = new mongoose.Schema(
       },
     ],
 
+    // 📝 Notas post-operatorias (rellenadas desde plantillas reutilizables)
+    postOpNotes: [
+      {
+        title: { type: String, required: true },
+        body: { type: String, required: true },
+        templateId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "PostOpNoteTemplate",
+        },
+        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+
+    // 💊 Recetas médicas estructuradas (impresas como PDF)
+    prescriptions: [
+      {
+        title: { type: String, required: true },
+        medications: [
+          {
+            name: { type: String, required: true },
+            presentation: { type: String, default: "" },
+            dose: { type: String, default: "" },
+            route: { type: String, default: "" },
+            frequency: { type: String, default: "" },
+            duration: { type: String, default: "" },
+          },
+        ],
+        generalIndications: { type: String, default: "" },
+        templateId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "PrescriptionTemplate",
+        },
+        doctorName: { type: String, default: "" },
+        doctorLicense: { type: String, default: "" },
+        doctorSignature: { type: String, default: "" }, // base64 opcional
+        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+
     // Firma del paciente para el historial clínico inicial
     historySignature: { type: String },
 

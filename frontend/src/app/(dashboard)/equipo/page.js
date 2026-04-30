@@ -69,6 +69,13 @@ export default function TeamPage() {
       text: "text-pink-600",
       border: "border-pink-100",
     },
+    MARKETING: {
+      label: "Marketing",
+      color: "bg-amber-500",
+      light: "bg-amber-50",
+      text: "text-amber-600",
+      border: "border-amber-100",
+    },
   };
 
   const fetchStaff = async () => {
@@ -177,15 +184,13 @@ export default function TeamPage() {
     const matchesSearch =
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const roleNorm =
-      user.role === "RECEPTION" ? "RECEPTIONIST" : user.role?.toUpperCase();
-    const matchesRole = selectedRole === "ALL" || roleNorm === selectedRole;
+    const matchesRole =
+      selectedRole === "ALL" || user.role?.toUpperCase() === selectedRole;
     return matchesSearch && matchesRole;
   });
 
   const groupedStaff = filteredStaff.reduce((acc, user) => {
-    let role = user.role?.toUpperCase().trim() || "DOCTOR";
-    if (role === "RECEPTION") role = "RECEPTIONIST";
+    const role = user.role?.toUpperCase().trim() || "DOCTOR";
     if (!acc[role]) acc[role] = [];
     acc[role].push(user);
     return acc;
@@ -199,7 +204,7 @@ export default function TeamPage() {
           <h2 className="text-4xl md:text-5xl font-extrabold italic uppercase text-slate-900 leading-none">
             Gestión de Equipo
           </h2>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-label">
             Estructura organizacional Sbeltic
           </p>
         </div>
@@ -239,7 +244,7 @@ export default function TeamPage() {
         {/* Contenedor de filtros: Scrollable pero contenido */}
         <div className="w-full md:flex-1 overflow-hidden">
           <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 md:pb-0">
-            {["ALL", "ADMIN", "RECEPTIONIST", "DOCTOR"].map((r) => (
+            {["ALL", "ADMIN", "RECEPTIONIST", "DOCTOR", "MARKETING"].map((r) => (
               <button
                 key={r}
                 onClick={() => setSelectedRole(r)}
@@ -283,7 +288,7 @@ export default function TeamPage() {
               <section key={role} className="space-y-6">
                 <div className="flex items-center gap-4">
                   <div className={`h-8 w-1.5 rounded-full ${config.color}`} />
-                  <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">
+                  <h3 className="text-sm font-black text-slate-400 uppercase tracking-label">
                     {config.label}
                   </h3>
                   <div className="flex-1 h-px bg-slate-100" />

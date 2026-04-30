@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 import {
   TREATMENT_CATEGORIES,
@@ -19,6 +20,7 @@ function formatDuration(mins) {
 }
 
 export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
+  useScrollLock(isOpen);
   const [isNewPatient, setIsNewPatient] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("CIRUGIA");
 

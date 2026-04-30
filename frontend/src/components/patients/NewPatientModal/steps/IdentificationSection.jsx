@@ -154,7 +154,7 @@ const IdentificationSection = ({ formData, setFormData }) => {
       </div>
 
       {/* SECCIÓN CRÍTICA: ALERGIAS Y SANGRE */}
-      <div className="bg-rose-50/30 p-6 md:p-8 rounded-[2.5rem] border border-rose-100/50 space-y-6">
+      <div className="bg-rose-50/30 p-6 md:p-8 rounded-modal border border-rose-100/50 space-y-6">
         <h4 className="text-[10px] font-black uppercase text-rose-500 tracking-widest flex items-center gap-2">
           <Drop size={16} weight="fill" /> Información de Riesgo
         </h4>
@@ -240,7 +240,7 @@ const IdentificationSection = ({ formData, setFormData }) => {
       </div>
 
       {/* 🌟 NUEVA SECCIÓN: COMORBILIDADES */}
-      <div className="bg-amber-50/40 p-6 md:p-8 rounded-[2.5rem] border border-amber-100/50 space-y-6">
+      <div className="bg-amber-50/40 p-6 md:p-8 rounded-modal border border-amber-100/50 space-y-6">
         <h4 className="text-[10px] font-black uppercase text-amber-600 tracking-widest flex items-center gap-2">
           <Warning size={16} weight="fill" /> Comorbilidades (Enfermedades)
         </h4>

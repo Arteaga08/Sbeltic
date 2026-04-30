@@ -38,8 +38,8 @@ export default function LoginPage() {
 
         toast.success(result.message || `¡Bienvenido, ${user.name}!`);
 
-        // 4. Lo mandamos directo a la agenda
-        router.push("/agenda");
+        // 4. Marketing aterriza en su panel; el resto, en la agenda
+        router.push(user.role === "MARKETING" ? "/marketing" : "/agenda");
       } else {
         // Captura los errores de AppError (ej. "Correo o contraseña incorrectos")
         toast.error(result.message || "Error al iniciar sesión");

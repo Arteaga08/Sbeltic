@@ -18,6 +18,7 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 // Opciones de unidades médicas para el selector
 const UNIT_OPTIONS = [
@@ -46,6 +47,7 @@ const INITIAL_STATE = {
 };
 
 const NewProductModal = ({ isOpen, onClose, onRefresh }) => {
+  useScrollLock(isOpen);
   const [categories, setCategories] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdProduct, setCreatedProduct] = useState(null);
