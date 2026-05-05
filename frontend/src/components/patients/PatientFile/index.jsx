@@ -2,6 +2,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Dialog } from "@headlessui/react";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import FileHeader from "./FileHeader";
 import HistoryTab from "./Tabs/HistoryTab";
 import EvolutionTab from "./Tabs/EvolutionTab";
@@ -21,12 +22,8 @@ const PatientFileModal = ({ isOpen, patientId, onClose, onUpdate }) => {
   const fetchPatientData = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("sbeltic_token");
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/patients/${patientId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
       );
       const data = await res.json();
       if (data.success) setPatient(data.data);

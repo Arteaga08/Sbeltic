@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { getCategoryFromTreatment } from "@/lib/treatmentCategories";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import AgendaStatusWidget from "@/components/dashboard/AgendaStatusWidget";
 import NextSurgeryWidget from "@/components/dashboard/NextSurgeryWidget";
 import SmartRefillWidget from "@/components/dashboard/SmartRefillWidget";
@@ -34,8 +35,6 @@ export default function DashboardHome() {
     const token = localStorage.getItem("sbeltic_token");
     if (!token) return;
 
-    const headers = { Authorization: `Bearer ${token}` };
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayISO = today.toISOString();
@@ -49,9 +48,9 @@ export default function DashboardHome() {
       // Fetch 1: Appointments (3 en paralelo, independiente de productos)
       try {
         const [resToday, resWeek, resPostOp] = await Promise.all([
-          fetch(`${API}/appointments?date=${todayISO}`, { headers }),
-          fetch(`${API}/appointments?date=${todayISO}&days=7`, { headers }),
-          fetch(`${API}/appointments?date=${twoDaysAgoISO}&days=2`, { headers }),
+          fetchWithAuth(`${API}/appointments?date=${todayISO}`),
+          fetchWithAuth(`${API}/appointments?date=${todayISO}&days=7`),
+          fetchWithAuth(`${API}/appointments?date=${twoDaysAgoISO}&days=2`),
         ]);
         const [dataToday, dataWeek, dataPostOp] = await Promise.all([
           resToday.json(),
@@ -67,7 +66,7 @@ export default function DashboardHome() {
 
       // Fetch 2: Productos — independiente (igual que inventory/page.js)
       try {
-        const resProducts = await fetch(`${API}/products`, { headers });
+        const resProducts = await fetchWithAuth(`${API}/products`);
         const dataProducts = await resProducts.json();
         if (dataProducts.success) setProducts(dataProducts.data || []);
       } catch {
@@ -76,7 +75,7 @@ export default function DashboardHome() {
 
       // Fetch 3: Cupones — independiente, requiere ADMIN/RECEPTIONIST
       try {
-        const resCoupons = await fetch(`${API}/coupons/stats`, { headers });
+        const resCoupons = await fetchWithAuth(`${API}/coupons/stats`);
         const dataCoupons = await resCoupons.json();
         setCouponStats(
           dataCoupons.success

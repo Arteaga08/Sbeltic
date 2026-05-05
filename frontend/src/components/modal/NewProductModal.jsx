@@ -17,6 +17,7 @@ import {
   Archive,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { QRCodeCanvas } from "qrcode.react";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
@@ -59,12 +60,8 @@ const NewProductModal = ({ isOpen, onClose, onRefresh }) => {
     if (isOpen) {
       const fetchCategories = async () => {
         try {
-          const token = localStorage.getItem("sbeltic_token");
-          const res = await fetch(
+          const res = await fetchWithAuth(
             `${process.env.NEXT_PUBLIC_API_URL}/categories`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            },
           );
           const data = await res.json();
           if (data.success) setCategories(data.data);
@@ -108,13 +105,9 @@ const NewProductModal = ({ isOpen, onClose, onRefresh }) => {
         Math.floor(Math.random() * 1000);
 
     try {
-      const token = localStorage.getItem("sbeltic_token");
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`, {
+      const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/products`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
           sku: finalSku,

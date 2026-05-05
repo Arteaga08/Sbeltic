@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Scroll, Gavel, ShieldCheck } from "@phosphor-icons/react";
 import SignaturePad from "../SignaturePad";
 import { toast } from "sonner";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 const SignatureTab = ({ patient, onUpdate }) => {
   const [isSaving, setIsSaving] = useState(false);
@@ -10,15 +11,11 @@ const SignatureTab = ({ patient, onUpdate }) => {
   const saveSignature = async (base64Signature) => {
     setIsSaving(true);
     try {
-      const token = localStorage.getItem("sbeltic_token");
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/patients/${patient._id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ historySignature: base64Signature }),
         },
       );

@@ -8,6 +8,7 @@ import {
   CurrencyDollar,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
 const EditProductModal = ({ isOpen, onClose, onRefresh, product }) => {
@@ -31,12 +32,8 @@ const EditProductModal = ({ isOpen, onClose, onRefresh, product }) => {
     if (isOpen) {
       const fetchCategories = async () => {
         try {
-          const token = localStorage.getItem("sbeltic_token");
-          const res = await fetch(
+          const res = await fetchWithAuth(
             `${process.env.NEXT_PUBLIC_API_URL}/categories`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            },
           );
           const data = await res.json();
           if (data.success) setCategories(data.data);
@@ -66,15 +63,11 @@ const EditProductModal = ({ isOpen, onClose, onRefresh, product }) => {
     setIsSubmitting(true);
 
     try {
-      const token = localStorage.getItem("sbeltic_token");
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/products/${product._id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...formData,
             salePrice: Number(formData.salePrice || 0),

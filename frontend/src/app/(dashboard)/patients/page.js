@@ -8,6 +8,7 @@ import NewPatientModal from "@/components/patients/NewPatientModal";
 
 import PatientFileModal from "@/components/patients/PatientFile";
 import TreatmentManagerModal from "@/components/patients/TreatmentManagerModal";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 const categoryNames = {
   ALL: "Directorio",
@@ -34,13 +35,9 @@ export default function PatientsPage() {
 
   const fetchPatients = async () => {
     try {
-      const token = localStorage.getItem("sbeltic_token");
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/patients?limit=1000`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          cache: "no-store",
-        },
+        { cache: "no-store" },
       );
       const data = await res.json();
       if (data.success) {

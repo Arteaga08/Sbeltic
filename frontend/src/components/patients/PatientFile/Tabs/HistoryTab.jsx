@@ -8,6 +8,7 @@ import {
   FilePdf,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import MedicalHistoryPDF from "./MedicalHistoryPDF";
 
@@ -141,7 +142,7 @@ const HistoryTab = ({ patient, userRole, onUpdate, onClose }) => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const token = localStorage.getItem("sbeltic_token");
+
       const {
         _id,
         __v,
@@ -162,14 +163,11 @@ const HistoryTab = ({ patient, userRole, onUpdate, onClose }) => {
           cleanData.medicalHistory.currentCondition.reason || "";
       }
 
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/patients/${patient._id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(cleanData),
         },
       );

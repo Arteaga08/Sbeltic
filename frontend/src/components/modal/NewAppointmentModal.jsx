@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
 import {
@@ -78,16 +79,12 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
   const fetchRealData = async () => {
     setLoadingData(true);
     try {
-      const token = localStorage.getItem("sbeltic_token");
-      const headers = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      };
+      const jsonHeaders = { "Content-Type": "application/json" };
 
       const [resP, resS, resT] = await Promise.all([
-        fetch(`${API}/patients?limit=500`, { headers }),
-        fetch(`${API}/users`, { headers }),
-        fetch(`${API}/treatments?limit=200`, { headers }),
+        fetchWithAuth(`${API}/patients?limit=500`, { headers: jsonHeaders }),
+        fetchWithAuth(`${API}/users`, { headers: jsonHeaders }),
+        fetchWithAuth(`${API}/treatments?limit=200`, { headers: jsonHeaders }),
       ]);
       const [dataP, dataS, dataT] = await Promise.all([
         resP.json(),

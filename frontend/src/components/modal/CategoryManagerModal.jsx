@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { X, Tag, Plus, Trash, CircleNotch } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
 const CategoryManagerModal = ({ isOpen, onClose, type }) => {
@@ -37,12 +38,8 @@ const CategoryManagerModal = ({ isOpen, onClose, type }) => {
   const fetchCategories = useCallback(async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem("sbeltic_token");
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/categories?type=${type}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
       );
       const data = await res.json();
       if (data.success) {
@@ -70,13 +67,9 @@ const CategoryManagerModal = ({ isOpen, onClose, type }) => {
 
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem("sbeltic_token");
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, {
+      const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/categories`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newCategoryName, type }),
       });
 
@@ -106,13 +99,9 @@ const CategoryManagerModal = ({ isOpen, onClose, type }) => {
       return;
 
     try {
-      const token = localStorage.getItem("sbeltic_token");
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/categories/${id}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        },
+        { method: "DELETE" },
       );
 
       const data = await res.json();

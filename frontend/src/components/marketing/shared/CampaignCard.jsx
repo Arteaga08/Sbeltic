@@ -12,6 +12,7 @@ import {
   PaperPlaneTilt,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 const TEMPLATE_LABELS = {
   sbeltic_bienvenida: "Bienvenida",
@@ -64,12 +65,11 @@ const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
 
   const handleSendNow = async () => {
     if (!confirm("Enviar este cupón a todos los pacientes con WhatsApp habilitado ahora?")) return;
-    const token = localStorage.getItem("sbeltic_token");
     setSending(true);
     try {
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/coupons/${_id}/send-now`,
-        { method: "POST", headers: { Authorization: `Bearer ${token}` } },
+        { method: "POST" },
       );
       const data = await res.json();
       if (res.ok) {
@@ -85,13 +85,12 @@ const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
   };
 
   const handleTrashClick = async () => {
-    const token = localStorage.getItem("sbeltic_token");
     if (isActive) {
       if (!confirm("Deseas pausar esta campana?")) return;
       try {
-        const res = await fetch(
+        const res = await fetchWithAuth(
           `${process.env.NEXT_PUBLIC_API_URL}/coupons/${_id}/deactivate`,
-          { method: "PATCH", headers: { Authorization: `Bearer ${token}` } },
+          { method: "PATCH" },
         );
         if (res.ok) {
           toast.success("Campana pausada");
@@ -103,9 +102,9 @@ const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
     } else {
       if (!confirm("Eliminar esta campana permanentemente? Esta accion no se puede deshacer.")) return;
       try {
-        const res = await fetch(
+        const res = await fetchWithAuth(
           `${process.env.NEXT_PUBLIC_API_URL}/coupons/${_id}`,
-          { method: "DELETE", headers: { Authorization: `Bearer ${token}` } },
+          { method: "DELETE" },
         );
         if (res.ok) {
           toast.success("Campana eliminada");

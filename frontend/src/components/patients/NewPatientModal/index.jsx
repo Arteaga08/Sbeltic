@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { X, CaretLeft, CaretRight, CheckCircle } from "@phosphor-icons/react"; // 🌟 Importamos CheckCircle
 import { toast } from "sonner";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 import TypeSelector from "./steps/TypeSelector";
 import BasicInfoForm from "./steps/BasicInfoForm";
@@ -148,13 +149,9 @@ const NewPatientModal = ({ isOpen, onClose, onRefresh }) => {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem("sbeltic_token");
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/patients`, {
+      const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/patients`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 

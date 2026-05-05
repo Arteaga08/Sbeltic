@@ -6,6 +6,7 @@ import { FileText, ClipboardText, Package } from "@phosphor-icons/react";
 import AppointmentPDF from "./AppointmentPDF";
 import MedicalHistoryPDF from "../patients/PatientFile/Tabs/MedicalHistoryPDF";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 const STATUS_CONFIG = {
   PENDING: { label: "Pendiente", active: "bg-amber-400 text-white", dot: "bg-amber-400" },
@@ -20,10 +21,6 @@ const TABS = ["Paciente", "Insumos", "Finanzas"];
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
-function getToken() {
-  if (typeof window !== "undefined") return localStorage.getItem("sbeltic_token");
-  return null;
-}
 
 export default function SuperModal({ appointment, isOpen, onClose, onSave, onCancelAppointment, isReadOnly = false }) {
   useScrollLock(isOpen);
@@ -62,9 +59,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
       const patientId = appointment.patientId?._id || appointment.patientId;
       if (patientId) {
         setLoadingPatient(true);
-        fetch(`${API}/patients/${patientId}`, {
-          headers: { Authorization: `Bearer ${getToken()}` },
-        })
+        fetchWithAuth(`${API}/patients/${patientId}`)
           .then((res) => res.json())
           .then((data) => { if (data.success) setFullPatient(data.data); })
           .catch(() => {})
@@ -81,9 +76,8 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
     }
     const timeout = setTimeout(async () => {
       try {
-        const res = await fetch(
+        const res = await fetchWithAuth(
           `${API}/products?search=${encodeURIComponent(supplySearch)}&type=${supplyType}`,
-          { headers: { Authorization: `Bearer ${getToken()}` } },
         );
         const data = await res.json();
         setSupplyResults(data.data?.slice(0, 6) || []);
@@ -135,12 +129,9 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
     if (!couponCode.trim()) return;
     setCouponError("");
     try {
-      const res = await fetch(`${API}/coupons/validate`, {
+      const res = await fetchWithAuth(`${API}/coupons/validate`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           code: couponCode.toUpperCase(),
           patientId: patient._id,
@@ -174,12 +165,9 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
         appointment.status !== "COMPLETED" &&
         form.consumedSupplies?.length > 0
       ) {
-        const stockRes = await fetch(`${API}/products/check-availability`, {
+        const stockRes = await fetchWithAuth(`${API}/products/check-availability`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${getToken()}`,
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             items: form.consumedSupplies.map((s) => ({
               productId: s.productId,
@@ -207,12 +195,9 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
         ...(couponPreview && { couponCode: couponPreview.code }),
       };
 
-      const res = await fetch(`${API}/appointments/${appointment._id}`, {
+      const res = await fetchWithAuth(`${API}/appointments/${appointment._id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
@@ -234,9 +219,8 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
     if (!confirm("¿Estás seguro de cancelar esta cita?")) return;
     setIsCancelling(true);
     try {
-      const res = await fetch(`${API}/appointments/${appointment._id}/cancel`, {
+      const res = await fetchWithAuth(`${API}/appointments/${appointment._id}/cancel`, {
         method: "PATCH",
-        headers: { Authorization: `Bearer ${getToken()}` },
       });
       const data = await res.json();
       if (res.ok) {

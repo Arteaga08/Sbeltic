@@ -9,6 +9,7 @@ import {
   Sparkle,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -86,10 +87,6 @@ const SCHEDULE_DEFAULTS = {
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const DAYS_OF_WEEK = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
 
-function getToken() {
-  if (typeof window !== "undefined") return localStorage.getItem("sbeltic_token");
-  return null;
-}
 
 const CouponBuilderModal = ({ isOpen, onClose, onRefresh, coupon }) => {
   useScrollLock(isOpen);
@@ -139,10 +136,7 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh, coupon }) => {
 
     setMobileTab("RULES");
     setProductSearch("");
-    const token = getToken();
-    const headers = { Authorization: `Bearer ${token}` };
-
-    fetch(`${API}/treatments?limit=200`, { headers })
+    fetchWithAuth(`${API}/treatments?limit=200`)
       .then((r) => r.json())
       .then((data) => {
         const list = data.data?.results ?? data.data ?? data.results ?? data;
@@ -150,7 +144,7 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh, coupon }) => {
       })
       .catch(() => {});
 
-    fetch(`${API}/products?type=RETAIL&limit=200`, { headers })
+    fetchWithAuth(`${API}/products?type=RETAIL&limit=200`)
       .then((r) => r.json())
       .then((data) => {
         const list = data.data?.results ?? data.data ?? data.results ?? data;
@@ -202,7 +196,6 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh, coupon }) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const token = getToken();
       const templateName = formData.whatsappTemplateName || TEMPLATES_CONFIG[formData.type]?.[0]?.name;
 
       const schedulePayload = {
@@ -266,12 +259,9 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh, coupon }) => {
       const url = isEditMode ? `${API}/coupons/${coupon._id}` : `${API}/coupons`;
       const method = isEditMode ? "PUT" : "POST";
 
-      const res = await fetch(url, {
+      const res = await fetchWithAuth(url, {
         method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 

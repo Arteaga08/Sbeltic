@@ -8,14 +8,11 @@ import SidePanels from "@/components/agenda/SidePanels";
 import SuperModal from "@/components/agenda/SuperModal";
 import NewAppointmentModal from "@/components/modal/NewAppointmentModal";
 import { getCategoryFromTreatment } from "@/lib/treatmentCategories";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { ListBullets } from "@phosphor-icons/react";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
-function getToken() {
-  if (typeof window !== "undefined") return localStorage.getItem("sbeltic_token");
-  return null;
-}
 
 function getWeekStart(date) {
   const d = new Date(date);
@@ -56,9 +53,9 @@ export default function AgendaPage() {
   // ── Fetches ──
   const fetchWeekAppointments = async (start) => {
     try {
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${API}/appointments?date=${start.toISOString()}&days=6`,
-        { headers: { Authorization: `Bearer ${getToken()}`, "Cache-Control": "no-cache" } },
+        { headers: { "Cache-Control": "no-cache" } },
       );
       const data = await res.json();
       const arr = data.data || data.appointments || (Array.isArray(data) ? data : []);
@@ -70,9 +67,7 @@ export default function AgendaPage() {
 
   const fetchWaitlist = async () => {
     try {
-      const res = await fetch(`${API}/waitlist`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const res = await fetchWithAuth(`${API}/waitlist`);
       const data = await res.json();
       setWaitlist(data.data || []);
     } catch {
@@ -84,9 +79,8 @@ export default function AgendaPage() {
     try {
       const from = new Date();
       from.setHours(0, 0, 0, 0);
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${API}/appointments?date=${from.toISOString()}&days=6`,
-        { headers: { Authorization: `Bearer ${getToken()}` } },
       );
       const data = await res.json();
       const arr = data.data || [];
@@ -104,9 +98,7 @@ export default function AgendaPage() {
 
   const fetchStaff = async () => {
     try {
-      const res = await fetch(`${API}/users?role=DOCTOR`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const res = await fetchWithAuth(`${API}/users?role=DOCTOR`);
       const data = await res.json();
       setStaff(data.data || []);
     } catch {
@@ -181,20 +173,16 @@ export default function AgendaPage() {
   // ── Guardar nueva cita (desde NewAppointmentModal) ──
   const handleSaveNewAppointment = async (payloadFromModal) => {
     try {
-      const token = getToken();
       const currentUser = JSON.parse(localStorage.getItem("sbeltic_user") || "{}");
-      const headers = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      };
+      const jsonHeaders = { "Content-Type": "application/json" };
 
       const { isNewPatient, patientData, appointmentData } = payloadFromModal;
       let finalPatientId = appointmentData.patientId;
 
       if (isNewPatient) {
-        const patientRes = await fetch(`${API}/patients`, {
+        const patientRes = await fetchWithAuth(`${API}/patients`, {
           method: "POST",
-          headers,
+          headers: jsonHeaders,
           body: JSON.stringify({ ...patientData, createdBy: currentUser._id }),
         });
         const patientResult = await patientRes.json();
@@ -205,9 +193,9 @@ export default function AgendaPage() {
         toast.success("Paciente nuevo registrado.");
       }
 
-      const apptRes = await fetch(`${API}/appointments`, {
+      const apptRes = await fetchWithAuth(`${API}/appointments`, {
         method: "POST",
-        headers,
+        headers: jsonHeaders,
         body: JSON.stringify({ ...appointmentData, patientId: finalPatientId }),
       });
       const apptResult = await apptRes.json();

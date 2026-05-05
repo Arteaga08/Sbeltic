@@ -9,6 +9,7 @@ import {
   CircleNotch,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
 const NewBatchModal = ({ isOpen, onClose, productId, onRefresh }) => {
@@ -27,13 +28,9 @@ const NewBatchModal = ({ isOpen, onClose, productId, onRefresh }) => {
     setIsSubmitting(true);
 
     try {
-      const token = localStorage.getItem("sbeltic_token");
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/batches`, {
+      const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/batches`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           productId,
           batchNumber: formData.batchNumber,

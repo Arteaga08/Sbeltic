@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { WhatsappLogo } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 const WhatsAppSignatureButton = ({
   patientPhone,
@@ -25,8 +26,6 @@ const WhatsAppSignatureButton = ({
 
     setLoading(true);
     try {
-      const authToken = localStorage.getItem("sbeltic_token");
-
       const endpoint = isMedicalHistoryForm
         ? `${process.env.NEXT_PUBLIC_API_URL}/patients/${patientId}/medical-history-token`
         : `${process.env.NEXT_PUBLIC_API_URL}/patients/${patientId}/signature-token`;
@@ -35,12 +34,9 @@ const WhatsAppSignatureButton = ({
         ? {}
         : { type, targetId: type === "EVOLUTION" ? evolutionId : undefined };
 
-      const res = await fetch(endpoint, {
+      const res = await fetchWithAuth(endpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 

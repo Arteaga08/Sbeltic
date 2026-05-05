@@ -11,6 +11,7 @@ import {
   FilePdf,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import PrescriptionPDF from "./PrescriptionPDF";
 import TemplateManagerModal from "../TemplateManagerModal";
@@ -39,16 +40,9 @@ const PrescriptionsTab = ({ patient, userRole, onUpdate }) => {
 
   const canCreate = ["DOCTOR", "ADMIN"].includes(userRole);
 
-  const authHeader = () => ({
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${localStorage.getItem("sbeltic_token")}`,
-  });
-
   const fetchTemplates = async () => {
     try {
-      const res = await fetch(`${API}/templates/prescriptions`, {
-        headers: authHeader(),
-      });
+      const res = await fetchWithAuth(`${API}/templates/prescriptions`);
       const data = await res.json();
       if (data.success) setTemplates(data.data);
     } catch {
@@ -98,9 +92,9 @@ const PrescriptionsTab = ({ patient, userRole, onUpdate }) => {
 
     setIsSaving(true);
     try {
-      const res = await fetch(`${API}/patients/${patient._id}/prescriptions`, {
+      const res = await fetchWithAuth(`${API}/patients/${patient._id}/prescriptions`, {
         method: "POST",
-        headers: authHeader(),
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
       const data = await res.json();

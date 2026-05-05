@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { FirstAidKit, Tote, ArrowLeft, Plus, Tag } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import UrgentAlerts from "@/components/inventory/UrgentAlerts";
 import InventoryWidget from "@/components/inventory/InventoryWidget";
 import NewProductModal from "@/components/modal/NewProductModal";
@@ -22,10 +23,8 @@ export default function InventoryPage() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const token = localStorage.getItem("sbeltic_token");
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/products`,
-        { headers: { Authorization: `Bearer ${token}` } },
       );
       const data = await response.json();
       if (data.success) {
@@ -51,13 +50,9 @@ export default function InventoryPage() {
     if (!confirmDelete) return;
 
     try {
-      const token = localStorage.getItem("sbeltic_token");
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/products/${productToDisable._id}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        },
+        { method: "DELETE" },
       );
 
       const data = await response.json();

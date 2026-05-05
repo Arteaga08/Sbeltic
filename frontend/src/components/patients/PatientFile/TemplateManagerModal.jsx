@@ -10,6 +10,7 @@ import {
   BookOpen,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -37,15 +38,10 @@ const TemplateManagerModal = ({ isOpen, onClose, type }) => {
   const emptyForm = isPostOp ? EMPTY_POST_OP : EMPTY_PRESCRIPTION;
   const [form, setForm] = useState(emptyForm);
 
-  const authHeader = () => ({
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${localStorage.getItem("sbeltic_token")}`,
-  });
-
   const fetchTemplates = async () => {
     setLoading(true);
     try {
-      const res = await fetch(endpoint, { headers: authHeader() });
+      const res = await fetchWithAuth(endpoint);
       const data = await res.json();
       if (data.success) setTemplates(data.data);
     } catch {
@@ -93,9 +89,9 @@ const TemplateManagerModal = ({ isOpen, onClose, type }) => {
       const url = isNew ? endpoint : `${endpoint}/${editing._id}`;
       const method = isNew ? "POST" : "PUT";
 
-      const res = await fetch(url, {
+      const res = await fetchWithAuth(url, {
         method,
-        headers: authHeader(),
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
       const data = await res.json();
@@ -116,9 +112,8 @@ const TemplateManagerModal = ({ isOpen, onClose, type }) => {
 
   const handleDelete = async (id) => {
     try {
-      const res = await fetch(`${endpoint}/${id}`, {
+      const res = await fetchWithAuth(`${endpoint}/${id}`, {
         method: "DELETE",
-        headers: authHeader(),
       });
       const data = await res.json();
       if (data.success) {

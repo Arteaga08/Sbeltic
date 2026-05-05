@@ -16,6 +16,7 @@ import {
   Calendar,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { QRCodeCanvas } from "qrcode.react";
 
 import NewBatchModal from "@/components/modal/NewBatchModal";
@@ -38,14 +39,9 @@ const ProductDetailsDrawer = ({
   const fetchBatches = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem("sbeltic_token");
-      // 🌟 FIX: Rompemos la caché de Next.js agregando timestamp y cache: 'no-store'
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/batches?productId=${product._id}&t=${Date.now()}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          cache: "no-store",
-        },
+        { cache: "no-store" },
       );
       const data = await res.json();
       if (data.success) setBatches(data.data);

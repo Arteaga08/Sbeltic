@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import TeamModal from "@/components/modal/TeamModal";
 import DeleteModal from "@/components/modal/DeleteModal";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 // ICONOS SELECCIONADOS
 import {
@@ -80,10 +81,7 @@ export default function TeamPage() {
 
   const fetchStaff = async () => {
     try {
-      const token = localStorage.getItem("sbeltic_token");
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/users`);
       const result = await res.json();
       setStaff(result.data || []);
     } catch (error) {
@@ -108,7 +106,6 @@ export default function TeamPage() {
 
   const handleSubmitUser = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("sbeltic_token");
     const url = editingId
       ? `${process.env.NEXT_PUBLIC_API_URL}/users/${editingId}`
       : `${process.env.NEXT_PUBLIC_API_URL}/users`;
@@ -117,12 +114,9 @@ export default function TeamPage() {
     if (payload.phone) payload.phone = payload.phone.trim().replace(/\D/g, "");
     if (editingId && !payload.password) delete payload.password;
     try {
-      const res = await fetch(url, {
+      const res = await fetchWithAuth(url, {
         method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       if (res.ok) {
@@ -160,13 +154,9 @@ export default function TeamPage() {
   const confirmDelete = async () => {
     if (!userToDelete) return;
     try {
-      const token = localStorage.getItem("sbeltic_token");
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/users/${userToDelete._id}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        },
+        { method: "DELETE" },
       );
       if (res.ok) {
         toast.success(`${userToDelete.name} ha sido desactivado`);

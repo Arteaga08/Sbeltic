@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 const CategoryFilter = ({ onCategoryChange, activeCategory, type }) => {
   const [categories, setCategories] = useState([]);
@@ -7,12 +8,8 @@ const CategoryFilter = ({ onCategoryChange, activeCategory, type }) => {
     // Le pedimos al backend las categorías según su tipo (RETAIL o INSUMO)
     const fetchCategories = async () => {
       try {
-        const token = localStorage.getItem("sbeltic_token"); // 🔑 Obtenemos el token
-        const response = await fetch(
+        const response = await fetchWithAuth(
           `${process.env.NEXT_PUBLIC_API_URL}/categories?type=${type}`,
-          {
-            headers: { Authorization: `Bearer ${token}` }, // 🛡️ Pasamos la seguridad
-          },
         );
 
         const data = await response.json();

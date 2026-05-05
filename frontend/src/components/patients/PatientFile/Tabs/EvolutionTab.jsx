@@ -11,6 +11,7 @@ import {
   FilePdf,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import SignaturePad from "../SignaturePad";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import EvolutionPDF from "./EvolutionPDF";
@@ -52,15 +53,11 @@ const EvolutionTab = ({ patient, userRole, onUpdate }) => {
 
     setIsSaving(true);
     try {
-      const token = localStorage.getItem("sbeltic_token");
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/patients/${patient._id}/evolutions`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(evolutionData),
         },
       );

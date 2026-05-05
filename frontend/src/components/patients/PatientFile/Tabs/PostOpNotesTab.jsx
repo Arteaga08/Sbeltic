@@ -9,6 +9,7 @@ import {
   ClockCounterClockwise,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import TemplateManagerModal from "../TemplateManagerModal";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -23,16 +24,9 @@ const PostOpNotesTab = ({ patient, userRole, onUpdate }) => {
 
   const canCreate = ["DOCTOR", "ADMIN"].includes(userRole);
 
-  const authHeader = () => ({
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${localStorage.getItem("sbeltic_token")}`,
-  });
-
   const fetchTemplates = async () => {
     try {
-      const res = await fetch(`${API}/templates/post-op-notes`, {
-        headers: authHeader(),
-      });
+      const res = await fetchWithAuth(`${API}/templates/post-op-notes`);
       const data = await res.json();
       if (data.success) setTemplates(data.data);
     } catch {
@@ -60,9 +54,9 @@ const PostOpNotesTab = ({ patient, userRole, onUpdate }) => {
 
     setIsSaving(true);
     try {
-      const res = await fetch(`${API}/patients/${patient._id}/post-op-notes`, {
+      const res = await fetchWithAuth(`${API}/patients/${patient._id}/post-op-notes`, {
         method: "POST",
-        headers: authHeader(),
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
       const data = await res.json();

@@ -6,13 +6,24 @@ import Sidebar from "@/components/Sidebar";
 
 const MARKETING_ALLOWED_PREFIXES = ["/marketing", "/agenda"];
 
+function isTokenExpired(token) {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.exp * 1000 < Date.now();
+  } catch {
+    return true;
+  }
+}
+
 export default function DashboardLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
     const token = localStorage.getItem("sbeltic_token");
-    if (!token) {
+    if (!token || isTokenExpired(token)) {
+      localStorage.removeItem("sbeltic_token");
+      localStorage.removeItem("sbeltic_user");
       router.replace("/login");
       return;
     }

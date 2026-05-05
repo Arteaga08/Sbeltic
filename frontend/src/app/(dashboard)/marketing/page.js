@@ -18,6 +18,7 @@ import { toast } from "sonner";
 // Modales y Componentes
 import CouponBuilderModal from "@/components/marketing/modals/CouponBuilderModal";
 import CampaignCard from "@/components/marketing/shared/CampaignCard";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 export default function MarketingPage() {
   const [currentView, setCurrentView] = useState("DASHBOARD");
@@ -41,12 +42,8 @@ export default function MarketingPage() {
     const fetchStats = async () => {
       setLoadingStats(true);
       try {
-        const token = localStorage.getItem("sbeltic_token");
-        const res = await fetch(
+        const res = await fetchWithAuth(
           `${process.env.NEXT_PUBLIC_API_URL}/coupons/stats`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
         );
         const data = await res.json();
         if (data.success || res.ok) {
@@ -70,13 +67,9 @@ export default function MarketingPage() {
   const fetchCampaigns = async () => {
     setLoadingCampaigns(true);
     try {
-      const token = localStorage.getItem("sbeltic_token");
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/coupons?type=${selectedCategory}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          cache: "no-store",
-        },
+        { cache: "no-store" },
       );
       const data = await res.json();
       if (data.success || res.ok) {

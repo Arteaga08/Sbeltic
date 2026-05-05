@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { Pill } from "@phosphor-icons/react";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
@@ -82,11 +83,6 @@ function formatDuration(mins) {
   return `${h} h ${m} min`;
 }
 
-function getToken() {
-  if (typeof window !== "undefined")
-    return localStorage.getItem("sbeltic_token");
-  return null;
-}
 
 const emptyForm = {
   name: "",
@@ -139,9 +135,7 @@ export default function TreatmentManagerModal({ isOpen, onClose }) {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch(`${API}/treatment-categories`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const res = await fetchWithAuth(`${API}/treatment-categories`);
       const data = await res.json();
       const list = data.data ?? [];
       setCategories(list);
@@ -154,9 +148,7 @@ export default function TreatmentManagerModal({ isOpen, onClose }) {
   const fetchTreatments = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/treatments?limit=200`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const res = await fetchWithAuth(`${API}/treatments?limit=200`);
       const data = await res.json();
       const raw = data.data?.results ?? data.data ?? data.results ?? data;
       setTreatments(Array.isArray(raw) ? raw : []);
@@ -187,12 +179,9 @@ export default function TreatmentManagerModal({ isOpen, onClose }) {
         }),
       };
 
-      const res = await fetch(`${API}/treatments`, {
+      const res = await fetchWithAuth(`${API}/treatments`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
@@ -215,12 +204,9 @@ export default function TreatmentManagerModal({ isOpen, onClose }) {
   const handleDeactivate = async (id) => {
     if (!confirm("¿Desactivar este tratamiento?")) return;
     try {
-      const res = await fetch(`${API}/treatments/${id}`, {
+      const res = await fetchWithAuth(`${API}/treatments/${id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: false }),
       });
       if (res.ok) {
@@ -266,12 +252,9 @@ export default function TreatmentManagerModal({ isOpen, onClose }) {
       const url = editingCat
         ? `${API}/treatment-categories/${editingCat._id}`
         : `${API}/treatment-categories`;
-      const res = await fetch(url, {
+      const res = await fetchWithAuth(url, {
         method: editingCat ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
@@ -298,9 +281,8 @@ export default function TreatmentManagerModal({ isOpen, onClose }) {
   const handleDeleteCat = async (id) => {
     if (!confirm("¿Desactivar esta categoría?")) return;
     try {
-      const res = await fetch(`${API}/treatment-categories/${id}`, {
+      const res = await fetchWithAuth(`${API}/treatment-categories/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${getToken()}` },
       });
       if (res.ok) {
         toast.success("Categoría desactivada");
