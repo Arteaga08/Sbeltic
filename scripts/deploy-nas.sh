@@ -2,7 +2,7 @@
 set -e
 
 NAS_USER="Dr_Carlos_Nevarez"
-NAS_HOST="192.168.100.64"
+NAS_HOST="100.69.82.14"
 NAS_PATH="/volume1/docker/sbeltic/sbeltic-system"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

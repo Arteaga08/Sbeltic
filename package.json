@@ -9,7 +9,7 @@
     "frontend": "npm run dev --prefix frontend",
     "sync": "bash scripts/sync-to-nas.sh",
     "deploy": "bash scripts/deploy-nas.sh",
-    "seed:admin": "ssh -t Dr_Carlos_Nevarez@192.168.100.64 'sudo /usr/local/bin/docker exec sbeltic-backend node /app/src/scripts/seedAdmin.js'",
+    "seed:admin": "ssh -t Dr_Carlos_Nevarez@100.69.82.14 'sudo /usr/local/bin/docker exec sbeltic-backend node /app/src/scripts/seedAdmin.js'",
     "migrate:eleonor": "cd backend && node src/scripts/migrateEleonor.js \"../'Respaldo Eleonor 29_04_2026\""
   },
   "devDependencies": {
