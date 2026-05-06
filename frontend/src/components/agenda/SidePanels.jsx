@@ -159,7 +159,7 @@ export default function SidePanels({
   return (
     <>
       {/* DESKTOP: sidebar fijo a la derecha */}
-      <div className="hidden md:flex w-72 xl:w-80 shrink-0 border-l border-slate-200 bg-slate-50 overflow-y-auto flex-col gap-4 p-4">
+      <div className="hidden md:flex w-72 xl:w-80 2xl:w-96 shrink-0 border-l border-slate-200 bg-slate-50 overflow-y-auto flex-col gap-4 p-4">
         <SurgeryPanel upcomingSurgeries={upcomingSurgeries} />
         <PriorityPanel priorityList={priorityList} />
         <SummaryPanel weeklySummary={weeklySummary} />

@@ -5,6 +5,7 @@ import AppointmentBlock from "./AppointmentBlock";
 
 const SLOT_HEIGHT_DESKTOP = 60;
 const SLOT_HEIGHT_MOBILE = 40;
+const SLOT_HEIGHT_LARGE = 76;
 const START_HOUR = 7;
 const END_HOUR = 23;
 const TOTAL_SLOTS = (END_HOUR - START_HOUR) * 2; // 32 slots de 30min
@@ -28,6 +29,18 @@ function useIsMobile() {
     return () => window.removeEventListener("resize", update);
   }, []);
   return mobile;
+}
+
+function useIsLarge() {
+  const [large, setLarge] = useState(
+    () => typeof window !== "undefined" && window.innerWidth >= 1536
+  );
+  useEffect(() => {
+    const update = () => setLarge(window.innerWidth >= 1536);
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  return large;
 }
 
 function formatSlotTime(slotIndex) {
@@ -166,9 +179,9 @@ const GUTTER_W = 56; // px del gutter de horas
 
 function calcColWidth() {
   if (typeof window === "undefined") return 130;
-  return window.innerWidth < 768
-    ? Math.floor((window.innerWidth - GUTTER_W) / 3)
-    : 130;
+  if (window.innerWidth < 768) return Math.floor((window.innerWidth - GUTTER_W) / 3);
+  if (window.innerWidth >= 1536) return 180;
+  return 130;
 }
 
 function useColMinWidth() {
@@ -193,9 +206,10 @@ export default function CalendarGrid({
   const touchStartY = useRef(null);
   const colMinWidth = useColMinWidth();
   const isMobile = useIsMobile();
+  const isLarge = useIsLarge();
   const [mobileHalf, setMobileHalf] = useState(0); // 0 = Lun-Mié, 1 = Jue-Sáb
 
-  const slotHeight = isMobile ? SLOT_HEIGHT_MOBILE : SLOT_HEIGHT_DESKTOP;
+  const slotHeight = isMobile ? SLOT_HEIGHT_MOBILE : isLarge ? SLOT_HEIGHT_LARGE : SLOT_HEIGHT_DESKTOP;
   const totalHeight = TOTAL_SLOTS * slotHeight;
 
   // Array de 6 días (lun–sáb)

@@ -222,7 +222,7 @@ export default function AgendaPage() {
     upcomingSurgeries.length + waitlist.filter((w) => w.status === "WAITING").length;
 
   return (
-    <div className="flex flex-col overflow-hidden -mx-4 -my-4 md:-mx-10 md:-my-10 h-[calc(100dvh-80px)] md:h-dvh">
+    <div className="flex flex-col overflow-hidden -mx-4 -my-4 md:-mx-10 md:-my-10 2xl:-mx-14 2xl:-my-14 h-[calc(100dvh-80px)] md:h-dvh">
 
       {/* Header */}
       <AgendaHeader
