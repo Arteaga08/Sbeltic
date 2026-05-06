@@ -45,9 +45,9 @@ export default function DashboardLayout({ children }) {
   }, [router, pathname]);
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex h-screen overflow-hidden bg-slate-50">
       <Sidebar />
-      <main className="flex-1 pb-24 md:pb-8 p-4 md:p-10">
+      <main className="flex-1 overflow-y-auto h-full pb-24 md:pb-8 p-4 md:p-10">
         {children}
       </main>
     </div>

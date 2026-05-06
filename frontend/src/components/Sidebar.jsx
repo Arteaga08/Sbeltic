@@ -87,7 +87,7 @@ export default function Sidebar() {
   return (
     <>
       {/* DESKTOP SIDEBAR */}
-      <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 h-screen sticky top-0 p-6 shrink-0">
+      <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 h-full overflow-y-auto p-6 shrink-0">
         <div className="mb-10">
           <h1 className="text-2xl font-black text-slate-900 italic leading-none">
             SBELTIC
