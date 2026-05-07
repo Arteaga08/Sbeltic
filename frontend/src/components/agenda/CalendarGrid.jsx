@@ -95,8 +95,8 @@ function computeOverlaps(appointments) {
 }
 
 // ── Cabecera de un día ──
-function DayHeader({ day, colMinWidth }) {
-  const isToday = day.toDateString() === new Date().toDateString();
+function DayHeader({ day, colMinWidth, disabled }) {
+  const isToday = !disabled && day.toDateString() === new Date().toDateString();
   const name = day
     .toLocaleDateString("es-MX", { weekday: "short" })
     .replace(".", "")
@@ -106,7 +106,7 @@ function DayHeader({ day, colMinWidth }) {
   return (
     <div
       className={`flex flex-col items-center justify-center border-r border-slate-200 text-xs gap-0.5
-        ${isToday ? "text-indigo-600" : "text-slate-500"}`}
+        ${disabled ? "bg-slate-50 text-slate-300" : isToday ? "text-indigo-600" : "text-slate-500"}`}
       style={{ width: colMinWidth, flexShrink: 0 }}
     >
       <span className="font-bold text-[10px] tracking-wide">{name}</span>
@@ -121,7 +121,7 @@ function DayHeader({ day, colMinWidth }) {
 }
 
 // ── Columna de un día ──
-function DayColumn({ appointments, filterRoom, onAppointmentClick, currentTimeTop, colMinWidth, slotHeight, totalHeight }) {
+function DayColumn({ appointments, filterRoom, onAppointmentClick, currentTimeTop, colMinWidth, slotHeight, totalHeight, disabled }) {
   const filtered =
     filterRoom === "ALL"
       ? appointments
@@ -132,7 +132,7 @@ function DayColumn({ appointments, filterRoom, onAppointmentClick, currentTimeTo
 
   return (
     <div
-      className="relative border-r border-slate-200"
+      className={`relative border-r border-slate-200 ${disabled ? "bg-slate-100" : ""}`}
       style={{ width: colMinWidth, flexShrink: 0, height: totalHeight }}
     >
       {/* Líneas de slots */}
@@ -140,14 +140,28 @@ function DayColumn({ appointments, filterRoom, onAppointmentClick, currentTimeTo
         <div
           key={i}
           className={`absolute w-full border-b ${
-            i % 2 === 0 ? "border-slate-200" : "border-dashed border-slate-100"
+            disabled
+              ? "border-slate-200"
+              : i % 2 === 0 ? "border-slate-200" : "border-dashed border-slate-100"
           }`}
           style={{ top: i * slotHeight, height: slotHeight }}
         />
       ))}
 
+      {/* Overlay cerrado (domingo) */}
+      {disabled && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+          <span
+            className="text-[10px] font-black uppercase tracking-widest text-slate-300 rotate-90 select-none"
+            style={{ writingMode: "vertical-rl" }}
+          >
+            Cerrado
+          </span>
+        </div>
+      )}
+
       {/* Bloques de citas */}
-      {placed.map(({ appt, colIdx, totalCols }) => {
+      {!disabled && placed.map(({ appt, colIdx, totalCols }) => {
         const { top, height } = getBlockPosition(appt.appointmentDate, appt.duration, slotHeight);
         return (
           <AppointmentBlock
@@ -212,8 +226,8 @@ export default function CalendarGrid({
   const slotHeight = isMobile ? SLOT_HEIGHT_MOBILE : isLarge ? SLOT_HEIGHT_LARGE : SLOT_HEIGHT_DESKTOP;
   const totalHeight = TOTAL_SLOTS * slotHeight;
 
-  // Array de 6 días (lun–sáb)
-  const allDays = Array.from({ length: 6 }, (_, i) => {
+  // Array de 7 días (lun–dom); domingo es decorativo/deshabilitado
+  const allDays = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
     d.setDate(weekStart.getDate() + i);
     return d;
@@ -313,33 +327,40 @@ export default function CalendarGrid({
         <div
           className="flex flex-col"
           style={isMobile ? {
-            width: 6 * colMinWidth,
+            width: allDays.length * colMinWidth,
             transform: `translateX(-${mobileHalf * 3 * colMinWidth}px)`,
             transition: "transform 300ms ease-out",
           } : undefined}
         >
           {/* Cabecera de días (sticky top) */}
           <div className="flex h-12 border-b border-slate-200 bg-white sticky top-0 z-20">
-            {visibleDays.map((day) => (
-              <DayHeader key={day.toDateString()} day={day} colMinWidth={colMinWidth} />
+            {visibleDays.map((day, i) => (
+              <DayHeader
+                key={day.toDateString()}
+                day={day}
+                colMinWidth={colMinWidth}
+                disabled={i === 6}
+              />
             ))}
           </div>
 
           {/* Columnas con citas */}
           <div className="flex" style={{ height: totalHeight }}>
-            {visibleDays.map((day) => {
+            {visibleDays.map((day, i) => {
+              const isSunday = i === 6;
               const key = day.toLocaleDateString("en-CA");
-              const isToday = day.toDateString() === new Date().toDateString();
+              const isToday = !isSunday && day.toDateString() === new Date().toDateString();
               return (
                 <DayColumn
                   key={day.toDateString()}
                   appointments={appointmentsByDate[key] || []}
                   filterRoom={filterRoom}
-                  onAppointmentClick={onAppointmentClick}
+                  onAppointmentClick={isSunday ? undefined : onAppointmentClick}
                   currentTimeTop={isToday ? currentTimeTop : null}
                   colMinWidth={colMinWidth}
                   slotHeight={slotHeight}
                   totalHeight={totalHeight}
+                  disabled={isSunday}
                 />
               );
             })}

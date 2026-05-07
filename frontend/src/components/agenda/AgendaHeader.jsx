@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   CaretLeft,
   CaretRight,
@@ -52,6 +53,26 @@ export default function AgendaHeader({
   onNewAppointment,
   isReadOnly = false,
 }) {
+  const weekStartValue =
+    weekStart && !isNaN(weekStart.getTime())
+      ? weekStart.toISOString().split("T")[0]
+      : "";
+
+  const [inputValue, setInputValue] = useState(weekStartValue);
+
+  useEffect(() => {
+    setInputValue(weekStartValue);
+  }, [weekStartValue]);
+
+  const handleDateChange = (e) => {
+    const val = e.target.value;
+    setInputValue(val);
+    if (!val) return;
+    const [y, m, d] = val.split("-");
+    const date = new Date(+y, +m - 1, +d);
+    if (!isNaN(date.getTime())) onWeekChange(getWeekStart(date));
+  };
+
   const goWeek = (delta) => {
     const d = new Date(weekStart);
     d.setDate(d.getDate() + delta * 7);
@@ -61,7 +82,7 @@ export default function AgendaHeader({
   const goThisWeek = () => onWeekChange(getWeekStart(new Date()));
 
   return (
-    <header className="bg-white border-b border-slate-200 px-4 md:px-6 shrink-0 z-30">
+    <header className="bg-white border-b border-slate-200 px-4 md:px-6 xl:px-10 2xl:px-14 shrink-0 z-30">
       {/* ── Fila 1 (móvil): Título + CTA ── */}
       <div className="flex items-center justify-between py-2 md:hidden">
         <h1 className="text-lg font-black italic uppercase text-slate-900">
@@ -145,13 +166,8 @@ export default function AgendaHeader({
 
         <input
           type="date"
-          value={isNaN(weekStart?.getTime()) ? "" : weekStart.toISOString().split("T")[0]}
-          onChange={(e) => {
-            if (!e.target.value) return;
-            const [y, m, d] = e.target.value.split("-");
-            const date = new Date(+y, +m - 1, +d);
-            if (!isNaN(date.getTime())) onWeekChange(getWeekStart(date));
-          }}
+          value={inputValue}
+          onChange={handleDateChange}
           className="px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 bg-slate-50"
         />
 
