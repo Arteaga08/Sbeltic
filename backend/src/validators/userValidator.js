@@ -43,7 +43,6 @@ const createUserSchema = z
   .strict();
 
 // 3. Esquema para Actualizar Usuario
-// Nota: Usamos omit({ password: true }) porque la contraseña se suele cambiar en otra ruta
 const updateUserSchema = createUserSchema
   .partial()
   .extend({

@@ -164,6 +164,7 @@ const updateUser = asyncHandler(async (req, res, next) => {
   if (req.body.role) user.role = req.body.role;
   if (req.body.phone) user.phone = req.body.phone;
   if (typeof req.body.isActive === "boolean") user.isActive = req.body.isActive;
+  if (req.body.password) user.password = req.body.password;
 
   const updatedUser = await user.save();
   sendResponse(res, 200, updatedUser, "Usuario actualizado correctamente");
