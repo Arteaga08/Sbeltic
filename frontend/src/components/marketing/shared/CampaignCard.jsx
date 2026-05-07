@@ -48,11 +48,13 @@ const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
   const displayDiscount =
     discountType === "PERCENTAGE" ? `${discountValue}%` : `$${discountValue}`;
 
-  const daysLeft = Math.ceil(
-    (new Date(expiresAt) - new Date()) / (1000 * 60 * 60 * 24),
-  );
+  const expiresDate = expiresAt ? new Date(expiresAt) : null;
+  const daysLeft =
+    expiresDate && !isNaN(expiresDate.getTime())
+      ? Math.ceil((expiresDate - new Date()) / (1000 * 60 * 60 * 24))
+      : null;
   const daysColor =
-    daysLeft <= 3 ? "text-rose-500" : daysLeft <= 7 ? "text-amber-500" : "text-slate-400";
+    daysLeft === null ? "text-slate-400" : daysLeft <= 3 ? "text-rose-500" : daysLeft <= 7 ? "text-amber-500" : "text-slate-400";
 
   const templateLabel = TEMPLATE_LABELS[whatsappTemplateName] || whatsappTemplateName || "Sin plantilla";
 
@@ -186,7 +188,7 @@ const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
         </div>
 
         {/* Badge de proximo envio programado */}
-        {schedule?.nextSendAt && (
+        {schedule?.nextSendAt && !isNaN(new Date(schedule.nextSendAt).getTime()) && (
           <div className="flex items-center gap-1.5 mt-1">
             <Clock size={12} className="text-indigo-400" />
             <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">
@@ -219,7 +221,7 @@ const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
         <div className="flex items-center gap-2">
           <CalendarBlank size={16} weight="bold" className="text-slate-300" />
           <span className={`text-[9px] font-black uppercase tracking-widest ${daysColor}`}>
-            {daysLeft > 0 ? `${daysLeft}d restantes` : "Vencido"}
+            {daysLeft === null ? "Sin fecha" : daysLeft > 0 ? `${daysLeft}d restantes` : "Vencido"}
           </span>
         </div>
 

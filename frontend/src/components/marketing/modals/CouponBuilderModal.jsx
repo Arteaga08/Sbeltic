@@ -108,9 +108,11 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh, coupon }) => {
         type: coupon.type || "WELCOME",
         discountType: coupon.discountType || "PERCENTAGE",
         discountValue: coupon.discountValue || "",
-        expiresAt: coupon.expiresAt
-          ? new Date(coupon.expiresAt).toISOString().split("T")[0]
-          : "",
+        expiresAt: (() => {
+          if (!coupon.expiresAt) return "";
+          const d = new Date(coupon.expiresAt);
+          return isNaN(d.getTime()) ? "" : d.toISOString().split("T")[0];
+        })(),
         maxRedemptions: coupon.maxRedemptions || "",
         maxUsesPerUser: coupon.maxUsesPerUser || 1,
         whatsappTemplateName: coupon.whatsappTemplateName || "",
