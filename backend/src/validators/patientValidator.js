@@ -6,7 +6,7 @@ const phoneRegex = /^\+?[1-9]\d{9,14}$/;
 const createPatientSchema = z.object({
   name: z.string().trim().min(3, "El nombre debe tener al menos 3 caracteres"),
   phone: z.string().trim().regex(phoneRegex, "Formato de teléfono inválido"),
-  email: z.string().trim().email().optional().or(z.literal("")),
+  email: z.string().trim().email().or(z.literal("")).nullish(),
   allowsWhatsAppNotifications: z.boolean().optional(),
   patientType: z
     .enum(["SPA", "INJECTION", "LEAD", "SURGERY", "POST_OP", "OTHER"])
@@ -32,16 +32,16 @@ const createPatientSchema = z.object({
   referralCode: z.string().optional(),
   isActive: z.boolean().optional(),
   
-  dateOfBirth: z.coerce.date().optional(),
-  birthDate: z.string().optional().or(z.literal("")),
-  address: z.string().optional().or(z.literal("")),
-  occupation: z.string().optional().or(z.literal("")),
-  educationLevel: z.string().optional(),
-  ethnicity: z.string().optional(),
-  religion: z.string().optional(),
-  referredBy: z.any().optional(), // Cambiado a any por si llega el objeto poblado
-  clinicalNote: z.string().optional(),
-  historySignature: z.string().optional(),
+  dateOfBirth: z.coerce.date().nullish(),
+  birthDate: z.string().or(z.literal("")).nullish(),
+  address: z.string().or(z.literal("")).nullish(),
+  occupation: z.string().or(z.literal("")).nullish(),
+  educationLevel: z.string().nullish(),
+  ethnicity: z.string().nullish(),
+  religion: z.string().nullish(),
+  referredBy: z.any().nullish(), // Cambiado a any por si llega el objeto poblado
+  clinicalNote: z.string().nullish(),
+  historySignature: z.string().nullish(),
 }); // 🚀 QUITAMOS .strict() para permitir el paso de datos del sistema
 
 const updatePatientSchema = createPatientSchema.partial();

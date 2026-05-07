@@ -127,7 +127,7 @@ const HistoryTab = ({ patient, userRole, onUpdate, onClose }) => {
     },
     {
       id: "LEAD",
-      label: "Seguimiento",
+      label: "Cotización",
       color: "bg-amber-500",
       shadow: "shadow-amber-100",
     },

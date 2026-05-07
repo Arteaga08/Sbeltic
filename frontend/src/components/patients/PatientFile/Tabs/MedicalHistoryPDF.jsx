@@ -110,7 +110,7 @@ const PATIENT_TYPE_LABELS = {
   INJECTION: "Inyectables",
   SURGERY: "Cirugía",
   POST_OP: "Post-Op",
-  LEAD: "Seguimiento",
+  LEAD: "Cotización",
   OTHER: "Otro",
 };
 
