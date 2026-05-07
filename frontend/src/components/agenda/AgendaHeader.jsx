@@ -145,10 +145,12 @@ export default function AgendaHeader({
 
         <input
           type="date"
-          value={weekStart.toISOString().split("T")[0]}
+          value={isNaN(weekStart?.getTime()) ? "" : weekStart.toISOString().split("T")[0]}
           onChange={(e) => {
+            if (!e.target.value) return;
             const [y, m, d] = e.target.value.split("-");
-            onWeekChange(getWeekStart(new Date(+y, +m - 1, +d)));
+            const date = new Date(+y, +m - 1, +d);
+            if (!isNaN(date.getTime())) onWeekChange(getWeekStart(date));
           }}
           className="px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 bg-slate-50"
         />

@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const treatmentSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true, trim: true },
+    name: { type: String, required: true, trim: true, lowercase: true },
     performerRole: {
       type: String,
       enum: ["ADMIN", "RECEPTIONIST", "BOTH"],

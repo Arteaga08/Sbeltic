@@ -26,7 +26,11 @@ export const errorHandler = (err, req, res, next) => {
   // 🔹 MongoDB: Duplicate field
   if (err.code === 11000) {
     const field = Object.keys(err.keyValue)[0];
-    error.message = `The ${field} is already in use.`;
+    if (field === "name" && err.keyValue.category) {
+      error.message = `Ya existe un tratamiento llamado "${err.keyValue.name}" en la categoría ${err.keyValue.category}.`;
+    } else {
+      error.message = `El campo "${field}" ya está en uso.`;
+    }
     error.statusCode = 400;
     error.isOperational = true;
   }
