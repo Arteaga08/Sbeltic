@@ -98,7 +98,7 @@ export default function AgendaPage() {
 
   const fetchStaff = async () => {
     try {
-      const res = await fetchWithAuth(`${API}/users?role=DOCTOR`);
+      const res = await fetchWithAuth(`${API}/users/staff`);
       const data = await res.json();
       setStaff(data.data || []);
     } catch {

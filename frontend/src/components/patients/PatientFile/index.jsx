@@ -18,6 +18,19 @@ const PatientFileModal = ({ isOpen, patientId, onClose, onUpdate }) => {
   const [activeTab, setActiveTab] = useState("history");
   const [patient, setPatient] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentUserRole, setCurrentUserRole] = useState("GUEST");
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem("sbeltic_user");
+    if (savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        if (parsed?.role) setCurrentUserRole(parsed.role);
+      } catch {
+        // si está corrupto, dejamos GUEST y el backend rechazará
+      }
+    }
+  }, []);
 
   const fetchPatientData = async () => {
     setLoading(true);
@@ -77,7 +90,7 @@ const PatientFileModal = ({ isOpen, patientId, onClose, onUpdate }) => {
                 {activeTab === "history" && (
                   <HistoryTab
                     patient={patient}
-                    userRole="DOCTOR"
+                    userRole={currentUserRole}
                     onUpdate={fetchPatientData}
                     onClose={onClose}
                   />
@@ -85,7 +98,7 @@ const PatientFileModal = ({ isOpen, patientId, onClose, onUpdate }) => {
                 {activeTab === "evolution" && (
                   <EvolutionTab
                     patient={patient}
-                    userRole="DOCTOR"
+                    userRole={currentUserRole}
                     onUpdate={fetchPatientData}
                   />
                 )}
@@ -98,14 +111,14 @@ const PatientFileModal = ({ isOpen, patientId, onClose, onUpdate }) => {
                 {activeTab === "postOpNotes" && (
                   <PostOpNotesTab
                     patient={patient}
-                    userRole="DOCTOR"
+                    userRole={currentUserRole}
                     onUpdate={fetchPatientData}
                   />
                 )}
                 {activeTab === "prescriptions" && (
                   <PrescriptionsTab
                     patient={patient}
-                    userRole="DOCTOR"
+                    userRole={currentUserRole}
                     onUpdate={fetchPatientData}
                   />
                 )}

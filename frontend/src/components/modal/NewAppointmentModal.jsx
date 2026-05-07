@@ -83,7 +83,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
 
       const [resP, resS, resT] = await Promise.all([
         fetchWithAuth(`${API}/patients?limit=500`, { headers: jsonHeaders }),
-        fetchWithAuth(`${API}/users`, { headers: jsonHeaders }),
+        fetchWithAuth(`${API}/users/staff`, { headers: jsonHeaders }),
         fetchWithAuth(`${API}/treatments?limit=200`, { headers: jsonHeaders }),
       ]);
       const [dataP, dataS, dataT] = await Promise.all([

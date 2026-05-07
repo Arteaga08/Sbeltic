@@ -46,7 +46,7 @@ const MENU_ITEMS = [
     name: "Inventario",
     path: "/inventory",
     icon: <Package size={24} weight="duotone" />,
-    roles: ["ADMIN"],
+    roles: ["ADMIN", "RECEPTIONIST"],
     activeColor: "text-emerald-600",
   },
   {

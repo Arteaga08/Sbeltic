@@ -55,6 +55,16 @@ const getUsers = asyncHandler(async (req, res, next) => {
   sendResponse(res, 200, users);
 });
 
+const getStaffForAppointments = asyncHandler(async (req, res, next) => {
+  const staff = await User.find({
+    isActive: true,
+    role: { $in: ["ADMIN", "RECEPTIONIST", "DOCTOR"] },
+  })
+    .select("_id name role")
+    .sort({ name: 1 });
+  sendResponse(res, 200, staff);
+});
+
 const getProfile = asyncHandler(async (req, res, next) => {
   sendResponse(res, 200, req.user);
 });
@@ -85,6 +95,7 @@ export {
   login,
   registerUser,
   getUsers,
+  getStaffForAppointments,
   getProfile,
   getUserById,
   updateUser,

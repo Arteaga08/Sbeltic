@@ -3,6 +3,7 @@ import { login } from "../controllers/authController.js";
 import {
   registerUser,
   getUsers,
+  getStaffForAppointments,
   getProfile,
   getUserById,
   updateUser,
@@ -29,6 +30,14 @@ router.post("/login", validateSchema({ body: loginSchema }), login);
 
 // --- PROTECTED ROUTES ---
 router.get("/profile", checkAuth, getProfile);
+
+// --- STAFF ROUTES ---
+router.get(
+  "/staff",
+  checkAuth,
+  authorizeRole("ADMIN", "RECEPTIONIST", "DOCTOR"),
+  getStaffForAppointments,
+);
 
 // --- ADMIN ONLY ROUTES ---
 router

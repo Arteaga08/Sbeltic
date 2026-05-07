@@ -19,11 +19,11 @@ const router = express.Router();
 router
   .route("/")
   .get(checkAuth, getTreatmentCategories)
-  .post(checkAuth, authorizeRole("ADMIN"), validateCreateTreatmentCategory, createTreatmentCategory);
+  .post(checkAuth, authorizeRole("ADMIN", "RECEPTIONIST"), validateCreateTreatmentCategory, createTreatmentCategory);
 
 router
   .route("/:id")
-  .put(checkAuth, authorizeRole("ADMIN"), validateObjectId, validateUpdateTreatmentCategory, updateTreatmentCategory)
-  .delete(checkAuth, authorizeRole("ADMIN"), validateObjectId, deleteTreatmentCategory);
+  .put(checkAuth, authorizeRole("ADMIN", "RECEPTIONIST"), validateObjectId, validateUpdateTreatmentCategory, updateTreatmentCategory)
+  .delete(checkAuth, authorizeRole("ADMIN", "RECEPTIONIST"), validateObjectId, deleteTreatmentCategory);
 
 export default router;

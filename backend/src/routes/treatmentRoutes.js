@@ -18,16 +18,16 @@ const router = express.Router();
 
 router.route("/").get(checkAuth, getTreatments).post(
   checkAuth,
-  authorizeRole("ADMIN", "DOCTOR"),
+  authorizeRole("ADMIN", "DOCTOR", "RECEPTIONIST"),
   validateCreateTreatment,
   createTreatment,
 );
 
 router.route("/:id").put(
   checkAuth,
-  authorizeRole("ADMIN", "DOCTOR"),
+  authorizeRole("ADMIN", "DOCTOR", "RECEPTIONIST"),
   validateObjectId, // Protege la URL
-  validateUpdateTreatment, 
+  validateUpdateTreatment,
   updateTreatment,
 );
 
