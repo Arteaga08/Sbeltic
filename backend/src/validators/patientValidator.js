@@ -44,7 +44,7 @@ const createPatientSchema = z.object({
   historySignature: z.string().optional(),
 }); // 🚀 QUITAMOS .strict() para permitir el paso de datos del sistema
 
-const updatePatientSchema = createPatientSchema.partial().strict();
+const updatePatientSchema = createPatientSchema.partial();
 
 // 🩺 ESQUEMA PARA EVOLUCIONES (CONSULTAS)
 const createEvolutionSchema = z.object({
