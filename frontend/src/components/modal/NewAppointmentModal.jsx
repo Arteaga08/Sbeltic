@@ -11,6 +11,9 @@ import {
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
+const normalize = (s) =>
+  (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
 function formatDuration(mins) {
   if (!mins) return "";
   const h = Math.floor(mins / 60);
@@ -76,36 +79,40 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
     setFormData((prev) => ({ ...prev, treatmentId: "", treatmentName: "" }));
   }, [selectedCategory]);
 
+  const loadPatients = async (search = "") => {
+    try {
+      const jsonHeaders = { "Content-Type": "application/json" };
+      const url = `${API}/patients?limit=500${search ? `&search=${encodeURIComponent(search)}` : ""}`;
+      const res = await fetchWithAuth(url, { headers: jsonHeaders });
+      const dataP = await res.json();
+      const rawP =
+        dataP.data?.patients ?? dataP.data ?? dataP.patients ?? dataP;
+      setPatients(Array.isArray(rawP) ? rawP : []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const fetchRealData = async () => {
     setLoadingData(true);
     try {
       const jsonHeaders = { "Content-Type": "application/json" };
 
-      const [resP, resS, resT] = await Promise.all([
-        fetchWithAuth(`${API}/patients?limit=500`, { headers: jsonHeaders }),
+      const [resS, resT] = await Promise.all([
         fetchWithAuth(`${API}/users/staff`, { headers: jsonHeaders }),
         fetchWithAuth(`${API}/treatments?limit=200`, { headers: jsonHeaders }),
       ]);
-      const [dataP, dataS, dataT] = await Promise.all([
-        resP.json(),
-        resS.json(),
-        resT.json(),
-      ]);
+      const [dataS, dataT] = await Promise.all([resS.json(), resT.json()]);
 
-      // Pacientes: { data: { patients: [...], pagination: {...} } }
-      const rawP =
-        dataP.data?.patients ?? dataP.data ?? dataP.patients ?? dataP;
-      setPatients(Array.isArray(rawP) ? rawP : []);
-
-      // Staff: { data: [...] }
       const rawS = dataS.data ?? dataS.users ?? dataS;
       setStaff(Array.isArray(rawS) ? rawS : []);
 
-      // Tratamientos: { data: { results: [...] } }
       const rawT = dataT.data?.results ?? dataT.data ?? dataT.results ?? dataT;
       setTreatments(
         Array.isArray(rawT) ? rawT.filter((t) => t.isActive !== false) : [],
       );
+
+      await loadPatients();
     } catch (err) {
       console.error(err);
       toast.error("Error al cargar datos. Intenta reingresar.");
@@ -114,7 +121,31 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
     }
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const term = patientSearch.trim();
+    const timer = setTimeout(() => {
+      if (term.length >= 2) {
+        loadPatients(term);
+      } else if (term.length === 0) {
+        loadPatients();
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [patientSearch, isOpen]);
+
   if (!isOpen) return null;
+
+  const term = normalize(patientSearch);
+  const digits = patientSearch.replace(/\D/g, "");
+  const filteredPatients = patients.filter((p) => {
+    const phoneDigits = (p.phone || "").replace(/\D/g, "");
+    return (
+      normalize(p.name).includes(term) ||
+      normalize(p.email || "").includes(term) ||
+      (digits.length >= 3 && phoneDigits.includes(digits))
+    );
+  });
 
   // Tratamientos de la categoría activa
   const categoryTreatments = treatments.filter(
@@ -281,37 +312,22 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
                       </div>
                       {showPatientDropdown && patientSearch.trim() && (
                         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-10 max-h-48 overflow-y-auto">
-                          {patients
-                            .filter((p) => {
-                              const term = patientSearch.toLowerCase();
-                              return (
-                                (p.name || "").toLowerCase().includes(term) ||
-                                (p.phone || "").includes(term)
-                              );
-                            })
-                            .slice(0, 8)
-                            .map((p) => (
-                              <button
-                                key={p._id}
-                                type="button"
-                                onClick={() => {
-                                  setFormData({ ...formData, patientId: p._id });
-                                  setPatientSearch(`${p.name} (${p.phone})`);
-                                  setShowPatientDropdown(false);
-                                }}
-                                className="w-full px-4 py-3 text-left text-sm hover:bg-slate-50 flex justify-between items-center border-b border-slate-100 last:border-b-0"
-                              >
-                                <span className="font-medium">{p.name}</span>
-                                <span className="text-xs text-slate-400">{p.phone}</span>
-                              </button>
-                            ))}
-                          {patients.filter((p) => {
-                            const term = patientSearch.toLowerCase();
-                            return (
-                              (p.name || "").toLowerCase().includes(term) ||
-                              (p.phone || "").includes(term)
-                            );
-                          }).length === 0 && (
+                          {filteredPatients.slice(0, 30).map((p) => (
+                            <button
+                              key={p._id}
+                              type="button"
+                              onClick={() => {
+                                setFormData({ ...formData, patientId: p._id });
+                                setPatientSearch(`${p.name} (${p.phone})`);
+                                setShowPatientDropdown(false);
+                              }}
+                              className="w-full px-4 py-3 text-left text-sm hover:bg-slate-50 flex justify-between items-center border-b border-slate-100 last:border-b-0"
+                            >
+                              <span className="font-medium">{p.name}</span>
+                              <span className="text-xs text-slate-400">{p.phone}</span>
+                            </button>
+                          ))}
+                          {filteredPatients.length === 0 && (
                             <div className="px-4 py-3 text-sm text-slate-400 text-center">
                               Sin resultados
                             </div>

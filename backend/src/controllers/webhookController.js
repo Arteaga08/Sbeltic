@@ -14,8 +14,6 @@ export const verifyWhatsAppWebhook = (req, res) => {
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
 
-  // DEBUG: Vamos a ver qué está recibiendo Node y qué tiene en memoria
-
   if (mode === "subscribe" && token === process.env.WHATSAPP_VERIFY_TOKEN) {
     return res.status(200).send(challenge);
   }
@@ -166,7 +164,10 @@ const handleCancellation = async (patient, phone) => {
     );
 
     // Notificar al siguiente candidato en waitlist (con criterio semanal)
-    await notifyNextWaitlistCandidate(upcomingAppt.doctorId, upcomingAppt.appointmentDate);
+    await notifyNextWaitlistCandidate(
+      upcomingAppt.doctorId,
+      upcomingAppt.appointmentDate,
+    );
     return;
   }
 

@@ -86,13 +86,21 @@ const getPatients = asyncHandler(async (req, res, next) => {
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 20;
   const skip = (page - 1) * limit;
+  const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+
+  const filter = { isActive: true };
+  if (search) {
+    const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(escaped, "i");
+    filter.$or = [{ name: regex }, { phone: regex }, { email: regex }];
+  }
 
   const [patients, total] = await Promise.all([
-    Patient.find({ isActive: true })
+    Patient.find(filter)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit),
-    Patient.countDocuments({ isActive: true }),
+    Patient.countDocuments(filter),
   ]);
 
   sendResponse(res, 200, {
