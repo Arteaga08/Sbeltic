@@ -164,6 +164,7 @@ const getAppointments = asyncHandler(async (req, res, next) => {
   const appointments = await Appointment.find(query)
     .populate("patientId", "name phone")
     .populate("doctorId", "name")
+    .populate("treatmentId", "name category")
     .sort({ appointmentDate: 1 });
 
   sendResponse(res, 200, appointments);

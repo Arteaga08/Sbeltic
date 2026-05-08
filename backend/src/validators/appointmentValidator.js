@@ -69,6 +69,7 @@ const updateAppointmentSchema = createAppointmentSchema
       "CANCELLED",
       "NO_SHOW",
     ]),
+    duration: z.number().int().min(15).max(480).optional(),
     couponCode: z.string().trim().toUpperCase().optional(),
     isReminderSent: z.boolean().optional(),
   })

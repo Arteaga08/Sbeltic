@@ -73,6 +73,13 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
     }
   }, [isOpen]);
 
+  // Cuando las categorías carguen y el modal esté abierto sin categoría seleccionada, seleccionar la primera
+  useEffect(() => {
+    if (isOpen && !selectedCategory && categories.length > 0) {
+      setSelectedCategory(categories[0].id);
+    }
+  }, [categories, isOpen]);
+
   // Al cambiar categoría, limpiar tratamiento seleccionado
   useEffect(() => {
     setFormData((prev) => ({ ...prev, treatmentId: "", treatmentName: "" }));

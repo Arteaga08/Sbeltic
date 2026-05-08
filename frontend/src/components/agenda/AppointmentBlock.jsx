@@ -23,7 +23,10 @@ const ROOM_SHORT = {
 
 export default function AppointmentBlock({ appointment, position, onClick }) {
   const categories = useTreatmentCategories();
-  const catId = appointment.treatmentCategory || getCategoryFromTreatment(appointment.treatmentName, categories);
+  const catId =
+    appointment.treatmentCategory ||
+    appointment.treatmentId?.category?.toUpperCase() ||
+    getCategoryFromTreatment(appointment.treatmentName, categories);
   const cat = getCategoryById(catId, categories);
   const colors = cat
     ? { bg: cat.gridBg, border: cat.gridBorder, text: "text-white" }
