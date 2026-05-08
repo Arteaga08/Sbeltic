@@ -3,17 +3,23 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import TeamModal from "@/components/modal/TeamModal";
 import DeleteModal from "@/components/modal/DeleteModal";
+import HelpButton from "@/components/help/HelpButton";
+import HelpModal from "@/components/help/HelpModal";
+import {
+  equipoHelpSteps,
+  equipoHelpMeta,
+} from "@/components/help/content/equipoHelpSteps";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 // ICONOS SELECCIONADOS
 import {
-  EnvelopeSimple,
-  Phone,
-  UserPlus,
-  MagnifyingGlass,
-  PencilSimple,
-  Trash,
+  EnvelopeSimpleIcon,
+  PhoneIcon,
+  UserPlusIcon,
+  MagnifyingGlassIcon,
+  PencilSimpleIcon,
+  TrashIcon,
 } from "@phosphor-icons/react";
 
 export default function TeamPage() {
@@ -24,6 +30,7 @@ export default function TeamPage() {
   const [editingId, setEditingId] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   // ESTADOS DE BÚSQUEDA Y FILTRO
   const [searchTerm, setSearchTerm] = useState("");
@@ -76,6 +83,20 @@ export default function TeamPage() {
       light: "bg-amber-50",
       text: "text-amber-600",
       border: "border-amber-100",
+    },
+    NURSE: {
+      label: "Enfermería",
+      color: "bg-emerald-500",
+      light: "bg-emerald-50",
+      text: "text-emerald-600",
+      border: "border-emerald-100",
+    },
+    PHYSIOTHERAPIST: {
+      label: "Fisioterapia",
+      color: "bg-fuchsia-500",
+      light: "bg-fuchsia-50",
+      text: "text-fuchsia-600",
+      border: "border-fuchsia-100",
     },
   };
 
@@ -191,9 +212,18 @@ export default function TeamPage() {
       {/* HEADER ORIGINAL */}
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
         <div className="space-y-2 text-center md:text-left">
-          <h2 className="text-4xl md:text-5xl font-extrabold italic uppercase text-slate-900 leading-none">
-            Gestión de Equipo
-          </h2>
+          <div className="flex items-center justify-center md:justify-start gap-3">
+            <h2 className="text-4xl md:text-5xl font-extrabold italic uppercase text-slate-900 leading-none">
+              Gestión de Equipo
+            </h2>
+            {/* Desktop only — next to title */}
+            <HelpButton
+              onClick={() => setIsHelpOpen(true)}
+              label="Ver ayuda de la sección Equipo"
+              className="hidden md:inline-flex"
+              size={16}
+            />
+          </div>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-label">
             Estructura organizacional Sbeltic
           </p>
@@ -209,7 +239,7 @@ export default function TeamPage() {
             }}
             className="w-full md:w-auto px-8 py-4 bg-slate-900 text-white font-black rounded-2xl hover:bg-rose-500 transition-all text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg hover:shadow-rose-500/30"
           >
-            <UserPlus size={18} weight="bold" /> ALTA DE PERSONAL
+            <UserPlusIcon size={18} weight="bold" /> ALTA DE PERSONAL
           </button>
         )}
       </header>
@@ -217,7 +247,7 @@ export default function TeamPage() {
       {/* TOOLBAR REPARADA: Grid en móvil para evitar empujes */}
       <div className="grid grid-cols-1 md:flex md:items-center gap-4 mb-8">
         <div className="relative w-full md:w-80 shrink-0">
-          <MagnifyingGlass
+          <MagnifyingGlassIcon
             size={20}
             weight="bold"
             className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"
@@ -234,7 +264,7 @@ export default function TeamPage() {
         {/* Contenedor de filtros: Scrollable pero contenido */}
         <div className="w-full md:flex-1 overflow-hidden">
           <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 md:pb-0">
-            {["ALL", "ADMIN", "RECEPTIONIST", "DOCTOR", "MARKETING"].map((r) => (
+            {["ALL", "ADMIN", "RECEPTIONIST", "DOCTOR", "MARKETING", "NURSE", "PHYSIOTHERAPIST"].map((r) => (
               <button
                 key={r}
                 onClick={() => setSelectedRole(r)}
@@ -260,6 +290,13 @@ export default function TeamPage() {
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={confirmDelete}
         userName={userToDelete?.name}
+      />
+      <HelpModal
+        isOpen={isHelpOpen}
+        onClose={() => setIsHelpOpen(false)}
+        title={equipoHelpMeta.title}
+        subtitle={equipoHelpMeta.subtitle}
+        steps={equipoHelpSteps}
       />
 
       {loading ? (
@@ -317,7 +354,7 @@ export default function TeamPage() {
                         </div>
                         <div className="space-y-2 border-t border-slate-50 pt-4 text-xs text-slate-500 font-medium">
                           <div className="flex items-center gap-2 truncate">
-                            <EnvelopeSimple
+                            <EnvelopeSimpleIcon
                               size={14}
                               weight="bold"
                               className="shrink-0"
@@ -325,7 +362,7 @@ export default function TeamPage() {
                             <span className="truncate">{user.email}</span>
                           </div>
                           <div className="flex items-center gap-2 font-bold text-slate-800 truncate">
-                            <Phone
+                            <PhoneIcon
                               size={14}
                               weight="bold"
                               className="shrink-0"
@@ -346,7 +383,7 @@ export default function TeamPage() {
                             onClick={() => handleEditClick(user)}
                             className={`flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors ${config.light} ${config.text} hover:bg-slate-900 hover:text-white`}
                           >
-                            <PencilSimple size={14} weight="bold" /> Edit
+                            <PencilSimpleIcon size={14} weight="bold" /> Edit
                           </button>
 
                           {/* DELETE: Solo visible para ADMIN */}
@@ -355,7 +392,7 @@ export default function TeamPage() {
                               onClick={() => handleDeleteClick(user)}
                               className="flex items-center justify-center gap-1.5 px-4 py-3 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-black uppercase hover:bg-rose-600 hover:text-white transition-colors"
                             >
-                              <Trash size={14} weight="bold" /> Del
+                              <TrashIcon size={14} weight="bold" /> Del
                             </button>
                           )}
                         </div>

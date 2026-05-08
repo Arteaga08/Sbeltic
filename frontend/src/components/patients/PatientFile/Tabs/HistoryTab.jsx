@@ -81,7 +81,7 @@ const HistoryTab = ({ patient, userRole, onUpdate, onClose }) => {
     if (patient) setFormData(mergePatient(patient));
   }, [patient]);
 
-  const canEdit = ["DOCTOR", "ADMIN", "RECEPTIONIST"].includes(userRole);
+  const canEdit = ["DOCTOR", "ADMIN", "RECEPTIONIST", "NURSE", "PHYSIOTHERAPIST"].includes(userRole);
   const isDeepProfile = ["SURGERY", "INJECTION", "LEAD", "POST_OP"].includes(
     formData.patientType,
   );

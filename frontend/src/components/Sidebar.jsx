@@ -18,21 +18,21 @@ const MENU_ITEMS = [
     name: "Inicio",
     path: "/",
     icon: <House size={24} weight="duotone" />,
-    roles: ["ADMIN", "RECEPTIONIST"],
+    roles: ["ADMIN", "RECEPTIONIST", "NURSE", "PHYSIOTHERAPIST"],
     activeColor: "text-indigo-600",
   },
   {
     name: "Agenda",
     path: "/agenda",
     icon: <CalendarCheck size={24} weight="duotone" />,
-    roles: ["ADMIN", "RECEPTIONIST", "MARKETING"],
+    roles: ["ADMIN", "RECEPTIONIST", "MARKETING", "NURSE", "PHYSIOTHERAPIST"],
     activeColor: "text-purple-600",
   },
   {
     name: "Pacientes",
     path: "/patients",
     icon: <Users size={24} weight="duotone" />,
-    roles: ["ADMIN", "RECEPTIONIST"],
+    roles: ["ADMIN", "RECEPTIONIST", "NURSE", "PHYSIOTHERAPIST"],
     activeColor: "text-rose-600",
   },
   {
@@ -46,7 +46,7 @@ const MENU_ITEMS = [
     name: "Inventario",
     path: "/inventory",
     icon: <Package size={24} weight="duotone" />,
-    roles: ["ADMIN", "RECEPTIONIST"],
+    roles: ["ADMIN", "RECEPTIONIST", "NURSE"],
     activeColor: "text-emerald-600",
   },
   {
@@ -63,6 +63,8 @@ const ROLE_LABEL = {
   RECEPTIONIST: "Recepción",
   DOCTOR: "Doctor",
   MARKETING: "Marketing",
+  NURSE: "Enfermería",
+  PHYSIOTHERAPIST: "Fisioterapia",
 };
 
 export default function Sidebar() {

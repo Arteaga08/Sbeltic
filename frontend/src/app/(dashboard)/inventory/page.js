@@ -4,6 +4,9 @@ import { FirstAidKit, Tote, ArrowLeft, Plus, Tag } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import HelpButton from "@/components/help/HelpButton";
+import HelpModal from "@/components/help/HelpModal";
+import { inventoryHelpSteps, inventoryHelpMeta } from "@/components/help/content/inventoryHelpSteps";
 import UrgentAlerts from "@/components/inventory/UrgentAlerts";
 import InventoryWidget from "@/components/inventory/InventoryWidget";
 import NewProductModal from "@/components/modal/NewProductModal";
@@ -20,6 +23,7 @@ export default function InventoryPage() {
   const [productToEdit, setProductToEdit] = useState(null);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -88,9 +92,16 @@ export default function InventoryPage() {
       <div className="p-4 md:p-8 pb-24 md:pb-8 max-w-full overflow-x-hidden">
         <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-8 md:mb-12">
           <div className="space-y-2 text-center md:text-left">
-            <h2 className="text-4xl md:text-5xl font-extrabold italic uppercase text-slate-900 leading-none">
-              INVENTARIO
-            </h2>
+            <div className="flex items-center justify-center md:justify-start gap-3">
+              <h2 className="text-4xl md:text-5xl font-extrabold italic uppercase text-slate-900 leading-none">
+                INVENTARIO
+              </h2>
+              <HelpButton
+                onClick={() => setIsHelpOpen(true)}
+                label="Ver ayuda de la sección Inventario"
+                size={16}
+              />
+            </div>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
               PANEL CENTRAL DE SBELTIC
             </p>
@@ -134,6 +145,14 @@ export default function InventoryPage() {
             </p>
           </button>
         </div>
+
+        <HelpModal
+          isOpen={isHelpOpen}
+          onClose={() => setIsHelpOpen(false)}
+          title={inventoryHelpMeta.title}
+          subtitle={inventoryHelpMeta.subtitle}
+          steps={inventoryHelpSteps}
+        />
       </div>
     );
   }
@@ -152,11 +171,18 @@ export default function InventoryPage() {
             <ArrowLeft size={16} weight="bold" /> Volver al Hub
           </button>
           <div className="w-full">
-            <h2
-              className={`text-4xl md:text-5xl font-extrabold italic uppercase leading-none ${isMedical ? "text-indigo-900" : "text-emerald-900"}`}
-            >
-              {isMedical ? "Insumos" : "Retail"}
-            </h2>
+            <div className="flex items-center gap-3">
+              <h2
+                className={`text-4xl md:text-5xl font-extrabold italic uppercase leading-none ${isMedical ? "text-indigo-900" : "text-emerald-900"}`}
+              >
+                {isMedical ? "Insumos" : "Retail"}
+              </h2>
+              <HelpButton
+                onClick={() => setIsHelpOpen(true)}
+                label="Ver ayuda de la sección Inventario"
+                size={16}
+              />
+            </div>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">
               Gestión específica de {isMedical ? "clínica" : "ventas"}
             </p>
@@ -223,6 +249,14 @@ export default function InventoryPage() {
         onRefresh={() => {
           fetchProducts();
         }}
+      />
+
+      <HelpModal
+        isOpen={isHelpOpen}
+        onClose={() => setIsHelpOpen(false)}
+        title={inventoryHelpMeta.title}
+        subtitle={inventoryHelpMeta.subtitle}
+        steps={inventoryHelpSteps}
       />
     </div>
   );

@@ -124,6 +124,8 @@ export default function TeamModal({
               <option value="RECEPTIONIST">RECEPTIONIST</option>
               <option value="DOCTOR">DOCTOR</option>
               <option value="MARKETING">MARKETING</option>
+              <option value="NURSE">ENFERMERÍA</option>
+              <option value="PHYSIOTHERAPIST">FISIOTERAPIA</option>
             </select>
           </div>
 

@@ -288,7 +288,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
               {apptDate} · {apptTime} · {appointment.roomId?.replace("_", " ")}
             </p>
-            <h2 className="text-xl font-black text-slate-900 leading-tight mt-0.5">
+            <h2 className="text-xl font-black text-slate-900 leading-tight mt-0.5 uppercase">
               {patient.name || "Paciente"}
             </h2>
             <p className="text-sm text-slate-500">{appointment.treatmentName}</p>
@@ -326,7 +326,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
             <div className="space-y-5">
               {/* Info paciente */}
               <div className="bg-slate-50 rounded-3xl p-4 space-y-1">
-                <p className="text-lg font-black text-slate-900">{patient.name || "—"}</p>
+                <p className="text-lg font-black text-slate-900 uppercase">{patient.name || "—"}</p>
                 <p className="text-sm text-slate-500">{patient.phone || "Sin teléfono"}</p>
                 <p className="text-sm text-slate-500">{patient.email || "Sin email"}</p>
               </div>

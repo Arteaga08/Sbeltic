@@ -107,7 +107,7 @@ const EvolutionPDF = ({ patient, evolution }) => (
         <View style={styles.row}>
           <View style={styles.field}>
             <Text style={styles.label}>Nombre</Text>
-            <Text style={styles.value}>{patient.name}</Text>
+            <Text style={styles.value}>{patient.name?.toUpperCase()}</Text>
           </View>
           <View style={styles.field}>
             <Text style={styles.label}>Edad</Text>
@@ -164,7 +164,7 @@ const EvolutionPDF = ({ patient, evolution }) => (
             />
           )}
           <Text style={styles.label}>Firma del Paciente</Text>
-          <Text style={styles.value}>{patient.name}</Text>
+          <Text style={styles.value}>{patient.name?.toUpperCase()}</Text>
         </View>
       </View>
 

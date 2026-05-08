@@ -26,7 +26,7 @@ router
   .route("/")
   .get(getProducts)
   .post(
-    authorizeRole("ADMIN", "RECEPTIONIST"),
+    authorizeRole("ADMIN", "RECEPTIONIST", "NURSE"),
     validateSchema({ body: createProductSchema }),
     createProduct,
   );
@@ -38,13 +38,13 @@ router
   .route("/:id")
   .get(validateObjectId, getProductById)
   .put(
-    authorizeRole("ADMIN", "RECEPTIONIST"),
+    authorizeRole("ADMIN", "RECEPTIONIST", "NURSE"),
     validateObjectId,
     validateSchema({ body: updateProductSchema }),
     updateProduct,
   )
   .delete(
-    authorizeRole("ADMIN", "RECEPTIONIST"),
+    authorizeRole("ADMIN", "RECEPTIONIST", "NURSE"),
     validateObjectId,
     deleteProduct, // Soft Delete (isActive: false)
   );

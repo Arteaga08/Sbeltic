@@ -35,7 +35,7 @@ router.get("/profile", checkAuth, getProfile);
 router.get(
   "/staff",
   checkAuth,
-  authorizeRole("ADMIN", "RECEPTIONIST", "DOCTOR"),
+  authorizeRole("ADMIN", "RECEPTIONIST", "DOCTOR", "NURSE", "PHYSIOTHERAPIST"),
   getStaffForAppointments,
 );
 

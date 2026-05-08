@@ -58,7 +58,7 @@ const getUsers = asyncHandler(async (req, res, next) => {
 const getStaffForAppointments = asyncHandler(async (req, res, next) => {
   const staff = await User.find({
     isActive: true,
-    role: { $in: ["ADMIN", "RECEPTIONIST", "DOCTOR"] },
+    role: { $in: ["ADMIN", "RECEPTIONIST", "DOCTOR", "NURSE", "PHYSIOTHERAPIST"] },
   })
     .select("_id name role")
     .sort({ name: 1 });

@@ -7,6 +7,7 @@ import {
   Plus,
   CaretDownIcon,
 } from "@phosphor-icons/react";
+import HelpButton from "@/components/help/HelpButton";
 
 const ROOMS = [
   { value: "ALL", label: "Todas las cabinas" },
@@ -51,6 +52,7 @@ export default function AgendaHeader({
   filterDoctor,
   onFilterDoctor,
   onNewAppointment,
+  onHelp,
   isReadOnly = false,
 }) {
   const weekStartValue =
@@ -85,9 +87,16 @@ export default function AgendaHeader({
     <header className="bg-white border-b border-slate-200 px-4 md:px-6 xl:px-10 2xl:px-14 shrink-0 z-30">
       {/* ── Fila 1 (móvil): Título + CTA ── */}
       <div className="flex items-center justify-between py-2 md:hidden">
-        <h1 className="text-lg font-black italic uppercase text-slate-900">
-          Agenda
-        </h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg font-black italic uppercase text-slate-900">
+            Agenda
+          </h1>
+          <HelpButton
+            onClick={onHelp}
+            label="Ver ayuda de la sección Agenda"
+            size={14}
+          />
+        </div>
         {!isReadOnly && (
           <button
             onClick={onNewAppointment}
@@ -132,9 +141,17 @@ export default function AgendaHeader({
 
       {/* ── Fila única desktop ── */}
       <div className="hidden md:flex items-center gap-3 py-3">
-        <h1 className="text-xl font-black italic uppercase text-slate-900 mr-2">
-          Agenda
-        </h1>
+        <div className="flex items-center gap-2 mr-2">
+          <h1 className="text-xl font-black italic uppercase text-slate-900">
+            Agenda
+          </h1>
+          <HelpButton
+            onClick={onHelp}
+            label="Ver ayuda de la sección Agenda"
+            className="hidden md:inline-flex"
+            size={16}
+          />
+        </div>
 
         {/* Navegador de semana */}
         <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-2xl p-1">

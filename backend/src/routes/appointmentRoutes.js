@@ -17,7 +17,7 @@ import {
 import { paramsIdSchema } from "../validators/common.js";
 
 const router = express.Router();
-const staff = ["ADMIN", "RECEPTIONIST", "DOCTOR"];
+const staff = ["ADMIN", "RECEPTIONIST", "DOCTOR", "NURSE", "PHYSIOTHERAPIST"];
 
 router.use(checkAuth);
 

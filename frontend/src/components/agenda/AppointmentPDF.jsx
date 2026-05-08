@@ -110,7 +110,7 @@ export default function AppointmentPDF({ appointment, form }) {
           <View style={styles.row}>
             <View style={styles.field}>
               <Text style={styles.label}>Nombre</Text>
-              <Text style={styles.value}>{patient.name || "—"}</Text>
+              <Text style={styles.value}>{patient.name?.toUpperCase() || "—"}</Text>
             </View>
             <View style={styles.field}>
               <Text style={styles.label}>Teléfono</Text>

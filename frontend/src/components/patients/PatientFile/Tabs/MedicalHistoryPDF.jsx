@@ -462,7 +462,7 @@ const MedicalHistoryPDF = ({ patient }) => {
             <View style={styles.signatureBox}>
               <Image src={patient.historySignature} style={styles.signatureImg} />
               <Text style={styles.label}>Firma del Paciente</Text>
-              <Text style={styles.value}>{patient.name}</Text>
+              <Text style={styles.value}>{patient.name?.toUpperCase()}</Text>
             </View>
           </View>
         )}

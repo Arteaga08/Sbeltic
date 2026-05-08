@@ -40,7 +40,7 @@ export default function AppointmentCard({ appointment }) {
 
       <div className="mb-6">
         {/* Usamos el .populate() que ya tienes en el controlador */}
-        <p className="text-lg font-bold text-slate-800">
+        <p className="text-lg font-bold text-slate-800 uppercase">
           {appointment.patientId?.name || "Sin Paciente"}
         </p>
         <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">

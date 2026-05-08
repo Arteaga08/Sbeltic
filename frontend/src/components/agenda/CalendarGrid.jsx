@@ -142,7 +142,7 @@ function DayColumn({ appointments, filterRoom, onAppointmentClick, currentTimeTo
           className={`absolute w-full border-b ${
             disabled
               ? "border-slate-200"
-              : i % 2 === 0 ? "border-slate-200" : "border-dashed border-slate-100"
+              : i % 2 === 0 ? "border-slate-200" : "border-dashed border-slate-200"
           }`}
           style={{ top: i * slotHeight, height: slotHeight }}
         />

@@ -10,6 +10,8 @@ import NewAppointmentModal from "@/components/modal/NewAppointmentModal";
 import { getCategoryFromTreatment } from "@/lib/treatmentCategories";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { ListBullets } from "@phosphor-icons/react";
+import HelpModal from "@/components/help/HelpModal";
+import { agendaHelpSteps, agendaHelpMeta } from "@/components/help/content/agendaHelpSteps";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -37,6 +39,7 @@ export default function AgendaPage() {
   const [upcomingSurgeries, setUpcomingSurgeries] = useState([]);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [userRole, setUserRole] = useState("");
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -234,6 +237,7 @@ export default function AgendaPage() {
         filterDoctor={filterDoctor}
         onFilterDoctor={setFilterDoctor}
         onNewAppointment={() => setIsNewModalOpen(true)}
+        onHelp={() => setIsHelpOpen(true)}
         isReadOnly={isReadOnly}
       />
 
@@ -297,6 +301,14 @@ export default function AgendaPage() {
           onSave={handleSaveNewAppointment}
         />
       )}
+
+      <HelpModal
+        isOpen={isHelpOpen}
+        onClose={() => setIsHelpOpen(false)}
+        title={agendaHelpMeta.title}
+        subtitle={agendaHelpMeta.subtitle}
+        steps={agendaHelpSteps}
+      />
     </div>
   );
 }

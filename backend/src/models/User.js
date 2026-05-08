@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true, select: false },
     role: {
       type: String,
-      enum: ["ADMIN", "RECEPTIONIST", "DOCTOR", "MARKETING"],
+      enum: ["ADMIN", "RECEPTIONIST", "DOCTOR", "MARKETING", "NURSE", "PHYSIOTHERAPIST"],
       default: "RECEPTIONIST",
     },
     phone: String,

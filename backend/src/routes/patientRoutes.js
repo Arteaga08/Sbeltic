@@ -31,7 +31,7 @@ console.log("🔍 DEBUG - validateSchema es:", typeof validateSchema);
 
 // Todos los roles del staff pueden ver/crear pacientes
 router.use(checkAuth);
-router.use(authorizeRole("ADMIN", "RECEPTIONIST", "DOCTOR"));
+router.use(authorizeRole("ADMIN", "RECEPTIONIST", "DOCTOR", "NURSE", "PHYSIOTHERAPIST"));
 
 router
   .route("/")

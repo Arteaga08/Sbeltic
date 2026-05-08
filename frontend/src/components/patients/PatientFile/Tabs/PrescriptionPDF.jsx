@@ -134,7 +134,7 @@ const PrescriptionPDF = ({ patient, prescription }) => {
           <View style={styles.row}>
             <View style={[styles.field, { flex: 2 }]}>
               <Text style={styles.label}>Nombre completo</Text>
-              <Text style={styles.value}>{patient.name}</Text>
+              <Text style={styles.value}>{patient.name?.toUpperCase()}</Text>
             </View>
             <View style={[styles.field, { flex: 1 }]}>
               <Text style={styles.label}>Edad</Text>

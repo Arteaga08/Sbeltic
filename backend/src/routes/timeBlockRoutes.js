@@ -17,7 +17,7 @@ router.use(checkAuth);
 router
   .route("/")
   .post(
-    authorizeRole("ADMIN", "RECEPTIONIST", "DOCTOR"),
+    authorizeRole("ADMIN", "RECEPTIONIST", "DOCTOR", "NURSE", "PHYSIOTHERAPIST"),
     validateSchema({ body: createTimeBlockSchema }),
     addTimeBlock,
   )
@@ -26,7 +26,7 @@ router
 router
   .route("/:id")
   .delete(
-    authorizeRole("ADMIN", "RECEPTIONIST", "DOCTOR"),
+    authorizeRole("ADMIN", "RECEPTIONIST", "DOCTOR", "NURSE", "PHYSIOTHERAPIST"),
     validateSchema({ params: paramsIdSchema }),
     deleteTimeBlock,
   );

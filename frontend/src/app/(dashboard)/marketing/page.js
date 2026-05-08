@@ -19,12 +19,16 @@ import { toast } from "sonner";
 import CouponBuilderModal from "@/components/marketing/modals/CouponBuilderModal";
 import CampaignCard from "@/components/marketing/shared/CampaignCard";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import HelpButton from "@/components/help/HelpButton";
+import HelpModal from "@/components/help/HelpModal";
+import { marketingHelpSteps, marketingHelpMeta } from "@/components/help/content/marketingHelpSteps";
 
 export default function MarketingPage() {
   const [currentView, setCurrentView] = useState("DASHBOARD");
   const [selectedCategory, setSelectedCategory] = useState("WELCOME");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [couponToEdit, setCouponToEdit] = useState(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const [campaigns, setCampaigns] = useState([]);
   const [loadingCampaigns, setLoadingCampaigns] = useState(false);
@@ -163,11 +167,18 @@ export default function MarketingPage() {
               <CaretLeft size={16} weight="bold" /> Volver al Dashboard
             </button>
           )}
-          <h2 className="text-4xl md:text-6xl font-extrabold italic uppercase text-slate-900 leading-none">
-            {currentView === "DASHBOARD"
-              ? "Marketing"
-              : activeCategoryData.label}
-          </h2>
+          <div className="flex items-center justify-center md:justify-start gap-3">
+            <h2 className="text-4xl md:text-6xl font-extrabold italic uppercase text-slate-900 leading-none">
+              {currentView === "DASHBOARD"
+                ? "Marketing"
+                : activeCategoryData.label}
+            </h2>
+            <HelpButton
+              onClick={() => setIsHelpOpen(true)}
+              label="Ver ayuda de la sección Marketing"
+              size={16}
+            />
+          </div>
           <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-label">
             {currentView === "DASHBOARD"
               ? "Gestión de Lealtad y Campañas"
@@ -321,6 +332,14 @@ export default function MarketingPage() {
         }}
         onRefresh={fetchCampaigns}
         coupon={couponToEdit}
+      />
+
+      <HelpModal
+        isOpen={isHelpOpen}
+        onClose={() => setIsHelpOpen(false)}
+        title={marketingHelpMeta.title}
+        subtitle={marketingHelpMeta.subtitle}
+        steps={marketingHelpSteps}
       />
     </div>
   );

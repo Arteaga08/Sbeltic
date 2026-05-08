@@ -9,6 +9,9 @@ import NewPatientModal from "@/components/patients/NewPatientModal";
 import PatientFileModal from "@/components/patients/PatientFile";
 import TreatmentManagerModal from "@/components/patients/TreatmentManagerModal";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import HelpButton from "@/components/help/HelpButton";
+import HelpModal from "@/components/help/HelpModal";
+import { pacientesHelpSteps, pacientesHelpMeta } from "@/components/help/content/pacientesHelpSteps";
 
 const categoryNames = {
   ALL: "Directorio",
@@ -32,6 +35,7 @@ export default function PatientsPage() {
   const [isFileModalOpen, setIsFileModalOpen] = useState(false);
   const [selectedPatientId, setSelectedPatientId] = useState(null);
   const [isTreatmentModalOpen, setIsTreatmentModalOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const fetchPatients = async () => {
     try {
@@ -93,11 +97,19 @@ export default function PatientsPage() {
               <CaretLeft size={14} weight="bold" /> Volver al Directorio
             </button>
           )}
-          <h2 className="text-4xl md:text-5xl font-extrabold italic uppercase text-slate-900 leading-none">
-            {currentView === "DASHBOARD"
-              ? "Directorio"
-              : categoryNames[selectedCategory]}
-          </h2>
+          <div className="flex items-center justify-center md:justify-start gap-3">
+            <h2 className="text-4xl md:text-5xl font-extrabold italic uppercase text-slate-900 leading-none">
+              {currentView === "DASHBOARD"
+                ? "Directorio"
+                : categoryNames[selectedCategory]}
+            </h2>
+            <HelpButton
+              onClick={() => setIsHelpOpen(true)}
+              label="Ver ayuda de la sección Pacientes"
+              className="hidden md:inline-flex"
+              size={16}
+            />
+          </div>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-label">
             {currentView === "DASHBOARD"
               ? "Gestión de Pacientes Sbeltic"
@@ -183,6 +195,14 @@ export default function PatientsPage() {
       <TreatmentManagerModal
         isOpen={isTreatmentModalOpen}
         onClose={() => setIsTreatmentModalOpen(false)}
+      />
+
+      <HelpModal
+        isOpen={isHelpOpen}
+        onClose={() => setIsHelpOpen(false)}
+        title={pacientesHelpMeta.title}
+        subtitle={pacientesHelpMeta.subtitle}
+        steps={pacientesHelpSteps}
       />
     </div>
   );
