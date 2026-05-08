@@ -4,10 +4,8 @@ import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
-import {
-  TREATMENT_CATEGORIES,
-  getCategoryById,
-} from "@/lib/treatmentCategories";
+import { useTreatmentCategories } from "@/context/TreatmentCategoriesContext";
+import { getCategoryById } from "@/lib/treatmentCategories";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -25,8 +23,9 @@ function formatDuration(mins) {
 
 export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
   useScrollLock(isOpen);
+  const categories = useTreatmentCategories();
   const [isNewPatient, setIsNewPatient] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("CIRUGIA");
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
   const [formData, setFormData] = useState({
     patientId: "",
@@ -53,7 +52,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
   useEffect(() => {
     if (isOpen) {
       setIsNewPatient(false);
-      setSelectedCategory("CIRUGIA");
+      setSelectedCategory(categories[0]?.id ?? null);
       setPatientSearch("");
       setShowPatientDropdown(false);
       setFormData({
@@ -240,7 +239,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
                   Área de Atención
                 </label>
                 <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                  {TREATMENT_CATEGORIES.map((cat) => (
+                  {categories.map((cat) => (
                     <button
                       key={cat.id}
                       type="button"
@@ -395,7 +394,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
                 {/* Tratamiento — desde DB */}
                 <div className="space-y-2 md:col-span-3 lg:col-span-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">
-                    Tratamiento — {getCategoryById(selectedCategory).label}
+                    Tratamiento — {getCategoryById(selectedCategory, categories)?.label ?? ""}
                   </label>
                   {categoryTreatments.length === 0 ? (
                     <p className="w-full p-3 rounded-xl border border-dashed border-slate-200 text-xs text-slate-400 font-bold text-center">

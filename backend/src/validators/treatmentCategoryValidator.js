@@ -15,6 +15,10 @@ const createTreatmentCategorySchema = z
     botFlow: z.enum(BOT_FLOWS).default("NONE"),
     colorClass: z.string().trim().optional(),
     dotClass: z.string().trim().optional(),
+    gridBg: z.string().trim().optional(),
+    gridBorder: z.string().trim().optional(),
+    unselectedClass: z.string().trim().optional(),
+    keywords: z.array(z.string().trim()).default([]),
     isActive: z.boolean().default(true),
   })
   .strict();

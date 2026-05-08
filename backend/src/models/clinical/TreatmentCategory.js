@@ -42,11 +42,23 @@ const treatmentCategorySchema = new mongoose.Schema(
       default: "NONE",
     },
 
-    /** Clase Tailwind para el tab activo en el frontend (ej: "bg-blue-500 text-white") */
+    /** Clase Tailwind para el tab activo en el frontend (ej: "bg-blue-500 text-white shadow-blue-200") */
     colorClass: { type: String, trim: true },
 
     /** Clase Tailwind para el punto de color en listas (ej: "bg-blue-500") */
     dotClass: { type: String, trim: true },
+
+    /** Clase Tailwind para el fondo del bloque en el calendario (ej: "bg-blue-500") */
+    gridBg: { type: String, trim: true },
+
+    /** Clase Tailwind para el borde del bloque en el calendario (ej: "border-blue-600") */
+    gridBorder: { type: String, trim: true },
+
+    /** Clase Tailwind para el botón de categoría no seleccionado (ej: "bg-blue-50 text-blue-400 hover:bg-blue-100") */
+    unselectedClass: { type: String, trim: true },
+
+    /** Keywords para auto-match por nombre de tratamiento (en mayúsculas) */
+    keywords: { type: [String], default: [] },
 
     isActive: { type: Boolean, default: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },

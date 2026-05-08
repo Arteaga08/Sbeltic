@@ -1,5 +1,6 @@
 "use client";
 
+import { useTreatmentCategories } from "@/context/TreatmentCategoriesContext";
 import { getCategoryById, getCategoryFromTreatment } from "@/lib/treatmentCategories";
 
 const STATUS_DOT = {
@@ -21,9 +22,12 @@ const ROOM_SHORT = {
 };
 
 export default function AppointmentBlock({ appointment, position, onClick }) {
-  const catId = appointment.treatmentCategory || getCategoryFromTreatment(appointment.treatmentName);
-  const cat = getCategoryById(catId);
-  const colors = { bg: cat.gridBg, border: cat.gridBorder, text: "text-white" };
+  const categories = useTreatmentCategories();
+  const catId = appointment.treatmentCategory || getCategoryFromTreatment(appointment.treatmentName, categories);
+  const cat = getCategoryById(catId, categories);
+  const colors = cat
+    ? { bg: cat.gridBg, border: cat.gridBorder, text: "text-white" }
+    : { bg: "bg-slate-400", border: "border-slate-500", text: "text-white" };
 
   const { top, height, colIdx = 0, totalCols = 1 } = position;
   const leftPct = (colIdx / totalCols) * 100;
