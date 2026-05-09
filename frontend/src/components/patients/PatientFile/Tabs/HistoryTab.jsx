@@ -271,6 +271,28 @@ const HistoryTab = ({ patient, userRole, onUpdate, onClose }) => {
       <div
         className={`${!isEditing ? "pointer-events-none opacity-90" : "pointer-events-auto"} space-y-12`}
       >
+        {/* ✅ CONSENTIMIENTO INFORMADO */}
+        <div className="border-t border-slate-100 pt-6">
+          <label className="flex items-start gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-indigo-50/40 transition-colors group">
+            <input
+              type="checkbox"
+              checked={formData.consentGiven || false}
+              onChange={(e) =>
+                setFormData((d) => ({ ...d, consentGiven: e.target.checked }))
+              }
+              className="mt-0.5 w-4 h-4 accent-indigo-600 cursor-pointer shrink-0"
+            />
+            <div>
+              <p className="text-xs font-black text-slate-700 group-hover:text-indigo-700 transition-colors">
+                Consentimiento informado firmado en papel
+              </p>
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                El paciente fue informado y firmó la documentación física requerida
+              </p>
+            </div>
+          </label>
+        </div>
+
         {/* ... Resto del componente original de Categorías y Secciones ... */}
         <section className="bg-slate-50/50 p-6 md:p-8 rounded-modal border border-slate-100">
           <header className="flex items-center gap-3 mb-6">
@@ -366,27 +388,6 @@ const HistoryTab = ({ patient, userRole, onUpdate, onClose }) => {
         </section>
       </div>
 
-      {/* ✅ CONSENTIMIENTO INFORMADO */}
-      <div className="border-t border-slate-100 pt-6">
-        <label className="flex items-start gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-indigo-50/40 transition-colors group">
-          <input
-            type="checkbox"
-            checked={formData.consentGiven || false}
-            onChange={(e) =>
-              setFormData((d) => ({ ...d, consentGiven: e.target.checked }))
-            }
-            className="mt-0.5 w-4 h-4 accent-indigo-600 cursor-pointer shrink-0"
-          />
-          <div>
-            <p className="text-xs font-black text-slate-700 group-hover:text-indigo-700 transition-colors">
-              Consentimiento informado firmado en papel
-            </p>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-              El paciente fue informado y firmó la documentación física requerida
-            </p>
-          </div>
-        </label>
-      </div>
     </div>
   );
 };

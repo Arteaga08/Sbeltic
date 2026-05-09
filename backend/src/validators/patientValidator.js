@@ -31,6 +31,7 @@ const createPatientSchema = z.object({
   walletBalance: z.coerce.number().optional(),
   referralCode: z.string().optional(),
   isActive: z.boolean().optional(),
+  consentGiven: z.boolean().optional(),
   
   dateOfBirth: z.coerce.date().nullish(),
   birthDate: z.string().or(z.literal("")).nullish(),
