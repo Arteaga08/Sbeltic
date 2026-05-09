@@ -10,6 +10,7 @@ import SignatureTab from "./Tabs/SignatureTab";
 import CouponsTab from "./Tabs/CouponsTab";
 import PostOpNotesTab from "./Tabs/PostOpNotesTab";
 import PrescriptionsTab from "./Tabs/PrescriptionsTab";
+import PhotosTab from "./Tabs/PhotosTab";
 import { toast } from "sonner";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
@@ -75,6 +76,7 @@ const PatientFileModal = ({ isOpen, patientId, onClose, onUpdate }) => {
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             onClose={onClose}
+            userRole={currentUserRole}
           />
 
           <div className="flex-1 overflow-y-auto p-4 md:p-10 scrollbar-hide">
@@ -124,6 +126,13 @@ const PatientFileModal = ({ isOpen, patientId, onClose, onUpdate }) => {
                 )}
                 {activeTab === "coupons" && (
                   <CouponsTab patient={patient} />
+                )}
+                {activeTab === "photos" && currentUserRole === "ADMIN" && (
+                  <PhotosTab
+                    patient={patient}
+                    userRole={currentUserRole}
+                    onUpdate={fetchPatientData}
+                  />
                 )}
               </div>
             )}

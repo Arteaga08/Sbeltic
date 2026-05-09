@@ -16,6 +16,9 @@ import {
   addPrescription,
   requestSignatureToken,
   generateMedicalHistoryToken,
+  uploadPatientPhoto,
+  deletePatientPhoto,
+  streamPatientPhoto,
 } from "../controllers/patientController.js";
 import {
   createPatientSchema,
@@ -23,7 +26,11 @@ import {
   createEvolutionSchema,
   createPostOpNoteSchema,
   createPrescriptionSchema,
+  uploadPhotoBodySchema,
+  photoFilenameSchema,
+  photoIdParamsSchema,
 } from "../validators/patientValidator.js";
+import uploadPhoto from "../middlewares/uploadPhoto.js";
 
 const router = express.Router();
 console.log("🔍 DEBUG - createPatient es:", typeof createPatient);
@@ -66,6 +73,29 @@ router.post(
   authorizeRole("DOCTOR", "ADMIN"),
   validateSchema({ params: paramsIdSchema, body: createPrescriptionSchema }),
   addPrescription,
+);
+
+// 📸 Fotos antes/después — SOLO ADMIN puede subir, ver archivos y eliminar
+router.post(
+  "/:id/photos",
+  authorizeRole("ADMIN"),
+  uploadPhoto,
+  validateSchema({ params: paramsIdSchema, body: uploadPhotoBodySchema }),
+  uploadPatientPhoto,
+);
+
+router.delete(
+  "/:id/photos/:photoId",
+  authorizeRole("ADMIN"),
+  validateSchema({ params: photoIdParamsSchema }),
+  deletePatientPhoto,
+);
+
+router.get(
+  "/:id/photos/file/:filename",
+  authorizeRole("ADMIN"),
+  validateSchema({ params: photoFilenameSchema }),
+  streamPatientPhoto,
 );
 
 // Generar token temporal para link de firma (botón WhatsApp del frontend)

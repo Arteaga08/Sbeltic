@@ -4,6 +4,11 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendResponse } from "../utils/responseHandler.js";
 import { generateSignatureToken } from "./publicController.js";
 import { sendWhatsAppMessage } from "../services/whatsappService.js";
+import {
+  processPhoto,
+  deletePhotoFiles,
+  resolvePhotoFilePath,
+} from "../services/photoProcessor.js";
 
 // Alias para mantener compatibilidad con las llamadas existentes
 const sendWA = sendWhatsAppMessage;
@@ -277,6 +282,72 @@ const generateMedicalHistoryToken = asyncHandler(async (req, res, next) => {
   sendResponse(res, 200, { signLink }, "Enlace de historial médico generado");
 });
 
+// 📸 Subir foto antes/después (solo ADMIN). Multipart con campo "file" + body validado por zod.
+const uploadPatientPhoto = asyncHandler(async (req, res, next) => {
+  if (!req.file) return next(new AppError("Archivo requerido", 400));
+
+  const patient = await Patient.findById(req.params.id);
+  if (!patient || !patient.isActive)
+    return next(new AppError("Paciente no encontrado", 404));
+
+  let written;
+  try {
+    written = await processPhoto(req.file.buffer, patient._id);
+
+    patient.photos.push({
+      type: req.body.type,
+      date: req.body.date,
+      caption: req.body.caption || "",
+      webUrl: written.webUrl,
+      thumbUrl: written.thumbUrl,
+      uploadedBy: req.user._id,
+    });
+
+    await patient.save();
+    const created = patient.photos[patient.photos.length - 1];
+    sendResponse(res, 201, created, "Foto registrada correctamente");
+  } catch (err) {
+    if (written) {
+      await deletePhotoFiles(patient._id, written.webUrl, written.thumbUrl);
+    }
+    return next(err);
+  }
+});
+
+// 📸 Eliminar foto (solo ADMIN). Borra de Mongo y del disco.
+const deletePatientPhoto = asyncHandler(async (req, res, next) => {
+  const patient = await Patient.findById(req.params.id);
+  if (!patient || !patient.isActive)
+    return next(new AppError("Paciente no encontrado", 404));
+
+  const photo = patient.photos.id(req.params.photoId);
+  if (!photo) return next(new AppError("Foto no encontrada", 404));
+
+  const { webUrl, thumbUrl } = photo;
+  patient.photos.pull({ _id: req.params.photoId });
+  await patient.save();
+  await deletePhotoFiles(patient._id, webUrl, thumbUrl);
+
+  sendResponse(res, 200, null, "Foto eliminada correctamente");
+});
+
+// 📸 Servir archivo de foto (solo ADMIN). Valida que pertenezca al paciente para anti-enumeración.
+const streamPatientPhoto = asyncHandler(async (req, res, next) => {
+  const { id, filename } = req.params;
+  const patient = await Patient.findById(id).select("photos isActive");
+  if (!patient || !patient.isActive)
+    return next(new AppError("Paciente no encontrado", 404));
+
+  const ownsFile = patient.photos.some(
+    (p) => p.webUrl.endsWith(filename) || p.thumbUrl.endsWith(filename),
+  );
+  if (!ownsFile) return next(new AppError("Foto no encontrada", 404));
+
+  res.sendFile(resolvePhotoFilePath(id, filename), (err) => {
+    if (err && !res.headersSent) next(new AppError("Error al servir archivo", 500));
+  });
+});
+
 // --- EXPORTACIÓN AGRUPADA AL FINAL ---
 export {
   createPatient,
@@ -289,4 +360,7 @@ export {
   deletePatient,
   requestSignatureToken,
   generateMedicalHistoryToken,
+  uploadPatientPhoto,
+  deletePatientPhoto,
+  streamPatientPhoto,
 };

@@ -78,6 +78,24 @@ const patientSchema = new mongoose.Schema(
       },
     ],
 
+    // 📸 Fotos antes/después (solo ADMIN; archivos en filesystem vía Docker volume)
+    photos: [
+      {
+        type: {
+          type: String,
+          enum: ["BEFORE", "AFTER", "POST_OP", "EVOLUCION"],
+          required: true,
+          index: true,
+        },
+        date: { type: Date, required: true },
+        caption: { type: String, trim: true, default: "" },
+        webUrl: { type: String, required: true },
+        thumbUrl: { type: String, required: true },
+        uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+
     // 💊 Recetas médicas estructuradas (impresas como PDF)
     prescriptions: [
       {

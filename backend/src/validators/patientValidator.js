@@ -89,10 +89,32 @@ const createPrescriptionSchema = z.object({
   doctorSignature: z.string().optional().or(z.literal("")),
 });
 
+// 📸 FOTOS ANTES/DESPUÉS (multipart, body trae strings — no validamos `file` aquí)
+const uploadPhotoBodySchema = z.object({
+  type: z.enum(["BEFORE", "AFTER", "POST_OP", "EVOLUCION"]),
+  date: z.coerce.date({ message: "Fecha inválida" }),
+  caption: z.string().trim().max(500).optional().default(""),
+});
+
+const photoFilenameSchema = z.object({
+  id: z.string().regex(/^[a-f\d]{24}$/i, "ID de paciente inválido"),
+  filename: z
+    .string()
+    .regex(/^[a-f0-9-]{36}-(web|thumb)\.jpg$/, "Nombre de archivo inválido"),
+});
+
+const photoIdParamsSchema = z.object({
+  id: z.string().regex(/^[a-f\d]{24}$/i, "ID de paciente inválido"),
+  photoId: z.string().regex(/^[a-f\d]{24}$/i, "ID de foto inválido"),
+});
+
 export {
   createPatientSchema,
   updatePatientSchema,
   createEvolutionSchema,
   createPostOpNoteSchema,
   createPrescriptionSchema,
+  uploadPhotoBodySchema,
+  photoFilenameSchema,
+  photoIdParamsSchema,
 };

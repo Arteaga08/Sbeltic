@@ -9,6 +9,7 @@ import {
   PillIcon,
   NotePencilIcon,
   TagIcon,
+  Image as ImageIcon,
   ClipboardTextIcon,
 } from "@phosphor-icons/react";
 
@@ -77,6 +78,12 @@ export const pacientesHelpSteps = [
     title: "Cupones del paciente",
     description:
       "La pestaña Cupones muestra los códigos de descuento asignados al paciente: tipo (bienvenida, referido, temporada, etc.), porcentaje o monto de descuento, canjes disponibles y días restantes. Haz clic en el ícono de copiar para copiar el código al portapapeles. Los cupones expirados o agotados aparecen en una sección separada.",
+  },
+  {
+    icon: ImageIcon,
+    title: "Fotos antes/después",
+    description:
+      "Exclusivo para ADMIN. En la pestaña Fotos del expediente puedes subir imágenes del paciente clasificadas por tipo: Antes, Después, Post-Op o Evolución. Cada foto lleva una fecha manual y una nota opcional. La galería es filtrable por tipo. Activa \"Comparar\", selecciona dos fotos y pulsa \"Ver comparación\" para verlas una junto a la otra. Para eliminar: en móvil el botón rojo aparece directo en la foto; en escritorio pasa el cursor sobre ella. Las fotos se guardan en el servidor de la clínica, nunca salen del sistema.",
   },
   {
     icon: ClipboardTextIcon,

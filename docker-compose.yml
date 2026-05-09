@@ -33,6 +33,8 @@ services:
       - TZ=America/Mexico_City
     ports:
       - "5009:5009"
+    volumes:
+      - uploads_data:/app/uploads
     depends_on:
       - mongo
     networks:
@@ -102,6 +104,8 @@ volumes:
   mongo_data:
     driver: local
   tailscale_state:
+    driver: local
+  uploads_data:
     driver: local
 
 networks:
