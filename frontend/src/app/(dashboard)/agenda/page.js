@@ -74,7 +74,7 @@ export default function AgendaPage() {
       const data = await res.json();
       setWaitlist(data.data || []);
     } catch {
-      // waitlist is non-critical
+      // non-critical
     }
   };
 
@@ -112,15 +112,13 @@ export default function AgendaPage() {
   // ── Carga inicial y al cambiar semana ──
   useEffect(() => {
     setLoading(true);
-    Promise.all([
-      fetchWeekAppointments(weekStart),
-      fetchWaitlist(),
-    ]).finally(() => setLoading(false));
+    fetchWeekAppointments(weekStart).finally(() => setLoading(false));
   }, [weekStart]);
 
   useEffect(() => {
     fetchStaff();
     fetchUpcomingSurgeries();
+    fetchWaitlist();
   }, []);
 
   // ── Filtrar appointments por doctor si aplica ──
@@ -141,6 +139,28 @@ export default function AgendaPage() {
       return acc;
     }, {});
   }, [visibleAppointments]);
+
+  // ── Citas prioritarias de la semana ──
+  const priorityAppointments = useMemo(
+    () =>
+      visibleAppointments.filter(
+        (a) =>
+          a.isPriority &&
+          !["COMPLETED", "CANCELLED", "NO_SHOW"].includes(a.status),
+      ),
+    [visibleAppointments],
+  );
+
+  // ── Citas del día actual ──
+  const todayAppointments = useMemo(() => {
+    const todayKey = new Date().toLocaleDateString("en-CA");
+    return appointments
+      .filter((a) => {
+        const key = new Date(a.appointmentDate).toLocaleDateString("en-CA");
+        return key === todayKey && a.status !== "CANCELLED";
+      })
+      .sort((a, b) => new Date(a.appointmentDate) - new Date(b.appointmentDate));
+  }, [appointments]);
 
   // ── Resumen semanal calculado client-side ──
   const weeklySummary = useMemo(() => {
@@ -222,7 +242,10 @@ export default function AgendaPage() {
   const handleWeekChange = (date) => setWeekStart(getWeekStart(date));
 
   const panelBadgeCount =
-    upcomingSurgeries.length + waitlist.filter((w) => w.status === "WAITING").length;
+    upcomingSurgeries.length +
+    priorityAppointments.length +
+    waitlist.filter((w) => w.status === "WAITING").length +
+    todayAppointments.length;
 
   return (
     <div className="flex flex-col overflow-hidden -mx-4 -my-4 md:-mx-10 md:-my-10 2xl:-mx-14 2xl:-my-14 h-[calc(100dvh-80px)] md:h-dvh">
@@ -262,9 +285,13 @@ export default function AgendaPage() {
         )}
 
         <SidePanels
+          priorityAppointments={priorityAppointments}
           waitlist={waitlist}
           weeklySummary={weeklySummary}
           upcomingSurgeries={upcomingSurgeries}
+          appointments={appointments}
+          todayAppointments={todayAppointments}
+          onAppointmentClick={handleAppointmentClick}
           mobileOpen={isPanelOpen}
           onClose={() => setIsPanelOpen(false)}
         />

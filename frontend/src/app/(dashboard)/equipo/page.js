@@ -20,7 +20,21 @@ import {
   MagnifyingGlassIcon,
   PencilSimpleIcon,
   TrashIcon,
+  ClockIcon,
 } from "@phosphor-icons/react";
+
+const DAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+
+const formatSchedule = (schedule) => {
+  if (!schedule || schedule.length === 0) return null;
+  const sorted = [...schedule].sort((a, b) => {
+    const order = [1, 2, 3, 4, 5, 6, 0];
+    return order.indexOf(a.day) - order.indexOf(b.day);
+  });
+  const days = sorted.map((s) => DAY_LABELS[s.day]).join("-");
+  const first = sorted[0];
+  return `${days}  ${first.startTime}–${sorted[sorted.length - 1].endTime}`;
+};
 
 export default function TeamPage() {
   const { isTablet, isMobile } = useBreakpoint();
@@ -45,6 +59,7 @@ export default function TeamPage() {
     password: "",
     role: "RECEPTIONIST",
     phone: "",
+    schedule: [],
   };
 
   const [newUser, setNewUser] = useState(initialUserState);
@@ -163,6 +178,7 @@ export default function TeamPage() {
       password: "",
       role: user.role,
       phone: user.phone || "",
+      schedule: user.schedule || [],
     });
     setIsModalOpen(true);
   };
@@ -369,6 +385,12 @@ export default function TeamPage() {
                             />
                             <span className="truncate">
                               {user.phone || "N/A"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 truncate">
+                            <ClockIcon size={14} weight="bold" className="shrink-0" />
+                            <span className={`truncate text-[10px] font-bold ${formatSchedule(user.schedule) ? "text-slate-600" : "text-slate-300"}`}>
+                              {formatSchedule(user.schedule) || "Sin horario definido"}
                             </span>
                           </div>
                         </div>

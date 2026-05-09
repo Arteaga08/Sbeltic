@@ -86,6 +86,8 @@ const appointmentSchema = new mongoose.Schema(
     },
 
     // --- 5. METADATOS ---
+    isPriority: { type: Boolean, default: false },
+    isUrgent: { type: Boolean, default: false },
     isReminderSent: { type: Boolean, default: false },
     nextFollowUpDate: { type: Date },
     isTouchUp: { type: Boolean, default: false },

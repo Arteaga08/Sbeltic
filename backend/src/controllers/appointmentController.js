@@ -286,6 +286,8 @@ const updateAppointment = asyncHandler(async (req, res, next) => {
       "roomId",
       "isTouchUp",
       "touchUpDate",
+      "isPriority",
+      "isUrgent",
     ];
 
     allowedFields.forEach((field) => {

@@ -46,14 +46,14 @@ const FileHeader = ({ patient, activeTab, setActiveTab, onClose }) => {
       </div>
 
       {/* 🚥 NAVEGACIÓN RESPONSIVA */}
-      <nav className="grid grid-cols-6 gap-2 bg-slate-100/50 p-1.5 rounded-4xl w-full md:w-fit md:flex md:self-end">
+      <nav className="flex overflow-x-auto scrollbar-none gap-2 bg-slate-100/50 p-1.5 rounded-4xl w-full md:w-fit md:self-end">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`
-              flex flex-col md:flex-row items-center justify-center gap-1.5 md:gap-2 
-              px-2 py-3 md:px-6 md:py-3 rounded-3xl md:rounded-xl 
+              shrink-0 flex flex-col md:flex-row items-center justify-center gap-1.5 md:gap-2
+              px-4 py-3 md:px-6 md:py-3 rounded-3xl md:rounded-xl
               text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all
               ${
                 activeTab === tab.id

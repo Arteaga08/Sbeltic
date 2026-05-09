@@ -18,6 +18,13 @@ const userSchema = new mongoose.Schema(
       default: "RECEPTIONIST",
     },
     phone: String,
+    schedule: [
+      {
+        day: { type: Number, min: 0, max: 6 }, // 0=Dom, 1=Lun, ..., 6=Sáb
+        startTime: { type: String },            // "09:00"
+        endTime: { type: String },              // "18:00"
+      },
+    ],
     isActive: { type: Boolean, default: true },
     lastLogin: Date,
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // 👈 Solo uno

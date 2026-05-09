@@ -40,6 +40,8 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
     treatmentName: "",
     durationHours: 0,
     durationMinutes: 30,
+    isPriority: false,
+    isUrgent: false,
   });
 
   const [patients, setPatients] = useState([]);
@@ -68,6 +70,8 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
         treatmentName: "",
         durationHours: 0,
         durationMinutes: 30,
+        isPriority: false,
+        isUrgent: false,
       });
       fetchRealData();
     }
@@ -213,6 +217,8 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
         treatmentName: formData.treatmentName,
         treatmentCategory: selectedCategory || undefined,
         duration: durationTotal,
+        isPriority: formData.isPriority,
+        isUrgent: formData.isPriority ? formData.isUrgent : false,
       },
     });
   };
@@ -524,6 +530,70 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* PRIORIDAD */}
+          <button
+            type="button"
+            onClick={() => setFormData((f) => ({ ...f, isPriority: !f.isPriority, isUrgent: !f.isPriority ? f.isUrgent : false }))}
+            className={`w-full flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left ${
+              formData.isPriority
+                ? "border-amber-400 bg-amber-50"
+                : "border-slate-200 bg-white hover:border-slate-300"
+            }`}
+          >
+            <div
+              className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${
+                formData.isPriority
+                  ? "border-amber-400 bg-amber-400"
+                  : "border-slate-300"
+              }`}
+            >
+              {formData.isPriority && (
+                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+            <div>
+              <p className={`text-sm font-black uppercase tracking-wide ${formData.isPriority ? "text-amber-700" : "text-slate-500"}`}>
+                Marcar como prioritaria
+              </p>
+              <p className="text-xs text-slate-400 font-medium">Aparecerá en la lista de prioridad del panel lateral</p>
+            </div>
+          </button>
+
+          {/* URGENTE — solo visible si ya es prioritaria */}
+          {formData.isPriority && (
+            <button
+              type="button"
+              onClick={() => setFormData((f) => ({ ...f, isUrgent: !f.isUrgent }))}
+              className={`w-full flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left ${
+                formData.isUrgent
+                  ? "border-rose-400 bg-rose-50"
+                  : "border-slate-200 bg-white hover:border-slate-300"
+              }`}
+            >
+              <div
+                className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${
+                  formData.isUrgent
+                    ? "border-rose-400 bg-rose-400"
+                    : "border-slate-300"
+                }`}
+              >
+                {formData.isUrgent && (
+                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <div>
+                <p className={`text-sm font-black uppercase tracking-wide ${formData.isUrgent ? "text-rose-700" : "text-slate-500"}`}>
+                  Marcar como urgente
+                </p>
+                <p className="text-xs text-slate-400 font-medium">Aparecerá destacada en rojo en la lista de prioridades</p>
+              </div>
+            </button>
           )}
 
           <div className="flex gap-3 pt-4 border-t border-slate-100 shrink-0">

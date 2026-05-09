@@ -582,11 +582,12 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                       type="number"
                       min="0"
                       readOnly={isReadOnly}
-                      value={form.originalQuote || 0}
+                      value={form.originalQuote === 0 ? "" : form.originalQuote}
+                      placeholder="0"
                       onChange={(e) =>
-                        setForm((f) => ({ ...f, originalQuote: Number(e.target.value) }))
+                        setForm((f) => ({ ...f, originalQuote: Number(e.target.value) || 0 }))
                       }
-                      className={`w-28 py-1.5 px-3 border border-slate-200 rounded-xl text-right font-black text-sm focus:outline-none focus:border-teal-400 ${isReadOnly ? "bg-slate-100 cursor-default" : "bg-white"}`}
+                      className={`w-28 py-1.5 px-3 border border-slate-200 rounded-xl text-right font-black text-sm focus:outline-none focus:border-teal-400 placeholder:text-slate-300 placeholder:font-black ${isReadOnly ? "bg-slate-100 cursor-default" : "bg-white"}`}
                     />
                   </div>
                 </div>

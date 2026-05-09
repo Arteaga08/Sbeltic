@@ -119,6 +119,7 @@ const patientSchema = new mongoose.Schema(
       },
     ],
 
+    consentGiven: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },

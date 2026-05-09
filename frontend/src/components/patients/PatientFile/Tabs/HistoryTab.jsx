@@ -365,6 +365,28 @@ const HistoryTab = ({ patient, userRole, onUpdate, onClose }) => {
           )}
         </section>
       </div>
+
+      {/* ✅ CONSENTIMIENTO INFORMADO */}
+      <div className="border-t border-slate-100 pt-6">
+        <label className="flex items-start gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-indigo-50/40 transition-colors group">
+          <input
+            type="checkbox"
+            checked={formData.consentGiven || false}
+            onChange={(e) =>
+              setFormData((d) => ({ ...d, consentGiven: e.target.checked }))
+            }
+            className="mt-0.5 w-4 h-4 accent-indigo-600 cursor-pointer shrink-0"
+          />
+          <div>
+            <p className="text-xs font-black text-slate-700 group-hover:text-indigo-700 transition-colors">
+              Consentimiento informado firmado en papel
+            </p>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+              El paciente fue informado y firmó la documentación física requerida
+            </p>
+          </div>
+        </label>
+      </div>
     </div>
   );
 };

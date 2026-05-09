@@ -1,0 +1,292 @@
+<h2>Diseño de los 4 modales del sidebar</h2>
+<p class="subtitle">Haz clic en cada tarjeta para ver el mockup del modal. ¿Cómo se siente el contenido y la estructura?</p>
+
+<style>
+  .modal-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tab-btn {
+    padding: 8px 16px; border-radius: 20px; border: 1.5px solid #e2e8f0;
+    background: #f8fafc; cursor: pointer; font-size: 13px; font-weight: 500; color: #475569;
+    transition: all 0.15s;
+  }
+  .tab-btn.active { background: #0f172a; color: #fff; border-color: #0f172a; }
+  .modal-preview { display: none; }
+  .modal-preview.active { display: block; }
+
+  .fake-modal {
+    background: #fff;
+    border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    overflow: hidden;
+    max-width: 680px;
+    margin: 0 auto;
+    border: 1px solid #e2e8f0;
+  }
+  .fake-modal-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .fake-modal-header h3 { margin: 0; font-size: 16px; font-weight: 700; color: #0f172a; }
+  .fake-modal-header .subtitle-sm { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+  .close-btn {
+    width: 28px; height: 28px; border-radius: 50%; background: #f1f5f9;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: #64748b; cursor: pointer;
+  }
+  .fake-modal-body { padding: 16px 24px 24px; }
+
+  /* Surgery row */
+  .surg-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px; border-radius: 12px; background: #f8fafc;
+    margin-bottom: 8px; border: 1px solid #f1f5f9;
+  }
+  .surg-icon { width: 36px; height: 36px; border-radius: 10px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+  .surg-info { flex: 1; }
+  .surg-name { font-size: 13px; font-weight: 600; color: #0f172a; }
+  .surg-meta { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+  .badge { padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-blue { background: #eff6ff; color: #2563eb; }
+  .badge-amber { background: #fffbeb; color: #d97706; }
+  .badge-emerald { background: #f0fdf4; color: #16a34a; }
+  .badge-rose { background: #fff1f2; color: #e11d48; }
+  .badge-violet { background: #f5f3ff; color: #7c3aed; }
+
+  /* Priority row */
+  .priority-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 10px; margin-bottom: 6px;
+    border-left: 3px solid #e2e8f0;
+  }
+  .priority-row.high { border-left-color: #ef4444; background: #fff5f5; }
+  .priority-row.med { border-left-color: #f59e0b; background: #fffbeb; }
+
+  /* Waitlist row */
+  .wait-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px; border-radius: 10px; background: #f8fafc;
+    margin-bottom: 6px; border: 1px solid #f1f5f9;
+  }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-size: 12px; font-weight:700; flex-shrink:0; }
+
+  /* Summary stats */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .stat-card { background: #f8fafc; border-radius: 14px; padding: 14px 16px; border: 1px solid #e2e8f0; }
+  .stat-value { font-size: 24px; font-weight: 800; color: #0f172a; }
+  .stat-label { font-size: 11px; color: #94a3b8; margin-top: 2px; font-weight: 500; }
+  .day-bar-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .day-label { font-size: 11px; color: #64748b; width: 28px; flex-shrink:0; }
+  .day-bar-bg { flex:1; height: 8px; background: #e2e8f0; border-radius:4px; overflow:hidden; }
+  .day-bar-fill { height:100%; border-radius:4px; background: #6366f1; }
+  .day-count { font-size: 11px; color: #94a3b8; width: 20px; text-align:right; }
+
+  .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-bottom: 8px; margin-top: 14px; }
+</style>
+
+<div class="modal-tabs">
+  <button class="tab-btn active" onclick="showModal('cirugias', this)">🔪 Próximas Cirugías</button>
+  <button class="tab-btn" onclick="showModal('prioridades', this)">⚡ Prioridades</button>
+  <button class="tab-btn" onclick="showModal('espera', this)">⏳ Lista de Espera</button>
+  <button class="tab-btn" onclick="showModal('resumen', this)">📊 Resumen Semana</button>
+</div>
+
+<!-- CIRUGIAS -->
+<div id="modal-cirugias" class="modal-preview active">
+  <div class="fake-modal">
+    <div class="fake-modal-header">
+      <div>
+        <h3>🔪 Próximas Cirugías</h3>
+        <div class="subtitle-sm">Esta semana · 3 procedimientos</div>
+      </div>
+      <div class="close-btn">✕</div>
+    </div>
+    <div class="fake-modal-body">
+      <div class="surg-row">
+        <div class="surg-icon" style="background:#eff6ff;">🔬</div>
+        <div class="surg-info">
+          <div class="surg-name">María González</div>
+          <div class="surg-meta">Hoy · 10:00 am · Cabina 2 · Dr. Ramírez</div>
+        </div>
+        <span class="badge badge-amber">Pendiente</span>
+      </div>
+      <div class="surg-row">
+        <div class="surg-icon" style="background:#f0fdf4;">💉</div>
+        <div class="surg-info">
+          <div class="surg-name">Carlos Mendoza</div>
+          <div class="surg-meta">Mañana · 09:30 am · Cabina 1 · Dr. López</div>
+        </div>
+        <span class="badge badge-emerald">Confirmado</span>
+      </div>
+      <div class="surg-row">
+        <div class="surg-icon" style="background:#f5f3ff;">✂️</div>
+        <div class="surg-info">
+          <div class="surg-name">Ana Martínez</div>
+          <div class="surg-meta">Jue 15 · 11:00 am · Cabina 3 · Dr. García</div>
+        </div>
+        <span class="badge badge-blue">Confirmado</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRIORIDADES -->
+<div id="modal-prioridades" class="modal-preview">
+  <div class="fake-modal">
+    <div class="fake-modal-header">
+      <div>
+        <h3>⚡ Citas Prioritarias</h3>
+        <div class="subtitle-sm">4 pacientes marcados como prioritarios</div>
+      </div>
+      <div class="close-btn">✕</div>
+    </div>
+    <div class="fake-modal-body">
+      <div class="section-label">Alta prioridad</div>
+      <div class="priority-row high">
+        <div class="avatar" style="background:#fee2e2;color:#ef4444;">LR</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:#0f172a;">Laura Ríos</div>
+          <div style="font-size:11px;color:#94a3b8;">Hoy · 2:00 pm · Tratamiento láser</div>
+        </div>
+        <span class="badge badge-rose">Urgente</span>
+      </div>
+      <div class="priority-row high">
+        <div class="avatar" style="background:#fee2e2;color:#ef4444;">JM</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:#0f172a;">Jorge Mora</div>
+          <div style="font-size:11px;color:#94a3b8;">Mañana · 9:00 am · Cirugía menor</div>
+        </div>
+        <span class="badge badge-rose">Urgente</span>
+      </div>
+      <div class="section-label">Prioridad media</div>
+      <div class="priority-row med">
+        <div class="avatar" style="background:#fef3c7;color:#d97706;">SP</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:#0f172a;">Sofía Pérez</div>
+          <div style="font-size:11px;color:#94a3b8;">Mié 14 · 4:00 pm · Control post-op</div>
+        </div>
+        <span class="badge badge-amber">Prioritario</span>
+      </div>
+      <div class="priority-row med">
+        <div class="avatar" style="background:#fef3c7;color:#d97706;">RV</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:#0f172a;">Roberto Vargas</div>
+          <div style="font-size:11px;color:#94a3b8;">Jue 15 · 11:30 am · Revisión</div>
+        </div>
+        <span class="badge badge-amber">Prioritario</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LISTA DE ESPERA -->
+<div id="modal-espera" class="modal-preview">
+  <div class="fake-modal">
+    <div class="fake-modal-header">
+      <div>
+        <h3>⏳ Lista de Espera</h3>
+        <div class="subtitle-sm">5 pacientes en espera</div>
+      </div>
+      <div class="close-btn">✕</div>
+    </div>
+    <div class="fake-modal-body">
+      <div class="wait-row">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="avatar" style="background:#e0e7ff;color:#4338ca;">#1</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#0f172a;">Patricia Flores</div>
+            <div style="font-size:11px;color:#94a3b8;">Solicita: Relleno facial · desde 2 días</div>
+          </div>
+        </div>
+        <span class="badge badge-violet">En espera</span>
+      </div>
+      <div class="wait-row">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="avatar" style="background:#e0e7ff;color:#4338ca;">#2</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#0f172a;">Miguel Torres</div>
+            <div style="font-size:11px;color:#94a3b8;">Solicita: Botox · desde 3 días</div>
+          </div>
+        </div>
+        <span class="badge badge-violet">En espera</span>
+      </div>
+      <div class="wait-row">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="avatar" style="background:#dcfce7;color:#16a34a;">#3</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#0f172a;">Isabel Cruz</div>
+            <div style="font-size:11px;color:#94a3b8;">Solicita: Consulta · desde 4 días</div>
+          </div>
+        </div>
+        <span class="badge badge-emerald">Contactado</span>
+      </div>
+      <div class="wait-row">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="avatar" style="background:#e0e7ff;color:#4338ca;">#4</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#0f172a;">Fernando Aguilar</div>
+            <div style="font-size:11px;color:#94a3b8;">Solicita: Peeling · desde 5 días</div>
+          </div>
+        </div>
+        <span class="badge badge-violet">En espera</span>
+      </div>
+      <div class="wait-row">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="avatar" style="background:#e0e7ff;color:#4338ca;">#5</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#0f172a;">Daniela Reyes</div>
+            <div style="font-size:11px;color:#94a3b8;">Solicita: Hidratación · desde 1 semana</div>
+          </div>
+        </div>
+        <span class="badge badge-violet">En espera</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESUMEN -->
+<div id="modal-resumen" class="modal-preview">
+  <div class="fake-modal">
+    <div class="fake-modal-header">
+      <div>
+        <h3>📊 Resumen de la Semana</h3>
+        <div class="subtitle-sm">Lun 12 — Sáb 17 de Mayo</div>
+      </div>
+      <div class="close-btn">✕</div>
+    </div>
+    <div class="fake-modal-body">
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-value">34</div>
+          <div class="stat-label">Total citas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">28</div>
+          <div class="stat-label">Confirmadas</div>
+        </div>
+        <div class="stat-card" style="background:#f0fdf4;border-color:#bbf7d0;">
+          <div class="stat-value" style="color:#16a34a;">$42,500</div>
+          <div class="stat-label">Ingresos estimados</div>
+        </div>
+        <div class="stat-card" style="background:#fff1f2;border-color:#fecdd3;">
+          <div class="stat-value" style="color:#e11d48;">2</div>
+          <div class="stat-label">Cancelaciones</div>
+        </div>
+      </div>
+      <div class="section-label">Citas por día</div>
+      <div class="day-bar-row"><span class="day-label">Lun</span><div class="day-bar-bg"><div class="day-bar-fill" style="width:80%"></div></div><span class="day-count">8</span></div>
+      <div class="day-bar-row"><span class="day-label">Mar</span><div class="day-bar-bg"><div class="day-bar-fill" style="width:60%"></div></div><span class="day-count">6</span></div>
+      <div class="day-bar-row"><span class="day-label">Mié</span><div class="day-bar-bg"><div class="day-bar-fill" style="width:70%"></div></div><span class="day-count">7</span></div>
+      <div class="day-bar-row"><span class="day-label">Jue</span><div class="day-bar-bg"><div class="day-bar-fill" style="width:50%"></div></div><span class="day-count">5</span></div>
+      <div class="day-bar-row"><span class="day-label">Vie</span><div class="day-bar-bg"><div class="day-bar-fill" style="width:80%"></div></div><span class="day-count">8</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showModal(name, btn) {
+  document.querySelectorAll('.modal-preview').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('modal-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+</script>

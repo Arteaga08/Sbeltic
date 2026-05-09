@@ -30,6 +30,7 @@ services:
     environment:
       - MONGODB_URI=mongodb://mongo:27017/sbeltic
       - NODE_ENV=production
+      - TZ=America/Mexico_City
     ports:
       - "5009:5009"
     depends_on:
