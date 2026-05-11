@@ -4,7 +4,7 @@ import Batch from "../models/inventory/Batch.js";
 import AppError from "../utils/appError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendResponse } from "../utils/responseHandler.js";
-import { getUniqueSKU } from "../services/inventoryService.js";
+import { getUniqueSKU, addBatchToInventory, deductInventoryFEFO } from "../services/inventoryService.js";
 
 /**
  * @desc    Crear Producto (Con soporte para Lote Inicial)
@@ -282,11 +282,78 @@ const checkAvailability = asyncHandler(async (req, res, next) => {
   sendResponse(res, 200, { allAvailable, items: results });
 });
 
+/**
+ * @desc    Obtener producto por SKU
+ * @route   GET /api/products/sku/:sku
+ * @access  Private
+ */
+const getProductBySku = asyncHandler(async (req, res, next) => {
+  const sku = req.params.sku?.toLowerCase().trim();
+
+  const product = await Product.findOne({ sku, isActive: true })
+    .populate("category", "name type description")
+    .populate("supplierId", "name contactPerson phone email")
+    .populate("createdBy", "name");
+
+  if (!product) {
+    return next(new AppError("Producto no encontrado", 404));
+  }
+
+  sendResponse(res, 200, product);
+});
+
+/**
+ * @desc    Ajuste manual de stock (entrada o salida)
+ * @route   POST /api/products/:id/adjust-stock
+ * @access  Private (Admin/Receptionist/Nurse)
+ */
+const adjustStock = asyncHandler(async (req, res, next) => {
+  const { type, quantity, reason } = req.body;
+
+  if (!["INCREASE", "DECREASE"].includes(type)) {
+    return next(new AppError("El tipo de ajuste debe ser INCREASE o DECREASE", 400));
+  }
+  const qty = Number(quantity);
+  if (!qty || qty <= 0) {
+    return next(new AppError("La cantidad debe ser un número positivo", 400));
+  }
+  if (!reason || typeof reason !== "string" || !reason.trim()) {
+    return next(new AppError("La razón del ajuste es obligatoria", 400));
+  }
+
+  const product = await Product.findById(req.params.id);
+  if (!product || !product.isActive) {
+    return next(new AppError("Producto no encontrado", 404));
+  }
+
+  if (type === "DECREASE") {
+    await deductInventoryFEFO(product._id, qty, null);
+  } else {
+    const tenYearsFromNow = new Date();
+    tenYearsFromNow.setFullYear(tenYearsFromNow.getFullYear() + 10);
+    await addBatchToInventory(
+      {
+        productId: product._id,
+        batchNumber: `ADJ-${Date.now()}`,
+        initialQuantity: qty,
+        expiryDate: tenYearsFromNow,
+        createdBy: req.user._id,
+      },
+      null,
+    );
+  }
+
+  const updated = await Product.findById(req.params.id).populate("category", "name type");
+  sendResponse(res, 200, updated, `Ajuste de stock (${type}) aplicado correctamente`);
+});
+
 export {
   createProduct,
   getProducts,
   getProductById,
+  getProductBySku,
   updateProduct,
   deleteProduct,
   checkAvailability,
+  adjustStock,
 };

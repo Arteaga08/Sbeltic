@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { FirstAidKit, Tote, ArrowLeft, Plus, Tag } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
@@ -15,6 +16,9 @@ import EditProductModal from "@/components/modal/EditProductModal";
 import ProductDetailsDrawer from "@/components/inventory/ProductDetailsDrawer";
 
 export default function InventoryPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [currentView, setCurrentView] = useState("HUB");
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,6 +28,26 @@ export default function InventoryPage() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+
+  // Manejo de QR scan: /inventory?scan=SKU
+  useEffect(() => {
+    const sku = searchParams.get("scan");
+    if (!sku) return;
+    router.replace("/inventory", { scroll: false });
+    fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/products/sku/${encodeURIComponent(sku)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.data) {
+          const prod = data.data;
+          const type = prod.category?.type;
+          setCurrentView(type === "RETAIL" ? "RETAIL" : "INSUMO");
+          setSelectedProduct(prod);
+        } else {
+          toast.error("Producto no encontrado");
+        }
+      })
+      .catch(() => toast.error("Error al buscar producto"));
+  }, [searchParams]);
 
   const fetchProducts = useCallback(async () => {
     try {

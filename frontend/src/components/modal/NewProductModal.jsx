@@ -170,7 +170,7 @@ const NewProductModal = ({ isOpen, onClose, onRefresh }) => {
               ref={qrRef}
               className="p-6 bg-white border-2 border-slate-100 rounded-3xl shadow-sm"
             >
-              <QRCodeCanvas value={createdProduct.sku} size={180} />
+              <QRCodeCanvas value={`${typeof window !== "undefined" ? window.location.origin : ""}/inventory?scan=${createdProduct.sku}`} size={180} />
             </div>
             <div className="flex gap-4 w-full max-w-sm">
               <button

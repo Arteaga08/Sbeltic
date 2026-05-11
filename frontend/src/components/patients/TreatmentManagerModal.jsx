@@ -72,6 +72,36 @@ const COLOR_OPTIONS = [
     dotClass: "bg-teal-500",
     swatch: "bg-teal-500",
   },
+  {
+    label: "Naranja",
+    colorClass: "bg-orange-500 text-white",
+    dotClass: "bg-orange-500",
+    swatch: "bg-orange-500",
+  },
+  {
+    label: "Índigo",
+    colorClass: "bg-indigo-500 text-white",
+    dotClass: "bg-indigo-500",
+    swatch: "bg-indigo-500",
+  },
+  {
+    label: "Cian",
+    colorClass: "bg-cyan-500 text-white",
+    dotClass: "bg-cyan-500",
+    swatch: "bg-cyan-500",
+  },
+  {
+    label: "Lima",
+    colorClass: "bg-lime-500 text-white",
+    dotClass: "bg-lime-500",
+    swatch: "bg-lime-500",
+  },
+  {
+    label: "Rojo",
+    colorClass: "bg-red-500 text-white",
+    dotClass: "bg-red-500",
+    swatch: "bg-red-500",
+  },
 ];
 
 function formatDuration(mins) {

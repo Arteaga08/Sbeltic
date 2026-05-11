@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   House,
@@ -91,12 +92,23 @@ export default function Sidebar() {
       {/* DESKTOP SIDEBAR */}
       <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 h-full overflow-y-auto p-6 shrink-0">
         <div className="mb-10">
-          <h1 className="text-2xl font-black text-slate-900 italic leading-none">
-            SBELTIC
-          </h1>
-          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-            Vidix Studio
-          </p>
+          <div className="flex items-center gap-3 mb-2">
+            <Image
+              src="/Icon_Sbeltic.jpeg"
+              alt="Sbeltic"
+              width={36}
+              height={36}
+              className="rounded-xl"
+            />
+            <div>
+              <h1 className="text-lg font-black text-slate-900 italic leading-none">
+                SBELTIC
+              </h1>
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                Vidix Studio
+              </p>
+            </div>
+          </div>
           {user && (
             <span className="inline-flex items-center mt-2 px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-500">
               {ROLE_LABEL[user.role] ?? user.role}

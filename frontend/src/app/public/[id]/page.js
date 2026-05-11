@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation"; // 🌟 Mejor práctica para Next.js App Router
+import Image from "next/image";
 import SignatureCanvas from "react-signature-canvas";
 import { CheckCircle, Eraser, PencilLine } from "@phosphor-icons/react"; // Quitamos 'user' que no se usaba
 import { toast } from "sonner";
@@ -99,9 +100,18 @@ export default function PublicSignaturePage() {
   return (
     <div className="h-screen bg-slate-50 flex flex-col p-4 md:p-8">
       <header className="py-6 text-center shrink-0">
-        <h1 className="text-xl font-black italic text-slate-900 uppercase">
-          Sbeltic
-        </h1>
+        <div className="flex items-center justify-center gap-2 mb-1">
+          <Image
+            src="/Icon_Sbeltic.jpeg"
+            alt="Sbeltic"
+            width={28}
+            height={28}
+            className="rounded-lg"
+          />
+          <h1 className="text-xl font-black italic text-slate-900 uppercase">
+            Sbeltic
+          </h1>
+        </div>
         <p className="text-[9px] font-black text-indigo-600 uppercase tracking-wide-label mt-1">
           {data?.type === "HISTORY"
             ? "Firma de Historia Clínica"

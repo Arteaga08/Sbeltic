@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   X,
   Archive,
@@ -15,11 +15,33 @@ import { useScrollLock } from "@/hooks/useScrollLock";
 const NewBatchModal = ({ isOpen, onClose, productId, onRefresh }) => {
   useScrollLock(isOpen);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingNumber, setIsLoadingNumber] = useState(false);
   const [formData, setFormData] = useState({
     batchNumber: "",
     initialQuantity: "",
     expiryDate: "",
   });
+
+  useEffect(() => {
+    if (!isOpen || !productId) return;
+    const fetchNumber = async () => {
+      setIsLoadingNumber(true);
+      try {
+        const res = await fetchWithAuth(
+          `${process.env.NEXT_PUBLIC_API_URL}/batches/generate-number?productId=${productId}`
+        );
+        const data = await res.json();
+        if (data.success) {
+          setFormData((prev) => ({ ...prev, batchNumber: data.data.batchNumber }));
+        }
+      } catch (_) {
+        // usuario puede escribirlo manualmente
+      } finally {
+        setIsLoadingNumber(false);
+      }
+    };
+    fetchNumber();
+  }, [isOpen, productId]);
 
   if (!isOpen) return null;
 
@@ -102,12 +124,14 @@ const NewBatchModal = ({ isOpen, onClose, productId, onRefresh }) => {
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1.5 tracking-widest">
               <Hash size={14} /> Número de Lote / ID
+              {isLoadingNumber && <CircleNotch size={12} className="animate-spin ml-1" />}
             </label>
             <input
               required
               type="text"
-              placeholder="Ej: LOTE-2026-X"
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-medium text-slate-700"
+              placeholder={isLoadingNumber ? "Generando..." : "Ej: INS-20260511-001"}
+              disabled={isLoadingNumber}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-medium text-slate-700 disabled:opacity-50"
               value={formData.batchNumber}
               onChange={(e) =>
                 setFormData({ ...formData, batchNumber: e.target.value })

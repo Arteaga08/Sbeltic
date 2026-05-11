@@ -6,7 +6,12 @@ const categorySchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      unique: true, // Evitamos categorías duplicadas como "Ácido Hialurónico" y "acido hialuronico"
+      unique: true,
+    },
+    slug: {
+      type: String,
+      unique: true,
+      sparse: true,
     },
     description: {
       type: String,
@@ -30,7 +35,18 @@ const categorySchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// Índice para búsquedas rápidas al filtrar el inventario
+categorySchema.pre("save", async function () {
+  if (this.isModified("name") || !this.slug) {
+    this.slug = this.name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-");
+  }
+});
+
 categorySchema.index({ name: 1, type: 1 });
 
 export default mongoose.model("Category", categorySchema);

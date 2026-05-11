@@ -115,4 +115,15 @@ const deductInventoryFEFO = async (productId, quantityToDeduct, session) => {
   }
 };
 
-export { getUniqueSKU, addBatchToInventory, deductInventoryFEFO };
+const generateBatchNumber = async (productId) => {
+  const product = await Product.findById(productId).select("sku");
+  if (!product) throw new AppError("Producto no encontrado", 404);
+
+  const count = await Batch.countDocuments({ productId });
+  const date = new Date();
+  const dateStr = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}`;
+  const seq = String(count + 1).padStart(3, "0");
+  return `${product.sku.toUpperCase()}-${dateStr}-${seq}`;
+};
+
+export { getUniqueSKU, addBatchToInventory, deductInventoryFEFO, generateBatchNumber };

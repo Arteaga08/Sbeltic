@@ -4,6 +4,7 @@ import Product from "../models/inventory/Product.js";
 import AppError from "../utils/appError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendResponse } from "../utils/responseHandler.js";
+import { generateBatchNumber } from "../services/inventoryService.js";
 
 /**
  * REGISTRAR ENTRADA DE LOTE
@@ -14,6 +15,10 @@ import { sendResponse } from "../utils/responseHandler.js";
 const createBatch = asyncHandler(async (req, res, next) => {
   const session = await mongoose.startSession();
   const { productId, initialQuantity } = req.body;
+
+  if (!req.body.batchNumber) {
+    req.body.batchNumber = await generateBatchNumber(productId);
+  }
 
   try {
     let savedBatch;
@@ -38,6 +43,9 @@ const createBatch = asyncHandler(async (req, res, next) => {
   } catch (error) {
     // ... tu lógica de bypass para local ...
     if (error.message.includes("Transaction numbers")) {
+      if (!req.body.batchNumber) {
+        req.body.batchNumber = await generateBatchNumber(productId);
+      }
       const newBatch = await Batch.create({
         ...req.body,
         currentQuantity: initialQuantity,
@@ -91,4 +99,13 @@ const updateBatch = asyncHandler(async (req, res, next) => {
   sendResponse(res, 200, batch, "Batch updated successfully");
 });
 
-export { createBatch, getBatches, updateBatch };
+const generateBatchNumberHandler = asyncHandler(async (req, res, next) => {
+  const { productId } = req.query;
+  if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+    return next(new AppError("Se requiere un productId válido", 400));
+  }
+  const batchNumber = await generateBatchNumber(productId);
+  sendResponse(res, 200, { batchNumber }, "Número de lote generado");
+});
+
+export { createBatch, getBatches, updateBatch, generateBatchNumberHandler };

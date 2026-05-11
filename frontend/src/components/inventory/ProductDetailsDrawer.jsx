@@ -13,7 +13,9 @@ import {
   DownloadSimple,
   CurrencyDollar,
   Plus,
+  Minus,
   Calendar,
+  ArrowsLeftRight,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
@@ -34,6 +36,9 @@ const ProductDetailsDrawer = ({
   const [batches, setBatches] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [adjustQty, setAdjustQty] = useState(1);
+  const [adjustReason, setAdjustReason] = useState("Merma");
+  const [isAdjusting, setIsAdjusting] = useState(false);
   const qrRef = useRef();
 
   const fetchBatches = async () => {
@@ -73,6 +78,32 @@ const ProductDetailsDrawer = ({
       (a, b) => new Date(a.expiryDate) - new Date(b.expiryDate),
     )[0].expiryDate;
   }, [batches]);
+
+  const handleAdjustStock = async (type) => {
+    const qty = Number(adjustQty);
+    if (!qty || qty <= 0) return toast.error("Cantidad inválida");
+    setIsAdjusting(true);
+    try {
+      const res = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API_URL}/products/${product._id}/adjust-stock`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type, quantity: qty, reason: adjustReason }),
+        },
+      );
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message);
+      toast.success(type === "DECREASE" ? `−${qty} unidades descontadas` : `+${qty} unidades agregadas`);
+      setAdjustQty(1);
+      fetchBatches();
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      toast.error(err.message || "Error al ajustar stock");
+    } finally {
+      setIsAdjusting(false);
+    }
+  };
 
   const downloadQR = () => {
     const canvas = qrRef.current.querySelector("canvas");
@@ -250,7 +281,7 @@ const ProductDetailsDrawer = ({
                 ref={qrRef}
                 className="p-4 bg-white border border-slate-200 rounded-3xl shadow-inner"
               >
-                <QRCodeCanvas value={product.sku} size={140} />
+                <QRCodeCanvas value={`${typeof window !== "undefined" ? window.location.origin : ""}/inventory?scan=${product.sku}`} size={140} />
               </div>
               <div className="text-center">
                 <p className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center justify-center gap-2">
@@ -263,6 +294,48 @@ const ProductDetailsDrawer = ({
                   <DownloadSimple size={14} weight="bold" /> Descargar PNG
                 </button>
               </div>
+            </div>
+          </div>
+
+          {/* AJUSTE RÁPIDO DE STOCK */}
+          <div className="bg-white border border-slate-100 rounded-modal p-6 shadow-sm space-y-4">
+            <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-label flex items-center gap-2">
+              <ArrowsLeftRight size={14} weight="bold" /> Ajuste Rápido de Stock
+            </h3>
+            <div className="flex gap-3">
+              <input
+                type="number"
+                min="1"
+                value={adjustQty}
+                onChange={(e) => setAdjustQty(e.target.value)}
+                className="w-24 border border-slate-200 rounded-xl px-3 py-2 text-center font-black text-slate-800 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              />
+              <select
+                value={adjustReason}
+                onChange={(e) => setAdjustReason(e.target.value)}
+                className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-600 uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+              >
+                <option value="Merma">Merma</option>
+                <option value="Corrección">Corrección</option>
+                <option value="Uso interno">Uso interno</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleAdjustStock("DECREASE")}
+                disabled={isAdjusting}
+                className="flex-1 flex items-center justify-center gap-2 py-3 bg-rose-50 text-rose-600 font-black rounded-2xl hover:bg-rose-600 hover:text-white transition-all text-xs uppercase tracking-widest disabled:opacity-50"
+              >
+                <Minus size={16} weight="bold" /> Descontar
+              </button>
+              <button
+                onClick={() => handleAdjustStock("INCREASE")}
+                disabled={isAdjusting}
+                className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-50 text-emerald-600 font-black rounded-2xl hover:bg-emerald-600 hover:text-white transition-all text-xs uppercase tracking-widest disabled:opacity-50"
+              >
+                <Plus size={16} weight="bold" /> Agregar
+              </button>
             </div>
           </div>
 

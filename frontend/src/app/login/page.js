@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -55,11 +56,16 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-100 p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-black text-slate-900 tracking-tighter italic">
-            SBELTIC
-          </h1>
-          <p className="text-sm font-bold text-slate-400 mt-2 uppercase tracking-widest">
+        <div className="flex flex-col items-center mb-8">
+          <Image
+            src="/Icon_Sbeltic.jpeg"
+            alt="Sbeltic"
+            width={80}
+            height={80}
+            className="rounded-2xl mb-3"
+            priority
+          />
+          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
             Acceso Autorizado
           </p>
         </div>

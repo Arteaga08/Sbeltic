@@ -36,6 +36,9 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
   const [showSupplyDropdown, setShowSupplyDropdown] = useState(false);
   const [supplyType, setSupplyType] = useState("INSUMO");
   const [pendingQuantities, setPendingQuantities] = useState({});
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [categoryProducts, setCategoryProducts] = useState([]);
   const [fullPatient, setFullPatient] = useState(null);
   const [loadingPatient, setLoadingPatient] = useState(false);
 
@@ -68,12 +71,33 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
     }
   }, [appointment, isOpen]);
 
-  // Buscar productos para insumos
+  // Cargar categorías al cambiar el tipo (INSUMO / RETAIL)
+  useEffect(() => {
+    if (!isOpen) return;
+    setSelectedCategory(null);
+    setCategoryProducts([]);
+    fetchWithAuth(`${API}/categories?type=${supplyType}`)
+      .then((r) => r.json())
+      .then((data) => setCategories(data.data || []))
+      .catch(() => setCategories([]));
+  }, [supplyType, isOpen]);
+
+  // Cargar productos de la categoría seleccionada
+  useEffect(() => {
+    if (!selectedCategory) { setCategoryProducts([]); return; }
+    fetchWithAuth(`${API}/products?category=${selectedCategory._id}`)
+      .then((r) => r.json())
+      .then((data) => setCategoryProducts(data.data || []))
+      .catch(() => setCategoryProducts([]));
+  }, [selectedCategory]);
+
+  // Buscar productos para insumos (búsqueda por texto)
   useEffect(() => {
     if (!supplySearch.trim()) {
       setSupplyResults([]);
       return;
     }
+    setSelectedCategory(null);
     const timeout = setTimeout(async () => {
       try {
         const res = await fetchWithAuth(
@@ -434,6 +458,63 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                       {type === "INSUMO" ? "Médico" : "Retail"}
                     </button>
                   ))}
+                </div>
+              )}
+
+              {/* Chips de categorías */}
+              {!isReadOnly && categories.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat._id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory(selectedCategory?._id === cat._id ? null : cat);
+                        setSupplySearch("");
+                        setSupplyResults([]);
+                        setShowSupplyDropdown(false);
+                      }}
+                      className={`shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all border ${
+                        selectedCategory?._id === cat._id
+                          ? "bg-teal-500 text-white border-teal-500"
+                          : "bg-white text-slate-500 border-slate-200 hover:border-teal-300 hover:text-teal-600"
+                      }`}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Productos de la categoría seleccionada */}
+              {!isReadOnly && selectedCategory && (
+                <div className="space-y-1 max-h-56 overflow-y-auto">
+                  {categoryProducts.length === 0 ? (
+                    <p className="text-center text-xs text-slate-400 py-4">Sin productos en esta categoría</p>
+                  ) : (
+                    categoryProducts.map((p) => {
+                      const qty = pendingQuantities[p._id] || 1;
+                      return (
+                        <div key={p._id} className="flex items-center justify-between px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-bold text-slate-800 truncate">{p.name}</p>
+                            <p className="text-[10px] text-slate-400">Stock: {p.currentStock ?? "—"} {p.unit}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button type="button" onClick={() => updatePendingQty(p._id, -1)}
+                              className="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-100">−</button>
+                            <span className="w-6 text-center text-sm font-black">{qty}</span>
+                            <button type="button" onClick={() => updatePendingQty(p._id, 1)}
+                              className="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-100">+</button>
+                            <button type="button" onClick={() => addSupply(p)}
+                              className="ml-1 px-3 py-1.5 bg-teal-500 text-white rounded-lg text-[10px] font-black uppercase hover:bg-teal-600 transition-colors">
+                              Agregar
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               )}
 

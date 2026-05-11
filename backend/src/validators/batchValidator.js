@@ -10,7 +10,7 @@ const createBatchSchema = z
     productId: objectIdSchema,
     supplierId: objectIdSchema.optional(),
 
-    batchNumber: z.string().trim().min(1, "El número de lote es obligatorio"),
+    batchNumber: z.string().trim().min(1).optional(),
 
     // Coerción para convertir el string de fecha en objeto Date
     expiryDate: z.coerce.date().refine((date) => date > new Date(), {

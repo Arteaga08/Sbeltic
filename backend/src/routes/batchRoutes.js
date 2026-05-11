@@ -3,6 +3,7 @@ import {
   createBatch,
   getBatches,
   updateBatch,
+  generateBatchNumberHandler,
 } from "../controllers/batchController.js";
 
 import checkAuth from "../middlewares/checkAuth.js";
@@ -21,6 +22,8 @@ router
   .route("/")
   .get(getBatches) // Ver qué lotes tenemos y cuándo caducan
   .post(authorizeRole("ADMIN"), validateCreateBatch, createBatch); // Registrar entrada
+
+router.get("/generate-number", generateBatchNumberHandler);
 
 router
   .route("/:id")
