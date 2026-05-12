@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { FirstAidKit, Tote, ArrowLeft, Plus, Tag } from "@phosphor-icons/react";
 import { toast } from "sonner";
@@ -15,7 +15,7 @@ import CategoryManagerModal from "@/components/modal/CategoryManagerModal";
 import EditProductModal from "@/components/modal/EditProductModal";
 import ProductDetailsDrawer from "@/components/inventory/ProductDetailsDrawer";
 
-export default function InventoryPage() {
+function InventoryPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -283,5 +283,13 @@ export default function InventoryPage() {
         steps={inventoryHelpSteps}
       />
     </div>
+  );
+}
+
+export default function InventoryPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="w-10 h-10 border-4 rounded-full border-indigo-600 border-t-transparent animate-spin"></div></div>}>
+      <InventoryPageContent />
+    </Suspense>
   );
 }

@@ -84,7 +84,7 @@ export default function AgendaHeader({
   const goThisWeek = () => onWeekChange(getWeekStart(new Date()));
 
   return (
-    <header className="bg-white border-b border-slate-200 px-4 md:px-6 xl:px-10 2xl:px-14 shrink-0 z-30">
+    <header className="bg-white border-b border-slate-200 px-4 md:px-6 xl:px-10 2xl:px-14 xl:pt-3 2xl:pt-4 shrink-0 z-30">
       {/* ── Fila 1 (móvil): Título + CTA ── */}
       <div className="flex items-center justify-between py-2 md:hidden">
         <div className="flex items-center gap-2">
