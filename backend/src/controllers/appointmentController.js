@@ -3,6 +3,7 @@ import Appointment from "../models/Appointment.js";
 import Patient from "../models/clinical/Patient.js";
 import TimeBlock from "../models/TimeBlock.js";
 import Treatment from "../models/clinical/Treatment.js";
+import TreatmentCategory from "../models/clinical/TreatmentCategory.js";
 import Coupon from "../models/marketing/Coupon.js";
 import Waitlist from "../models/clinical/Waitlist.js";
 import AppError from "../utils/appError.js";
@@ -133,6 +134,28 @@ const createAppointment = asyncHandler(async (req, res, next) => {
   const populated = await Appointment.findById(savedAppointment._id)
     .populate("patientId", "name phone")
     .populate("doctorId", "name");
+
+  // Auto-actualizar patientType si la categoría define linkedPatientType
+  const HIERARCHY = ["SPA", "OTHER", "LEAD", "INJECTION", "SURGERY", "POST_OP"];
+  const categorySlug = req.body.treatmentCategory;
+  const apptPatientId = req.body.patientId;
+  if (categorySlug && apptPatientId) {
+    try {
+      const category = await TreatmentCategory.findOne({ slug: categorySlug.toUpperCase() });
+      if (category?.linkedPatientType) {
+        const patient = await Patient.findById(apptPatientId);
+        if (patient) {
+          const currentRank = HIERARCHY.indexOf(patient.patientType);
+          const newRank = HIERARCHY.indexOf(category.linkedPatientType);
+          if (newRank > currentRank) {
+            await Patient.findByIdAndUpdate(apptPatientId, { patientType: category.linkedPatientType });
+          }
+        }
+      }
+    } catch (err) {
+      console.error("❌ [APPT] auto-update patientType:", err.message);
+    }
+  }
 
   sendResponse(res, 201, populated, "Cita agendada correctamente");
 

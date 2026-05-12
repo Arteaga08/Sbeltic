@@ -29,6 +29,7 @@ import publicRoutes from "./routes/publicRoutes.js"; // 🌟 NUEVA: Rutas para f
 import medicalHistoryRoutes from "./routes/medicalHistoryRoutes.js"; // 📋 Historial médico vía WhatsApp
 import webhookRoutes from "./routes/webhookRoutes.js"; // 🤖 Webhooks de WhatsApp
 import templateRoutes from "./routes/templateRoutes.js"; // 📝💊 Plantillas de notas post-op y recetas
+import deudaRoutes from "./routes/deudaRoutes.js";
 
 const app = express();
 const PORT = process.env.PORT || 5009;
@@ -74,6 +75,7 @@ app.use("/api/users", userRoutes);
 
 // Módulo Clínico
 app.use("/api/patients", patientRoutes);
+app.use("/api/patients/:patientId/deudas", deudaRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/waitlist", waitlistRoutes);
 app.use("/api/treatments", treatmentRoutes);

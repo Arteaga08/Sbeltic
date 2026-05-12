@@ -130,6 +130,7 @@ const emptyCatForm = {
   botFlow: "NONE",
   colorClass: "",
   dotClass: "",
+  linkedPatientType: null,
 };
 
 export default function TreatmentManagerModal({ isOpen, onClose }) {
@@ -257,6 +258,7 @@ export default function TreatmentManagerModal({ isOpen, onClose }) {
       botFlow: cat.botFlow || "NONE",
       colorClass: cat.colorClass || "",
       dotClass: cat.dotClass || "",
+      linkedPatientType: cat.linkedPatientType || null,
     });
     setShowCatForm(true);
   };
@@ -273,6 +275,7 @@ export default function TreatmentManagerModal({ isOpen, onClose }) {
         slug: catForm.slug.trim(),
         botFlow: catForm.botFlow,
         roomIds: catForm.roomIds,
+        linkedPatientType: catForm.linkedPatientType || null,
         ...(catForm.colorClass.trim() && {
           colorClass: catForm.colorClass.trim(),
         }),
@@ -712,6 +715,29 @@ export default function TreatmentManagerModal({ isOpen, onClose }) {
                             ))}
                           </select>
                         </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[9px] font-black uppercase text-slate-400 block mb-1.5">
+                          Actualiza tipo de paciente
+                        </label>
+                        <select
+                          value={catForm.linkedPatientType || ""}
+                          onChange={(e) =>
+                            setCatForm((f) => ({
+                              ...f,
+                              linkedPatientType: e.target.value || null,
+                            }))
+                          }
+                          className="w-full px-2 py-2 border border-slate-200 bg-white rounded-lg text-xs"
+                        >
+                          <option value="">Sin cambio</option>
+                          <option value="SPA">SPA / Estética</option>
+                          <option value="LEAD">Cotización</option>
+                          <option value="INJECTION">Inyección</option>
+                          <option value="SURGERY">Cirugía</option>
+                          <option value="POST_OP">Post-Operatorio</option>
+                        </select>
                       </div>
 
                       <div>

@@ -11,6 +11,7 @@ import CouponsTab from "./Tabs/CouponsTab";
 import PostOpNotesTab from "./Tabs/PostOpNotesTab";
 import PrescriptionsTab from "./Tabs/PrescriptionsTab";
 import PhotosTab from "./Tabs/PhotosTab";
+import FinancesTab from "./Tabs/FinancesTab";
 import { toast } from "sonner";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
@@ -126,6 +127,12 @@ const PatientFileModal = ({ isOpen, patientId, onClose, onUpdate }) => {
                 )}
                 {activeTab === "coupons" && (
                   <CouponsTab patient={patient} />
+                )}
+                {activeTab === "finances" && (
+                  <FinancesTab
+                    patient={patient}
+                    userRole={currentUserRole}
+                  />
                 )}
                 {activeTab === "photos" && currentUserRole === "ADMIN" && (
                   <PhotosTab

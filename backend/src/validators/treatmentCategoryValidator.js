@@ -2,6 +2,7 @@ import { z } from "zod";
 
 const ROOM_IDS = ["CABINA_1", "CABINA_2", "CABINA_3", "SPA", "CONSULTORIO", "QUIROFANO"];
 const BOT_FLOWS = ["AGENDAR", "CONSULTA", "BOTH", "NONE"];
+const PATIENT_TYPES = ["SPA", "INJECTION", "LEAD", "SURGERY", "POST_OP", "OTHER"];
 
 const createTreatmentCategorySchema = z
   .object({
@@ -19,6 +20,7 @@ const createTreatmentCategorySchema = z
     gridBorder: z.string().trim().optional(),
     unselectedClass: z.string().trim().optional(),
     keywords: z.array(z.string().trim()).default([]),
+    linkedPatientType: z.enum(PATIENT_TYPES).nullable().optional().default(null),
     isActive: z.boolean().default(true),
   })
   .strict();

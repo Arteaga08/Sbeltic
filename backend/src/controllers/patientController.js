@@ -40,9 +40,7 @@ const createPatient = asyncHandler(async (req, res, next) => {
   const firstName = safeName.split(" ")[0].toUpperCase();
   const referralCode = `${firstName}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-  let isProfileComplete = ["SPA", "OTHER"].includes(patientType)
-    ? true
-    : !!(medicalHistory && Object.keys(medicalHistory).length > 0);
+  const isProfileComplete = !!(medicalHistory && Object.keys(medicalHistory).length > 0);
 
   const patient = new Patient({
     ...req.body,

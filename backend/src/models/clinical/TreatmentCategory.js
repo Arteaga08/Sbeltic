@@ -60,6 +60,12 @@ const treatmentCategorySchema = new mongoose.Schema(
     /** Keywords para auto-match por nombre de tratamiento (en mayúsculas) */
     keywords: { type: [String], default: [] },
 
+    linkedPatientType: {
+      type: String,
+      enum: ["SPA", "INJECTION", "LEAD", "SURGERY", "POST_OP", "OTHER", null],
+      default: null,
+    },
+
     isActive: { type: Boolean, default: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },

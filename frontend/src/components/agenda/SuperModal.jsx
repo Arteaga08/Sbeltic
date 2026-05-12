@@ -5,6 +5,7 @@ import { PDFDownloadLink } from "@react-pdf/renderer";
 import { FileText, ClipboardText, Package } from "@phosphor-icons/react";
 import AppointmentPDF from "./AppointmentPDF";
 import MedicalHistoryPDF from "../patients/PatientFile/Tabs/MedicalHistoryPDF";
+import WhatsAppSignatureButton from "../patients/shared/WhatsAppSignatureButton";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
@@ -353,6 +354,31 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                 <p className="text-lg font-black text-slate-900 uppercase">{patient.name || "—"}</p>
                 <p className="text-sm text-slate-500">{patient.phone || "Sin teléfono"}</p>
                 <p className="text-sm text-slate-500">{patient.email || "Sin email"}</p>
+              </div>
+
+              {/* Historial Médico */}
+              <div className={`rounded-2xl p-4 space-y-3 border ${fullPatient?.historySignature ? "bg-emerald-50 border-emerald-100" : "bg-slate-50 border-slate-100"}`}>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Historial Médico</p>
+                <div className="flex items-center gap-2">
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${fullPatient?.historySignature ? "bg-emerald-500 border-emerald-500" : "border-slate-300 bg-white"}`}>
+                    {fullPatient?.historySignature && (
+                      <svg viewBox="0 0 12 12" className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <polyline points="1.5,6 4.5,9 10.5,3" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className={`text-xs font-bold ${fullPatient?.historySignature ? "text-emerald-700" : "text-slate-400"}`}>
+                    {loadingPatient ? "Verificando..." : fullPatient?.historySignature ? "Historial médico completado" : "Historial médico pendiente"}
+                  </span>
+                </div>
+                {!loadingPatient && fullPatient && (
+                  <WhatsAppSignatureButton
+                    type="MEDICAL_HISTORY_FORM"
+                    patientId={fullPatient._id}
+                    patientName={fullPatient.name}
+                    patientPhone={fullPatient.phone}
+                  />
+                )}
               </div>
 
               {/* Info de la cita */}
