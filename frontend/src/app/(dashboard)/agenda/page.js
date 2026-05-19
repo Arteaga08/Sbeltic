@@ -318,6 +318,7 @@ export default function AgendaPage() {
         onSave={handleSuperModalSave}
         onCancelAppointment={handleSuperModalCancel}
         isReadOnly={isReadOnly}
+        staff={staff}
       />
 
       {/* Modal Nueva Cita — no se renderiza en modo solo lectura */}

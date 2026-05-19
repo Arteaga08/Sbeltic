@@ -6,6 +6,7 @@ import { FileText, ClipboardText, Package } from "@phosphor-icons/react";
 import AppointmentPDF from "./AppointmentPDF";
 import MedicalHistoryPDF from "../patients/PatientFile/Tabs/MedicalHistoryPDF";
 import WhatsAppSignatureButton from "../patients/shared/WhatsAppSignatureButton";
+import RescheduleModal from "./RescheduleModal";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
@@ -23,10 +24,11 @@ const TABS = ["Paciente", "Insumos", "Finanzas"];
 const API = process.env.NEXT_PUBLIC_API_URL;
 
 
-export default function SuperModal({ appointment, isOpen, onClose, onSave, onCancelAppointment, isReadOnly = false }) {
+export default function SuperModal({ appointment, isOpen, onClose, onSave, onCancelAppointment, isReadOnly = false, staff = [] }) {
   useScrollLock(isOpen);
   const [activeTab, setActiveTab] = useState(0);
   const [form, setForm] = useState({});
+  const [showReschedule, setShowReschedule] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [couponPreview, setCouponPreview] = useState(null);
   const [couponError, setCouponError] = useState("");
@@ -421,6 +423,17 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                   </div>
                 )}
               </div>
+
+              {/* Reagendar cita — solo PENDING / CONFIRMED y no en modo lectura */}
+              {!isReadOnly && !["COMPLETED", "CANCELLED"].includes(form.status) && (
+                <button
+                  onClick={() => setShowReschedule(true)}
+                  className="w-full py-3 border-2 border-teal-200 text-teal-600 font-black uppercase
+                    rounded-2xl text-xs hover:bg-teal-50 hover:border-teal-300 transition-colors"
+                >
+                  Reagendar cita
+                </button>
+              )}
 
               {/* Botones PDF */}
               <PDFDownloadLink
@@ -826,6 +839,19 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
           </div>
         )}
       </div>
+
+      {/* Submodal de reagendamiento */}
+      <RescheduleModal
+        appointment={appointment}
+        isOpen={showReschedule}
+        onClose={() => setShowReschedule(false)}
+        staff={staff}
+        onRescheduled={(updatedAppt) => {
+          onSave?.(updatedAppt);
+          setShowReschedule(false);
+          onClose();
+        }}
+      />
     </div>
   );
 }
