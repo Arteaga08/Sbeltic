@@ -47,7 +47,7 @@ const WhatsAppSignatureButton = ({
       const firstName = patientName ? patientName.split(" ")[0] : "Paciente";
 
       const message = isMedicalHistoryForm
-        ? `Hola ${firstName}, por favor completa tu historial médico de Sbeltic en el siguiente enlace seguro (expira en 1 hora):\n${link}`
+        ? `Hola ${firstName}, por favor completa tu historial médico de Sbeltic en el siguiente enlace seguro (expira en 24 horas):\n${link}`
         : `Hola ${firstName}, por favor firma tu ${type === "HISTORY" ? "historia clínica" : "nota médica"} de Sbeltic en el siguiente enlace: ${link}`;
 
       window.open(

@@ -143,6 +143,13 @@ const patientSchema = new mongoose.Schema(
     // Firma del paciente para el historial clínico inicial
     historySignature: { type: String },
 
+    // Evidencia de consentimiento del aviso de privacidad (LFPDPPP)
+    privacyConsent: {
+      accepted: { type: Boolean, default: false },
+      acceptedAt: { type: Date },
+      version: { type: String },
+    },
+
     // Tokens temporales para links de firma (seguridad anti-enumeración)
     signatureTokens: [
       {

@@ -47,7 +47,7 @@ export const pacientesHelpSteps = [
     icon: WhatsappLogoIcon,
     title: "Enviar formulario de historial al paciente",
     description:
-      "Desde la pestaña Historial del expediente, haz clic en el botón de WhatsApp para generar un enlace temporal (válido 1 hora para pacientes clínicos, 24 horas para los demás). El paciente recibe el link y puede llenar o firmar su historial desde su teléfono sin necesidad de estar en la clínica. También está disponible en la pantalla de éxito al registrar un nuevo paciente.",
+      "Desde la pestaña Historial del expediente, haz clic en el botón de WhatsApp para generar un enlace temporal (válido 24 horas). El paciente recibe el link y puede llenar o firmar su historial desde su teléfono sin necesidad de estar en la clínica. También está disponible en la pantalla de éxito al registrar un nuevo paciente.",
   },
   {
     icon: PenNibIcon,

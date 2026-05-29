@@ -7,7 +7,14 @@ import {
   Clock,
   WarningCircle,
   ArrowRight,
+  ShieldCheck,
 } from "@phosphor-icons/react";
+
+import {
+  PRIVACY_NOTICE_VERSION,
+  PRIVACY_NOTICE_SECTIONS,
+  PRIVACY_CONSENT_LABEL,
+} from "@/lib/privacyNotice";
 
 import IdentificationSection from "@/components/patients/NewPatientModal/steps/IdentificationSection";
 import FamilyHistorySection from "@/components/patients/NewPatientModal/steps/FamilyHistorySection";
@@ -89,12 +96,14 @@ export default function MedicalHistoryPublicPage() {
   const params = useParams();
   const token = params?.token;
 
-  const [status, setStatus] = useState("loading"); // loading | valid | expired | used | submitted
+  const [status, setStatus] = useState("loading"); // loading | intro | valid | expired | used | submitted
   const [patientName, setPatientName] = useState("");
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [signature, setSignature] = useState(null);
   const [currentSection, setCurrentSection] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [consentAcceptedAt, setConsentAcceptedAt] = useState(null);
 
   useEffect(() => {
     if (!token) return;
@@ -107,7 +116,7 @@ export default function MedicalHistoryPublicPage() {
 
         if (result.success) {
           setPatientName(result.data.patientName);
-          setStatus("valid");
+          setStatus("intro");
         } else {
           setStatus(result.reason === "used" ? "used" : "expired");
         }
@@ -134,6 +143,11 @@ export default function MedicalHistoryPublicPage() {
           body: JSON.stringify({
             medicalHistory: formData.medicalHistory,
             historySignature: signature,
+            privacyConsent: {
+              accepted: privacyAccepted,
+              acceptedAt: consentAcceptedAt,
+              version: PRIVACY_NOTICE_VERSION,
+            },
           }),
         },
       );
@@ -258,6 +272,76 @@ export default function MedicalHistoryPublicPage() {
           <br />
           Ya puedes cerrar esta ventana, {patientName?.split(" ")[0]}.
         </p>
+      </div>
+    );
+  }
+
+  if (status === "intro") {
+    const acceptAndContinue = () => {
+      setConsentAcceptedAt(new Date().toISOString());
+      setStatus("valid");
+    };
+
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <header className="px-4 py-5 text-center">
+          <ShieldCheck
+            size={48}
+            weight="fill"
+            className="text-indigo-500 mx-auto mb-2 animate-in zoom-in duration-500"
+          />
+          <p className="text-[9px] font-black text-indigo-600 uppercase tracking-wide-label">
+            Sbeltic — Aviso de Privacidad
+          </p>
+          <h1 className="text-base font-black italic text-slate-800 uppercase mt-1">
+            Hola{patientName ? `, ${patientName.split(" ")[0]}` : ""}
+          </h1>
+          <p className="text-[10px] font-bold text-slate-400 mt-1 max-w-xs mx-auto leading-relaxed">
+            Antes de capturar tu historial médico, lee y acepta cómo tratamos
+            tus datos.
+          </p>
+        </header>
+
+        <div className="flex-1 px-4 pb-40 overflow-y-auto">
+          <div className="md:max-w-md md:mx-auto space-y-3">
+            {PRIVACY_NOTICE_SECTIONS.map((s) => (
+              <div
+                key={s.title}
+                className="bg-white border border-slate-100 rounded-3xl p-5"
+              >
+                <p className="text-[9px] font-black uppercase text-indigo-600 tracking-widest mb-1.5">
+                  {s.title}
+                </p>
+                <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+                  {s.body}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 p-4">
+          <div className="md:max-w-md md:mx-auto space-y-3">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={privacyAccepted}
+                onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                className="mt-0.5 h-5 w-5 shrink-0 accent-indigo-600 rounded"
+              />
+              <span className="text-[10px] text-slate-600 leading-relaxed font-medium">
+                {PRIVACY_CONSENT_LABEL}
+              </span>
+            </label>
+            <button
+              onClick={acceptAndContinue}
+              disabled={!privacyAccepted}
+              className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-100 active:scale-[0.98] transition-all disabled:opacity-50"
+            >
+              Acepto y Continúo <ArrowRight size={16} weight="bold" />
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

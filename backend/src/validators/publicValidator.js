@@ -25,4 +25,15 @@ export const medicalHistorySubmitSchema = z.object({
     .string()
     .min(100, "La firma es inválida o demasiado corta")
     .optional(),
+  privacyConsent: z
+    .object({
+      accepted: z.literal(true, {
+        errorMap: () => ({
+          message: "Debes aceptar el Aviso de Privacidad para continuar",
+        }),
+      }),
+      acceptedAt: z.string().datetime(),
+      version: z.string().min(1),
+    })
+    .required(),
 });

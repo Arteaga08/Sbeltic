@@ -42,7 +42,7 @@ const validateMedicalHistoryToken = asyncHandler(async (req, res, next) => {
 // 📋 Guardar el historial médico completo + firma enviados por el paciente
 const submitMedicalHistory = asyncHandler(async (req, res, next) => {
   const { token } = req.params;
-  const { medicalHistory, historySignature } = req.body;
+  const { medicalHistory, historySignature, privacyConsent } = req.body;
 
   // Re-validar token para prevenir race conditions
   const patient = await Patient.findOne({
@@ -89,6 +89,13 @@ const submitMedicalHistory = asyncHandler(async (req, res, next) => {
   if (historySignature) {
     patient.historySignature = historySignature;
   }
+
+  // Guardar evidencia del consentimiento del aviso de privacidad (LFPDPPP)
+  patient.privacyConsent = {
+    accepted: privacyConsent.accepted,
+    acceptedAt: new Date(privacyConsent.acceptedAt),
+    version: privacyConsent.version,
+  };
 
   // Marcar perfil como completo y token como usado
   patient.isProfileComplete = true;

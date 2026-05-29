@@ -56,17 +56,17 @@ const createPatient = asyncHandler(async (req, res, next) => {
   const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 
   if (["SURGERY", "LEAD"].includes(patientType)) {
-    // Pacientes SURGERY y LEAD: formulario completo de historial (1 hora)
+    // Pacientes SURGERY y LEAD: formulario completo de historial (24 horas)
     const formToken = await generateSignatureToken(
       patient._id,
       String(patient._id),
       "MEDICAL_HISTORY_FORM",
-      1,
+      24,
     );
     const formLink = `${baseUrl}/paciente/historial/${formToken}`;
     await sendWA(
       patient.phone,
-      `¡Bienvenido a Sbeltic, ${firstName}! 🏥\n\nPor favor, completa tu historial médico en el siguiente enlace seguro (expira en 1 hora):\n${formLink}`,
+      `¡Bienvenido a Sbeltic, ${firstName}! 🏥\n\nPor favor, completa tu historial médico en el siguiente enlace seguro (expira en 24 horas):\n${formLink}`,
     );
   } else {
     // Otros tipos: solo firma de historia clínica
@@ -288,7 +288,7 @@ const generateMedicalHistoryToken = asyncHandler(async (req, res, next) => {
     patient._id,
     String(patient._id),
     "MEDICAL_HISTORY_FORM",
-    1,
+    24,
   );
   const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
   const signLink = `${baseUrl}/paciente/historial/${token}`;

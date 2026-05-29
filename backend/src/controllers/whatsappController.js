@@ -628,13 +628,13 @@ const handleConsultandoNombre = async (phone, parsed, session) => {
 
   const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 
-  // Generar link historial médico (1h de expiración)
+  // Generar link historial médico (24h de expiración)
   console.log("📋 [WA-BOT] Generando token historial para paciente:", patient._id);
   const historialToken = await generateSignatureToken(
     patient._id,
     String(patient._id),
     "MEDICAL_HISTORY_FORM",
-    1,
+    24,
   );
   const historialLink = `${baseUrl}/paciente/historial/${historialToken}`;
 
@@ -643,7 +643,7 @@ const handleConsultandoNombre = async (phone, parsed, session) => {
   // Mensaje 1: link historial médico (ya incluye firma al final del formulario)
   await sendWhatsAppMessage(
     phone,
-    `*${nombre}*, tu cita para *${session.treatmentName || session.categoryLabel}* el *${formatSlotFull(session.slotDate)}* ha sido reservada ✅.\n\nAntes de tu consulta necesitamos tu historial médico y firma. El siguiente enlace es seguro y caduca en 1 hora o al terminar:\n\n${historialLink}`,
+    `*${nombre}*, tu cita para *${session.treatmentName || session.categoryLabel}* el *${formatSlotFull(session.slotDate)}* ha sido reservada ✅.\n\nAntes de tu consulta necesitamos tu historial médico y firma. El siguiente enlace es seguro y caduca en 24 horas o al terminar:\n\n${historialLink}`,
   );
 
   // Mensaje 2: agradecimiento
