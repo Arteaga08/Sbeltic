@@ -13,6 +13,7 @@ import {
   updatePatient,
   addEvolution,
   addPostOpNote,
+  addSoapNote,
   addPrescription,
   requestSignatureToken,
   generateMedicalHistoryToken,
@@ -25,6 +26,7 @@ import {
   updatePatientSchema,
   createEvolutionSchema,
   createPostOpNoteSchema,
+  createSoapNoteSchema,
   createPrescriptionSchema,
   uploadPhotoBodySchema,
   photoFilenameSchema,
@@ -65,6 +67,14 @@ router.post(
   authorizeRole("DOCTOR", "ADMIN"),
   validateSchema({ params: paramsIdSchema, body: createPostOpNoteSchema }),
   addPostOpNote,
+);
+
+// 🩺 Notas clínicas SOAP del doctor
+router.post(
+  "/:id/soap-notes",
+  authorizeRole("DOCTOR", "ADMIN"),
+  validateSchema({ params: paramsIdSchema, body: createSoapNoteSchema }),
+  addSoapNote,
 );
 
 // 💊 Recetas médicas

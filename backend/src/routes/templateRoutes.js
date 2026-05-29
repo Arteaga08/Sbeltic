@@ -8,6 +8,8 @@ import { paramsIdSchema } from "../validators/common.js";
 import {
   createPostOpNoteTemplateSchema,
   updatePostOpNoteTemplateSchema,
+  createSoapNoteTemplateSchema,
+  updateSoapNoteTemplateSchema,
   createPrescriptionTemplateSchema,
   updatePrescriptionTemplateSchema,
 } from "../validators/templateValidator.js";
@@ -16,6 +18,10 @@ import {
   createPostOpNoteTemplate,
   updatePostOpNoteTemplate,
   deletePostOpNoteTemplate,
+  listSoapNoteTemplates,
+  createSoapNoteTemplate,
+  updateSoapNoteTemplate,
+  deleteSoapNoteTemplate,
   listPrescriptionTemplates,
   createPrescriptionTemplate,
   updatePrescriptionTemplate,
@@ -45,6 +51,24 @@ router
     updatePostOpNoteTemplate,
   )
   .delete(deletePostOpNoteTemplate);
+
+// 🩺 Plantillas de notas SOAP
+router
+  .route("/soap-notes")
+  .get(listSoapNoteTemplates)
+  .post(
+    validateSchema({ body: createSoapNoteTemplateSchema }),
+    createSoapNoteTemplate,
+  );
+
+router
+  .route("/soap-notes/:id")
+  .all(validateSchema({ params: paramsIdSchema }))
+  .put(
+    validateSchema({ body: updateSoapNoteTemplateSchema }),
+    updateSoapNoteTemplate,
+  )
+  .delete(deleteSoapNoteTemplate);
 
 // 💊 Plantillas de recetas médicas
 router

@@ -78,6 +78,23 @@ const patientSchema = new mongoose.Schema(
       },
     ],
 
+    // 🩺 Notas clínicas del doctor en formato SOAP (Subjetivo, Objetivo, Análisis, Plan)
+    soapNotes: [
+      {
+        title: { type: String, default: "" }, // título/etiqueta opcional de la consulta
+        subjective: { type: String, default: "" }, // S - Subjetivo
+        objective: { type: String, default: "" }, // O - Objetivo
+        assessment: { type: String, default: "" }, // A - Análisis/Evaluación
+        plan: { type: String, default: "" }, // P - Plan
+        templateId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "SoapNoteTemplate",
+        },
+        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+
     // 📸 Fotos antes/después (solo ADMIN; archivos en filesystem vía Docker volume)
     photos: [
       {

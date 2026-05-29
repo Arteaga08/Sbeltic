@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
-import { FileText, ClipboardText, Package } from "@phosphor-icons/react";
+import { FileText, ClipboardText, Package, IdentificationCard } from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
 import AppointmentPDF from "./AppointmentPDF";
 import MedicalHistoryPDF from "../patients/PatientFile/Tabs/MedicalHistoryPDF";
 import WhatsAppSignatureButton from "../patients/shared/WhatsAppSignatureButton";
@@ -26,6 +27,7 @@ const API = process.env.NEXT_PUBLIC_API_URL;
 
 export default function SuperModal({ appointment, isOpen, onClose, onSave, onCancelAppointment, isReadOnly = false, staff = [] }) {
   useScrollLock(isOpen);
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState(0);
   const [form, setForm] = useState({});
   const [showReschedule, setShowReschedule] = useState(false);
@@ -119,6 +121,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
   if (!isOpen || !appointment) return null;
 
   const patient = appointment.patientId || {};
+  const patientId = appointment.patientId?._id || appointment.patientId;
   const doctor = appointment.doctorId || {};
   const apptTime = new Date(appointment.appointmentDate).toLocaleTimeString("es-MX", {
     hour: "2-digit", minute: "2-digit", hour12: false,
@@ -357,6 +360,18 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                 <p className="text-sm text-slate-500">{patient.phone || "Sin teléfono"}</p>
                 <p className="text-sm text-slate-500">{patient.email || "Sin email"}</p>
               </div>
+
+              {/* Ver expediente del paciente */}
+              {patientId && (
+                <button
+                  onClick={() => { onClose(); router.push(`/patients?patient=${patientId}`); }}
+                  className="w-full py-3 border-2 border-indigo-200 text-indigo-600 font-black uppercase
+                    rounded-2xl text-xs hover:bg-indigo-50 hover:border-indigo-300 transition-colors
+                    flex items-center justify-center gap-2"
+                >
+                  <IdentificationCard size={16} weight="bold" /> Ver expediente del paciente
+                </button>
+              )}
 
               {/* Historial Médico */}
               <div className={`rounded-2xl p-4 space-y-3 border ${fullPatient?.historySignature ? "bg-emerald-50 border-emerald-100" : "bg-slate-50 border-slate-100"}`}>

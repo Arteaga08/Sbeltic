@@ -19,6 +19,19 @@ const updatePostOpNoteTemplateSchema = createPostOpNoteTemplateSchema
   .partial()
   .extend({ isActive: z.boolean().optional() });
 
+const createSoapNoteTemplateSchema = z.object({
+  title: z.string().trim().min(3, "El título debe tener al menos 3 caracteres"),
+  procedureTag: z.string().trim().optional().or(z.literal("")),
+  subjective: z.string().trim().optional().or(z.literal("")),
+  objective: z.string().trim().optional().or(z.literal("")),
+  assessment: z.string().trim().optional().or(z.literal("")),
+  plan: z.string().trim().optional().or(z.literal("")),
+});
+
+const updateSoapNoteTemplateSchema = createSoapNoteTemplateSchema
+  .partial()
+  .extend({ isActive: z.boolean().optional() });
+
 const createPrescriptionTemplateSchema = z.object({
   title: z.string().trim().min(3, "El título debe tener al menos 3 caracteres"),
   procedureTag: z.string().trim().optional().or(z.literal("")),
@@ -36,6 +49,8 @@ export {
   medicationSchema,
   createPostOpNoteTemplateSchema,
   updatePostOpNoteTemplateSchema,
+  createSoapNoteTemplateSchema,
+  updateSoapNoteTemplateSchema,
   createPrescriptionTemplateSchema,
   updatePrescriptionTemplateSchema,
 };

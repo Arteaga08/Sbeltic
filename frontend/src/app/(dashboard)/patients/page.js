@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { MagnifyingGlass, Plus, CaretLeft, Pill } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import PatientStats from "@/components/patients/PatientStats";
@@ -23,7 +24,9 @@ const categoryNames = {
   OTHER: "Otros",
 };
 
-export default function PatientsPage() {
+function PatientsPageInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -58,6 +61,16 @@ export default function PatientsPage() {
     fetchPatients();
   }, []);
 
+  // Abrir expediente directo si llega ?patient=<id> (ej. desde la agenda)
+  useEffect(() => {
+    const pid = searchParams.get("patient");
+    if (pid) {
+      setSelectedPatientId(pid);
+      setIsFileModalOpen(true);
+      router.replace("/patients"); // limpia el query param
+    }
+  }, [searchParams]);
+
   const counts = useMemo(() => {
     const c = {};
     patients.forEach((p) => {
@@ -67,17 +80,29 @@ export default function PatientsPage() {
   }, [patients]);
 
   const filteredPatients = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
     return patients.filter((p) => {
-      const safeName = p.name || "";
-      const safePhone = p.phone || "";
       const matchesSearch =
-        safeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        safePhone.includes(searchTerm);
+        (p.name || "").toLowerCase().includes(q) ||
+        (p.phone || "").includes(searchTerm.trim()) ||
+        (p.email || "").toLowerCase().includes(q);
       const matchesCategory =
         selectedCategory === "ALL" || p.patientType === selectedCategory;
       return matchesSearch && matchesCategory;
     });
   }, [patients, searchTerm, selectedCategory]);
+
+  // Buscador global: ignora la categoría, busca en nombre / teléfono / email
+  const globalResults = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return [];
+    return patients.filter(
+      (p) =>
+        (p.name || "").toLowerCase().includes(q) ||
+        (p.phone || "").includes(searchTerm.trim()) ||
+        (p.email || "").toLowerCase().includes(q),
+    );
+  }, [patients, searchTerm]);
 
   // 🌟 FUNCIÓN PARA ABRIR EXPEDIENTE
   const handleOpenFolder = (patientId) => {
@@ -91,7 +116,7 @@ export default function PatientsPage() {
         <div className="space-y-2 text-center md:text-left">
           {currentView === "LIST" && (
             <button
-              onClick={() => setCurrentView("DASHBOARD")}
+              onClick={() => { setSearchTerm(""); setCurrentView("DASHBOARD"); }}
               className="flex items-center justify-start gap-2 text-indigo-600 text-[9px] font-black uppercase tracking-widest mb-4 hover:gap-3 transition-all"
             >
               <CaretLeft size={14} weight="bold" /> Volver al Directorio
@@ -134,13 +159,51 @@ export default function PatientsPage() {
       </header>
 
       {currentView === "DASHBOARD" ? (
-        <PatientStats
-          counts={counts}
-          onSelectCategory={(cat) => {
-            setSelectedCategory(cat);
-            setCurrentView("LIST");
-          }}
-        />
+        <div className="space-y-10">
+          {/* Buscador global — busca en todas las categorías */}
+          <div className="relative max-w-xl group mx-auto md:mx-0">
+            <MagnifyingGlass
+              size={20}
+              className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-600 transition-colors"
+            />
+            <input
+              type="text"
+              placeholder="BUSCAR PACIENTE EN TODO EL DIRECTORIO..."
+              className="w-full pl-14 pr-8 py-4 bg-white border-2 border-slate-100 rounded-2xl outline-none focus:border-indigo-600/20 transition-all font-bold text-[10px] uppercase tracking-widest"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {searchTerm.trim() ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-300">
+              {globalResults.length === 0 ? (
+                <div className="text-center py-20 bg-slate-50/50 rounded-modal border-2 border-dashed border-slate-100 col-span-full">
+                  <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">
+                    No se encontraron pacientes
+                  </p>
+                </div>
+              ) : (
+                globalResults.map((patient, index) => (
+                  <PatientCard
+                    key={patient._id || patient.id || index}
+                    patient={patient}
+                    onClick={(p) => handleOpenFolder(p._id)}
+                  />
+                ))
+              )}
+            </div>
+          ) : (
+            <PatientStats
+              counts={counts}
+              onSelectCategory={(cat) => {
+                setSearchTerm("");
+                setSelectedCategory(cat);
+                setCurrentView("LIST");
+              }}
+            />
+          )}
+        </div>
       ) : (
         <div className="animate-in fade-in zoom-in-95 duration-300">
           <div className="relative max-w-xl mb-10 group mx-auto md:mx-0">
@@ -205,5 +268,13 @@ export default function PatientsPage() {
         steps={pacientesHelpSteps}
       />
     </div>
+  );
+}
+
+export default function PatientsPage() {
+  return (
+    <Suspense fallback={null}>
+      <PatientsPageInner />
+    </Suspense>
   );
 }

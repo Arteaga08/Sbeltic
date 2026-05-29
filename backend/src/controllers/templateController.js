@@ -1,4 +1,5 @@
 import PostOpNoteTemplate from "../models/clinical/PostOpNoteTemplate.js";
+import SoapNoteTemplate from "../models/clinical/SoapNoteTemplate.js";
 import PrescriptionTemplate from "../models/clinical/PrescriptionTemplate.js";
 import AppError from "../utils/appError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -33,6 +34,43 @@ const updatePostOpNoteTemplate = asyncHandler(async (req, res, next) => {
 
 const deletePostOpNoteTemplate = asyncHandler(async (req, res, next) => {
   const template = await PostOpNoteTemplate.findByIdAndUpdate(
+    req.params.id,
+    { isActive: false },
+    { new: true },
+  );
+  if (!template) return next(new AppError("Plantilla no encontrada", 404));
+  sendResponse(res, 200, null, "Plantilla desactivada correctamente");
+});
+
+// 🩺 ============= SOAP NOTE TEMPLATES =============
+
+const listSoapNoteTemplates = asyncHandler(async (req, res) => {
+  const templates = await SoapNoteTemplate.find({ isActive: true })
+    .sort({ updatedAt: -1 })
+    .populate("createdBy", "name role");
+  sendResponse(res, 200, templates);
+});
+
+const createSoapNoteTemplate = asyncHandler(async (req, res) => {
+  const template = await SoapNoteTemplate.create({
+    ...req.body,
+    createdBy: req.user._id,
+  });
+  sendResponse(res, 201, template, "Plantilla creada correctamente");
+});
+
+const updateSoapNoteTemplate = asyncHandler(async (req, res, next) => {
+  const template = await SoapNoteTemplate.findByIdAndUpdate(
+    req.params.id,
+    req.body,
+    { new: true, runValidators: true },
+  );
+  if (!template) return next(new AppError("Plantilla no encontrada", 404));
+  sendResponse(res, 200, template, "Plantilla actualizada correctamente");
+});
+
+const deleteSoapNoteTemplate = asyncHandler(async (req, res, next) => {
+  const template = await SoapNoteTemplate.findByIdAndUpdate(
     req.params.id,
     { isActive: false },
     { new: true },
@@ -83,6 +121,10 @@ export {
   createPostOpNoteTemplate,
   updatePostOpNoteTemplate,
   deletePostOpNoteTemplate,
+  listSoapNoteTemplates,
+  createSoapNoteTemplate,
+  updateSoapNoteTemplate,
+  deleteSoapNoteTemplate,
   listPrescriptionTemplates,
   createPrescriptionTemplate,
   updatePrescriptionTemplate,

@@ -118,6 +118,7 @@ const getPatientById = asyncHandler(async (req, res, next) => {
     .populate("clinicalNotes.createdBy", "name role")
     .populate("evolutions.createdBy", "name role")
     .populate("postOpNotes.createdBy", "name role")
+    .populate("soapNotes.createdBy", "name role")
     .populate("prescriptions.createdBy", "name role")
     .populate("walletCoupons");
 
@@ -213,6 +214,21 @@ const addPostOpNote = asyncHandler(async (req, res, next) => {
 
   await patient.save();
   sendResponse(res, 201, patient, "Nota post-operatoria registrada");
+});
+
+// 🩺 Agregar nota clínica SOAP al expediente
+const addSoapNote = asyncHandler(async (req, res, next) => {
+  const patient = await Patient.findById(req.params.id);
+  if (!patient) return next(new AppError("Paciente no encontrado", 404));
+
+  patient.soapNotes.push({
+    ...req.body,
+    createdBy: req.user._id,
+    createdAt: new Date(),
+  });
+
+  await patient.save();
+  sendResponse(res, 201, patient, "Nota SOAP registrada");
 });
 
 // 💊 Agregar receta médica al expediente
@@ -354,6 +370,7 @@ export {
   updatePatient,
   addEvolution,
   addPostOpNote,
+  addSoapNote,
   addPrescription,
   deletePatient,
   requestSignatureToken,

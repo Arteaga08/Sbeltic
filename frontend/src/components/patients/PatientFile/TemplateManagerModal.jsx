@@ -16,6 +16,14 @@ import { useScrollLock } from "@/hooks/useScrollLock";
 const API = process.env.NEXT_PUBLIC_API_URL;
 
 const EMPTY_POST_OP = { title: "", body: "", procedureTag: "" };
+const EMPTY_SOAP = {
+  title: "",
+  procedureTag: "",
+  subjective: "",
+  objective: "",
+  assessment: "",
+  plan: "",
+};
 const EMPTY_PRESCRIPTION = {
   title: "",
   procedureTag: "",
@@ -23,19 +31,34 @@ const EMPTY_PRESCRIPTION = {
   generalIndications: "",
 };
 
+// Secciones del estándar SOAP (referencia NCBI NBK482263) — en español
+const SOAP_SECTIONS = [
+  { key: "subjective", letter: "S", label: "Subjetivo" },
+  { key: "objective", letter: "O", label: "Objetivo" },
+  { key: "assessment", letter: "A", label: "Análisis / Evaluación" },
+  { key: "plan", letter: "P", label: "Plan" },
+];
+
 const TemplateManagerModal = ({ isOpen, onClose, type }) => {
   useScrollLock(isOpen);
   const isPostOp = type === "postOp";
+  const isSoap = type === "soap";
   const endpoint = isPostOp
     ? `${API}/templates/post-op-notes`
-    : `${API}/templates/prescriptions`;
+    : isSoap
+      ? `${API}/templates/soap-notes`
+      : `${API}/templates/prescriptions`;
 
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(null); // null | "new" | template object
   const [saving, setSaving] = useState(false);
 
-  const emptyForm = isPostOp ? EMPTY_POST_OP : EMPTY_PRESCRIPTION;
+  const emptyForm = isPostOp
+    ? EMPTY_POST_OP
+    : isSoap
+      ? EMPTY_SOAP
+      : EMPTY_PRESCRIPTION;
   const [form, setForm] = useState(emptyForm);
 
   const fetchTemplates = async () => {
@@ -64,14 +87,23 @@ const TemplateManagerModal = ({ isOpen, onClose, type }) => {
     setForm(
       isPostOp
         ? { title: t.title, body: t.body, procedureTag: t.procedureTag || "" }
-        : {
-            title: t.title,
-            procedureTag: t.procedureTag || "",
-            medications: t.medications?.length
-              ? t.medications
-              : [{ name: "", presentation: "", dose: "", route: "", frequency: "", duration: "" }],
-            generalIndications: t.generalIndications || "",
-          },
+        : isSoap
+          ? {
+              title: t.title,
+              procedureTag: t.procedureTag || "",
+              subjective: t.subjective || "",
+              objective: t.objective || "",
+              assessment: t.assessment || "",
+              plan: t.plan || "",
+            }
+          : {
+              title: t.title,
+              procedureTag: t.procedureTag || "",
+              medications: t.medications?.length
+                ? t.medications
+                : [{ name: "", presentation: "", dose: "", route: "", frequency: "", duration: "" }],
+              generalIndications: t.generalIndications || "",
+            },
     );
     setEditing(t);
   };
@@ -80,7 +112,12 @@ const TemplateManagerModal = ({ isOpen, onClose, type }) => {
     if (!form.title?.trim()) return toast.error("El título es obligatorio");
     if (isPostOp && !form.body?.trim())
       return toast.error("El contenido es obligatorio");
-    if (!isPostOp && !form.medications?.some((m) => m.name?.trim()))
+    if (
+      isSoap &&
+      !SOAP_SECTIONS.some((s) => form[s.key]?.trim())
+    )
+      return toast.error("Completa al menos una sección de la nota SOAP");
+    if (!isPostOp && !isSoap && !form.medications?.some((m) => m.name?.trim()))
       return toast.error("Agrega al menos un medicamento con nombre");
 
     setSaving(true);
@@ -161,7 +198,11 @@ const TemplateManagerModal = ({ isOpen, onClose, type }) => {
               </div>
               <div>
                 <h2 className="text-[11px] font-black uppercase tracking-widest text-slate-900">
-                  {isPostOp ? "Plantillas Post-Op" : "Plantillas de Recetas"}
+                  {isPostOp
+                    ? "Plantillas Post-Op"
+                    : isSoap
+                      ? "Plantillas SOAP"
+                      : "Plantillas de Recetas"}
                 </h2>
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
                   {templates.length} plantillas activas
@@ -225,6 +266,24 @@ const TemplateManagerModal = ({ isOpen, onClose, type }) => {
                       value={form.body}
                       onChange={(e) => setForm({ ...form, body: e.target.value })}
                     />
+                  </div>
+                ) : isSoap ? (
+                  <div className="space-y-4">
+                    {SOAP_SECTIONS.map((s) => (
+                      <div key={s.key} className="space-y-1.5">
+                        <label className="text-[9px] font-black text-slate-400 uppercase ml-1">
+                          <span className="text-indigo-500 italic mr-1">{s.letter}</span>
+                          {s.label}
+                        </label>
+                        <textarea
+                          rows={3}
+                          className="w-full p-4 bg-white rounded-xl text-xs font-medium outline-none focus:ring-2 ring-indigo-200 resize-none"
+                          placeholder={`Texto base de ${s.label.toLowerCase()}...`}
+                          value={form[s.key]}
+                          onChange={(e) => setForm({ ...form, [s.key]: e.target.value })}
+                        />
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <>
@@ -328,6 +387,12 @@ const TemplateManagerModal = ({ isOpen, onClose, type }) => {
                     )}
                     {isPostOp ? (
                       <p className="mt-2 text-[10px] text-slate-400 line-clamp-2">{t.body}</p>
+                    ) : isSoap ? (
+                      <p className="mt-1 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                        {SOAP_SECTIONS.filter((s) => t[s.key]?.trim())
+                          .map((s) => s.letter)
+                          .join(" · ") || "Sin contenido"}
+                      </p>
                     ) : (
                       <p className="mt-1 text-[9px] font-bold text-slate-400 uppercase">
                         {t.medications?.length || 0} medicamento(s)

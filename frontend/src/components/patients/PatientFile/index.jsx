@@ -9,6 +9,7 @@ import EvolutionTab from "./Tabs/EvolutionTab";
 import SignatureTab from "./Tabs/SignatureTab";
 import CouponsTab from "./Tabs/CouponsTab";
 import PostOpNotesTab from "./Tabs/PostOpNotesTab";
+import SoapNotesTab from "./Tabs/SoapNotesTab";
 import PrescriptionsTab from "./Tabs/PrescriptionsTab";
 import PhotosTab from "./Tabs/PhotosTab";
 import FinancesTab from "./Tabs/FinancesTab";
@@ -118,6 +119,14 @@ const PatientFileModal = ({ isOpen, patientId, onClose, onUpdate }) => {
                     onUpdate={fetchPatientData}
                   />
                 )}
+                {activeTab === "soapNotes" &&
+                  ["DOCTOR", "ADMIN"].includes(currentUserRole) && (
+                    <SoapNotesTab
+                      patient={patient}
+                      userRole={currentUserRole}
+                      onUpdate={fetchPatientData}
+                    />
+                  )}
                 {activeTab === "prescriptions" && (
                   <PrescriptionsTab
                     patient={patient}

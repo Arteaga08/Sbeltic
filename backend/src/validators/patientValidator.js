@@ -68,6 +68,24 @@ const createPostOpNoteSchema = z.object({
   templateId: objectIdSchema.optional(),
 });
 
+// 🩺 NOTAS SOAP DEL DOCTOR (anidadas en Patient)
+const createSoapNoteSchema = z
+  .object({
+    title: z.string().trim().optional().or(z.literal("")),
+    subjective: z.string().trim().optional().or(z.literal("")),
+    objective: z.string().trim().optional().or(z.literal("")),
+    assessment: z.string().trim().optional().or(z.literal("")),
+    plan: z.string().trim().optional().or(z.literal("")),
+    templateId: objectIdSchema.optional(),
+  })
+  .refine(
+    (data) =>
+      [data.subjective, data.objective, data.assessment, data.plan].some(
+        (section) => section && section.trim().length > 0,
+      ),
+    { message: "Completa al menos una sección de la nota SOAP" },
+  );
+
 // 💊 RECETAS MÉDICAS (anidadas en Patient)
 const prescriptionMedicationSchema = z.object({
   name: z.string().trim().min(1, "El nombre del medicamento es obligatorio"),
@@ -114,6 +132,7 @@ export {
   updatePatientSchema,
   createEvolutionSchema,
   createPostOpNoteSchema,
+  createSoapNoteSchema,
   createPrescriptionSchema,
   uploadPhotoBodySchema,
   photoFilenameSchema,
