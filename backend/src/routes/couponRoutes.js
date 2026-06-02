@@ -1,6 +1,7 @@
 import express from "express";
 import {
   createCoupon,
+  createManualCoupon,
   getCoupons,
   getCouponById,
   updateCoupon,
@@ -16,6 +17,7 @@ import validateObjectId from "../middlewares/validateObjectId.js";
 import {
   validateCreateCoupon,
   validateUpdateCoupon,
+  validateCreateManualCoupon,
 } from "../validators/couponValidator.js";
 
 const router = express.Router();
@@ -33,6 +35,14 @@ router
 
 router.get("/stats", authorizeRole("ADMIN", "RECEPTIONIST", "MARKETING"), getCouponStats);
 router.post("/validate", validateCouponCode);
+
+// 🏷️ Cupón manual creado y asignado desde el expediente clínico
+router.post(
+  "/manual",
+  authorizeRole("ADMIN", "RECEPTIONIST"),
+  validateCreateManualCoupon,
+  createManualCoupon,
+);
 
 /**
  * 🔐 RUTAS PARAMETRIZADAS

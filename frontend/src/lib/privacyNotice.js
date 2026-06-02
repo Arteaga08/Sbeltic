@@ -10,7 +10,7 @@
 export const PRIVACY_NOTICE_VERSION = "2026-05-29-v1";
 
 export const PRIVACY_NOTICE_RESPONSIBLE =
-  "Sbeltic Clínica Sbeltic S.A. de C.V., con domicilio en [DOMICILIO FISCAL]";
+  "Sbeltic [RAZÓN SOCIAL], con domicilio en [DOMICILIO FISCAL]";
 
 export const PRIVACY_NOTICE_ARCO_CONTACT = "[CORREO PARA DERECHOS ARCO]";
 

@@ -73,6 +73,23 @@ export const createCouponSchema = z
 
 const updateCouponSchema = createCouponSchema.partial().strict();
 
+// 🏷️ Cupón manual creado desde el expediente clínico (uso presencial, sin WhatsApp)
+export const createManualCouponSchema = z
+  .object({
+    patientId: objectIdSchema,
+    code: z.string().trim().min(3).toUpperCase(),
+    name: z.string().trim().min(1, "El nombre del cupón es obligatorio"),
+    reason: z.string().trim().optional(),
+    discountType: z.enum(["PERCENTAGE", "FIXED_AMOUNT"]),
+    discountValue: z.number().positive(),
+    expiresAt: z.coerce.date().refine((date) => date > new Date(), {
+      message: "La fecha de expiración debe ser en el futuro",
+    }),
+    maxRedemptions: z.number().int().positive().default(1),
+    maxUsesPerUser: z.number().int().positive().default(1),
+  })
+  .strict();
+
 // Middleware de validación para la ruta
 export const validateCreateCoupon = (req, res, next) => {
   const result = createCouponSchema.safeParse(req.body);
@@ -91,6 +108,20 @@ export const validateCreateCoupon = (req, res, next) => {
 
 export const validateUpdateCoupon = (req, res, next) => {
   const result = updateCouponSchema.safeParse(req.body);
+
+  if (!result.success) {
+    return res.status(400).json({
+      status: "fail",
+      message: result.error.issues.map((e) => e.message).join(", "),
+    });
+  }
+
+  req.body = result.data;
+  next();
+};
+
+export const validateCreateManualCoupon = (req, res, next) => {
+  const result = createManualCouponSchema.safeParse(req.body);
 
   if (!result.success) {
     return res.status(400).json({

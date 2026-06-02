@@ -135,7 +135,11 @@ const PatientFileModal = ({ isOpen, patientId, onClose, onUpdate }) => {
                   />
                 )}
                 {activeTab === "coupons" && (
-                  <CouponsTab patient={patient} />
+                  <CouponsTab
+                    patient={patient}
+                    userRole={currentUserRole}
+                    onUpdate={fetchPatientData}
+                  />
                 )}
                 {activeTab === "finances" && (
                   <FinancesTab

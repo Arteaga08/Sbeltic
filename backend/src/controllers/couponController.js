@@ -63,6 +63,64 @@ const createCoupon = asyncHandler(async (req, res, next) => {
 });
 
 /**
+ * 1.b CREAR CUPÓN MANUAL (desde el expediente clínico)
+ * Crea un cupón de uso presencial y lo asigna a la cartera del paciente.
+ */
+const createManualCoupon = asyncHandler(async (req, res, next) => {
+  const {
+    patientId,
+    code,
+    name,
+    reason,
+    discountType,
+    discountValue,
+    expiresAt,
+    maxRedemptions,
+    maxUsesPerUser,
+  } = req.body;
+
+  const patient = await Patient.findById(patientId);
+  if (!patient) return next(new AppError("Paciente no encontrado", 404));
+
+  if (discountType === "PERCENTAGE" && discountValue > 100) {
+    return next(
+      new AppError("El descuento porcentual no puede exceder el 100%", 400),
+    );
+  }
+
+  if (new Date(expiresAt) <= new Date()) {
+    return next(
+      new AppError("La fecha de expiración debe ser en el futuro", 400),
+    );
+  }
+
+  const existing = await Coupon.findOne({ code: code.toUpperCase() });
+  if (existing) {
+    return next(new AppError("Ya existe un cupón con ese código", 400));
+  }
+
+  const coupon = await Coupon.create({
+    code,
+    name,
+    reason,
+    origin: "MANUAL",
+    type: "MANUAL",
+    discountType,
+    discountValue,
+    expiresAt,
+    maxRedemptions,
+    maxUsesPerUser,
+  });
+
+  await Patient.updateOne(
+    { _id: patientId },
+    { $addToSet: { walletCoupons: coupon._id } },
+  );
+
+  sendResponse(res, 201, coupon, "Cupón creado y asignado al paciente");
+});
+
+/**
  * 2. OBTENER CUPONES
  */
 const getCoupons = asyncHandler(async (req, res, next) => {
@@ -287,6 +345,7 @@ const deleteCoupon = asyncHandler(async (req, res, next) => {
 
 export {
   createCoupon,
+  createManualCoupon,
   getCoupons,
   getCouponById,
   updateCoupon,

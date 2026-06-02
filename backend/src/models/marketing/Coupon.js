@@ -12,9 +12,20 @@ const couponSchema = new mongoose.Schema(
     // 🌟 Categoría del cupón
     type: {
       type: String,
-      enum: ["WELCOME", "REFERRAL", "SEASONAL", "CLEARANCE", "BIRTHDAY", "MAINTENANCE"],
+      enum: ["WELCOME", "REFERRAL", "SEASONAL", "CLEARANCE", "BIRTHDAY", "MAINTENANCE", "MANUAL"],
       required: true,
     },
+
+    // 🏷️ Origen del cupón: campaña automatizada o creado a mano en el expediente
+    origin: {
+      type: String,
+      enum: ["CAMPAIGN", "MANUAL"],
+      default: "CAMPAIGN",
+    },
+
+    // 🪪 Identidad (usado principalmente por cupones manuales)
+    name: { type: String, trim: true },     // nombre amigable del cupón
+    reason: { type: String, trim: true },   // motivo de entrega
     discountType: {
       type: String,
       enum: ["PERCENTAGE", "FIXED_AMOUNT"],
@@ -43,9 +54,12 @@ const couponSchema = new mongoose.Schema(
     ],
 
     // 🌟 Nombre de la plantilla pre-aprobada en Meta
+    // Obligatorio solo para cupones de campaña (los manuales no se envían por WhatsApp)
     whatsappTemplateName: {
       type: String,
-      required: true,
+      required: function () {
+        return this.origin !== "MANUAL";
+      },
     },
 
     // 🎯 Variables configurables por tipo (valores que el admin define al crear el cupón)

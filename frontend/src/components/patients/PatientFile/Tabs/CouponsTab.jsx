@@ -11,8 +11,11 @@ import {
   ShoppingCart,
   Cake,
   Wrench,
+  Plus,
+  Hand,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import ManualCouponModal from "./ManualCouponModal";
 
 const TYPE_CONFIG = {
   WELCOME: { label: "Bienvenida", icon: Gift, color: "bg-indigo-50 text-indigo-600" },
@@ -21,6 +24,7 @@ const TYPE_CONFIG = {
   CLEARANCE: { label: "Liquidacion", icon: ShoppingCart, color: "bg-rose-50 text-rose-600" },
   BIRTHDAY: { label: "Cumpleanos", icon: Cake, color: "bg-pink-50 text-pink-600" },
   MAINTENANCE: { label: "Mantenimiento", icon: Wrench, color: "bg-emerald-50 text-emerald-600" },
+  MANUAL: { label: "Manual", icon: Hand, color: "bg-slate-100 text-slate-600" },
 };
 
 const CouponCard = ({ coupon }) => {
@@ -29,6 +33,8 @@ const CouponCard = ({ coupon }) => {
   const {
     code,
     type,
+    name,
+    reason,
     discountType,
     discountValue,
     usedCount = 0,
@@ -100,6 +106,11 @@ const CouponCard = ({ coupon }) => {
 
       {/* CODIGO + DESCUENTO */}
       <div className="space-y-1 mb-6">
+        {name && (
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+            {name}
+          </p>
+        )}
         <h4 className="text-2xl font-black italic uppercase text-slate-900 tracking-tighter leading-none">
           {code}
         </h4>
@@ -109,6 +120,11 @@ const CouponCard = ({ coupon }) => {
             {displayDiscount} OFF
           </p>
         </div>
+        {reason && (
+          <p className="text-[10px] font-medium text-slate-400 italic pt-1">
+            {reason}
+          </p>
+        )}
       </div>
 
       {/* RESTRICCIONES */}
@@ -168,8 +184,10 @@ const CouponCard = ({ coupon }) => {
   );
 };
 
-const CouponsTab = ({ patient }) => {
+const CouponsTab = ({ patient, userRole, onUpdate }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const coupons = patient?.walletCoupons || [];
+  const canCreate = ["ADMIN", "RECEPTIONIST"].includes(userRole);
 
   const activeCoupons = coupons.filter((c) => {
     const now = new Date();
@@ -191,12 +209,24 @@ const CouponsTab = ({ patient }) => {
               {activeCoupons.length > 0 && ` • ${activeCoupons.length} disponibles`}
             </p>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50">
-            <Tag size={14} weight="fill" className="text-indigo-600" />
-            <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">
-              Wallet
-            </span>
-          </div>
+          {canCreate ? (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm"
+            >
+              <Plus size={14} weight="bold" />
+              <span className="text-[9px] font-black uppercase tracking-widest">
+                Nuevo Cupón
+              </span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50">
+              <Tag size={14} weight="fill" className="text-indigo-600" />
+              <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">
+                Wallet
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -237,6 +267,15 @@ const CouponsTab = ({ patient }) => {
             </div>
           )}
         </div>
+      )}
+
+      {canCreate && (
+        <ManualCouponModal
+          isOpen={isModalOpen}
+          patient={patient}
+          onClose={() => setIsModalOpen(false)}
+          onUpdate={onUpdate}
+        />
       )}
     </div>
   );

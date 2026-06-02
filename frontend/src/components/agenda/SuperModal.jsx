@@ -744,7 +744,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                               : "border-slate-200 bg-white hover:border-teal-300"
                             }`}
                         >
-                          <p className="text-[10px] font-black uppercase text-slate-500">{c.type}</p>
+                          <p className="text-[10px] font-black uppercase text-slate-500">{c.name || c.type}</p>
                           <p className="text-xs font-black text-slate-800">{c.code}</p>
                           <p className="text-[10px] font-bold text-teal-600">
                             {c.discountType === "PERCENTAGE"
