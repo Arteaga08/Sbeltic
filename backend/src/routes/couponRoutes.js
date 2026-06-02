@@ -2,6 +2,7 @@ import express from "express";
 import {
   createCoupon,
   createManualCoupon,
+  createReferralCoupon,
   getCoupons,
   getCouponById,
   updateCoupon,
@@ -18,6 +19,7 @@ import {
   validateCreateCoupon,
   validateUpdateCoupon,
   validateCreateManualCoupon,
+  validateCreateReferralCoupon,
 } from "../validators/couponValidator.js";
 
 const router = express.Router();
@@ -42,6 +44,14 @@ router.post(
   authorizeRole("ADMIN", "RECEPTIONIST"),
   validateCreateManualCoupon,
   createManualCoupon,
+);
+
+// 🤝 Cupón de referido global y compartible (a nombre de un paciente dueño)
+router.post(
+  "/referral",
+  authorizeRole("ADMIN", "RECEPTIONIST", "MARKETING"),
+  validateCreateReferralCoupon,
+  createReferralCoupon,
 );
 
 /**

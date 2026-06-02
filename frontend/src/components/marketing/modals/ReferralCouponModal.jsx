@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import {
   X,
+  UsersThree,
   Tag,
   Percent,
   CurrencyDollar,
@@ -9,11 +10,12 @@ import {
   Users,
   UserCircle,
   NotePencil,
+  MagnifyingGlass,
+  Check,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useScrollLock } from "@/hooks/useScrollLock";
-import { useTreatmentCategories } from "@/context/TreatmentCategoriesContext";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -21,8 +23,6 @@ const INITIAL_STATE = {
   name: "",
   code: "",
   description: "",
-  applicableCategory: "",
-  reason: "",
   discountType: "PERCENTAGE",
   discountValue: "",
   expiresAt: "",
@@ -30,31 +30,41 @@ const INITIAL_STATE = {
   maxUsesPerUser: 1,
 };
 
-const ManualCouponModal = ({
-  isOpen,
-  patient,
-  defaultCategory,
-  onClose,
-  onUpdate,
-}) => {
+const ReferralCouponModal = ({ isOpen, onClose, onUpdate }) => {
   useScrollLock(isOpen);
-  const categories = useTreatmentCategories();
-  const hasPatient = !!patient?._id;
   const [formData, setFormData] = useState(INITIAL_STATE);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Pre-cargar la categoría activa al abrir
+  // Dueño del referido (recibe la recompensa)
+  const [ownerSearch, setOwnerSearch] = useState("");
+  const [ownerResults, setOwnerResults] = useState([]);
+  const [owner, setOwner] = useState(null);
+
+  // Buscar dueño (debounce)
   useEffect(() => {
-    if (isOpen) {
-      setFormData((f) => ({
-        ...f,
-        applicableCategory: defaultCategory || f.applicableCategory,
-      }));
+    if (owner || !ownerSearch.trim()) {
+      setOwnerResults([]);
+      return;
     }
-  }, [isOpen, defaultCategory]);
+    const timeout = setTimeout(async () => {
+      try {
+        const res = await fetchWithAuth(
+          `${API}/patients?search=${encodeURIComponent(ownerSearch)}&limit=6`,
+        );
+        const data = await res.json();
+        setOwnerResults(data.data?.patients || []);
+      } catch {
+        setOwnerResults([]);
+      }
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [ownerSearch, owner]);
 
   const resetState = () => {
     setFormData(INITIAL_STATE);
+    setOwnerSearch("");
+    setOwnerResults([]);
+    setOwner(null);
   };
 
   const handleClose = () => {
@@ -65,27 +75,25 @@ const ManualCouponModal = ({
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (new Date(formData.expiresAt) <= new Date()) {
-      toast.error("La vigencia debe ser una fecha futura");
+    if (!owner) {
+      toast.error("Selecciona el paciente dueño del referido");
       return;
     }
-    if (!formData.applicableCategory) {
-      toast.error("Selecciona una categoría");
+    if (new Date(formData.expiresAt) <= new Date()) {
+      toast.error("La vigencia debe ser una fecha futura");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const res = await fetchWithAuth(`${API}/coupons/manual`, {
+      const res = await fetchWithAuth(`${API}/coupons/referral`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...(hasPatient && { patientId: patient._id }),
+          ownerId: owner._id,
           name: formData.name.trim(),
           code: formData.code.trim().toUpperCase(),
           description: formData.description.trim(),
-          applicableCategory: formData.applicableCategory,
-          reason: formData.reason.trim() || undefined,
           discountType: formData.discountType,
           discountValue: Number(formData.discountValue),
           expiresAt: formData.expiresAt,
@@ -96,13 +104,13 @@ const ManualCouponModal = ({
 
       const data = await res.json();
       if (res.ok && data.success) {
-        toast.success("Cupón manual creado");
+        toast.success("Cupón de referido creado");
         onUpdate?.();
         handleClose();
       } else {
-        toast.error(data.message || "Error al crear el cupón");
+        toast.error(data.message || "Error al crear el referido");
       }
-    } catch (error) {
+    } catch {
       toast.error("Error de conexión");
     } finally {
       setIsSubmitting(false);
@@ -117,15 +125,15 @@ const ManualCouponModal = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
-              <Tag size={24} weight="duotone" />
+            <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
+              <UsersThree size={24} weight="duotone" />
             </div>
             <div>
               <h2 className="text-xl font-black text-slate-800 uppercase italic">
-                Nuevo Cupón Manual
+                Nuevo Referido
               </h2>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                {hasPatient ? `Para ${patient.name}` : "Cupón general"}
+                Cupón global y compartible
               </p>
             </div>
           </div>
@@ -141,9 +149,78 @@ const ManualCouponModal = ({
           onSubmit={handleSubmit}
           className="p-8 space-y-6 overflow-y-auto max-h-[75vh] scrollbar-hide"
         >
-          {/* 1. IDENTIDAD */}
-          <h3 className="text-xs font-black uppercase text-indigo-600 tracking-widest border-b border-indigo-100 pb-2">
-            1. Identidad
+          {/* 1. DUEÑO */}
+          <h3 className="text-xs font-black uppercase text-purple-600 tracking-widest border-b border-purple-100 pb-2">
+            1. Dueño del referido
+          </h3>
+          <div className="space-y-3">
+            <p className="text-[10px] font-medium text-slate-500">
+              La recompensa se entrega automáticamente a este paciente cuando
+              alguien canjee el cupón en finanzas.
+            </p>
+            {owner ? (
+              <div className="flex items-center justify-between bg-white border border-purple-200 rounded-xl px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <Check size={16} weight="bold" className="text-emerald-500" />
+                  <span className="text-sm font-bold text-slate-700">
+                    {owner.name}
+                  </span>
+                  {owner.phone && (
+                    <span className="text-[10px] text-slate-400">
+                      {owner.phone}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOwner(null);
+                    setOwnerSearch("");
+                  }}
+                  className="text-[10px] font-black uppercase text-rose-500 tracking-widest"
+                >
+                  Cambiar
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3">
+                  <MagnifyingGlass size={16} className="text-slate-400 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Buscar paciente por nombre o teléfono..."
+                    className="w-full px-3 py-3 bg-transparent outline-none text-sm font-medium"
+                    value={ownerSearch}
+                    onChange={(e) => setOwnerSearch(e.target.value)}
+                  />
+                </div>
+                {ownerResults.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
+                    {ownerResults.map((p) => (
+                      <button
+                        type="button"
+                        key={p._id}
+                        onClick={() => {
+                          setOwner(p);
+                          setOwnerResults([]);
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors border-b border-slate-50 last:border-0"
+                      >
+                        <p className="text-sm font-bold text-slate-700">{p.name}</p>
+                        {p.phone && (
+                          <p className="text-[10px] text-slate-400">{p.phone}</p>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 2. IDENTIDAD */}
+          <h3 className="text-xs font-black uppercase text-purple-600 tracking-widest border-b border-purple-100 pb-2 pt-4">
+            2. Identidad
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
@@ -153,7 +230,7 @@ const ManualCouponModal = ({
               <input
                 required
                 type="text"
-                placeholder="Descuento fidelidad"
+                placeholder="Referido de Ana"
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-medium"
                 value={formData.name}
                 onChange={(e) =>
@@ -168,8 +245,8 @@ const ManualCouponModal = ({
               <input
                 required
                 type="text"
-                placeholder="FIDELIDAD10"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold uppercase tracking-wider text-indigo-600"
+                placeholder="ANAREF"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold uppercase tracking-wider text-purple-600"
                 value={formData.code}
                 onChange={(e) =>
                   setFormData({
@@ -181,67 +258,25 @@ const ManualCouponModal = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <Tag size={14} /> Categoría
-              </label>
-              <select
-                required
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-medium"
-                value={formData.applicableCategory}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    applicableCategory: e.target.value,
-                  })
-                }
-              >
-                <option value="" disabled>
-                  Selecciona una categoría
-                </option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <NotePencil size={14} /> Descripción corta
-              </label>
-              <input
-                required
-                type="text"
-                placeholder="Aplica en limpiezas faciales"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-medium"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-              />
-            </div>
-          </div>
-
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-              <NotePencil size={14} /> Motivo (opcional)
+              <NotePencil size={14} /> Descripción corta
             </label>
             <input
+              required
               type="text"
-              placeholder="Cliente frecuente, cortesía por demora, etc."
+              placeholder="Comparte y obtén un descuento"
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-medium"
-              value={formData.reason}
+              value={formData.description}
               onChange={(e) =>
-                setFormData({ ...formData, reason: e.target.value })
+                setFormData({ ...formData, description: e.target.value })
               }
             />
           </div>
 
-          {/* 2. DESCUENTO */}
-          <h3 className="text-xs font-black uppercase text-indigo-600 tracking-widest border-b border-indigo-100 pb-2 pt-4">
-            2. Descuento y Vigencia
+          {/* 3. DESCUENTO */}
+          <h3 className="text-xs font-black uppercase text-purple-600 tracking-widest border-b border-purple-100 pb-2 pt-4">
+            3. Descuento y Vigencia
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
@@ -274,7 +309,7 @@ const ManualCouponModal = ({
                 min="1"
                 max={formData.discountType === "PERCENTAGE" ? 100 : undefined}
                 placeholder={formData.discountType === "PERCENTAGE" ? "10" : "150"}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-indigo-600"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-purple-600"
                 value={formData.discountValue}
                 onChange={(e) =>
                   setFormData({ ...formData, discountValue: e.target.value })
@@ -297,14 +332,14 @@ const ManualCouponModal = ({
             </div>
           </div>
 
-          {/* 3. LÍMITES */}
-          <h3 className="text-xs font-black uppercase text-indigo-600 tracking-widest border-b border-indigo-100 pb-2 pt-4">
-            3. Límites de Uso
+          {/* 4. LÍMITES */}
+          <h3 className="text-xs font-black uppercase text-purple-600 tracking-widest border-b border-purple-100 pb-2 pt-4">
+            4. Límites de Uso
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <Users size={14} /> Límite total de canjes
+                <Users size={14} /> Canjes totales (amigas referidas)
               </label>
               <input
                 required
@@ -337,13 +372,9 @@ const ManualCouponModal = ({
           <button
             disabled={isSubmitting}
             type="submit"
-            className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase italic tracking-widest hover:bg-indigo-700 shadow-xl disabled:opacity-50"
+            className="w-full py-4 bg-purple-600 text-white rounded-2xl font-black uppercase italic tracking-widest hover:bg-purple-700 shadow-xl disabled:opacity-50"
           >
-            {isSubmitting
-              ? "Creando..."
-              : hasPatient
-                ? "Crear y Asignar Cupón"
-                : "Crear Cupón"}
+            {isSubmitting ? "Creando..." : "Crear Referido"}
           </button>
         </form>
       </div>
@@ -351,4 +382,4 @@ const ManualCouponModal = ({
   );
 };
 
-export default ManualCouponModal;
+export default ReferralCouponModal;

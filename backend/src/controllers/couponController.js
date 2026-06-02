@@ -74,6 +74,8 @@ const createManualCoupon = asyncHandler(async (req, res, next) => {
     referrerId,
     code,
     name,
+    description,
+    applicableCategory,
     reason,
     discountType,
     discountValue,
@@ -114,6 +116,8 @@ const createManualCoupon = asyncHandler(async (req, res, next) => {
   const coupon = await Coupon.create({
     code,
     name,
+    description,
+    applicableCategory,
     reason,
     origin: "MANUAL",
     type: referrerId ? "REFERRAL" : "MANUAL",
@@ -141,10 +145,66 @@ const createManualCoupon = asyncHandler(async (req, res, next) => {
 });
 
 /**
+ * 1.c CREAR CUPÓN DE REFERIDO GLOBAL (compartible, sin WhatsApp template).
+ * Se crea a nombre de un paciente "dueño" (ownerId). El cupón es global: el dueño lo
+ * comparte con quien quiera y, al canjearlo cualquier persona en finanzas,
+ * appointmentController entrega automáticamente la recompensa al dueño.
+ */
+const createReferralCoupon = asyncHandler(async (req, res, next) => {
+  const {
+    ownerId,
+    code,
+    name,
+    description,
+    discountType,
+    discountValue,
+    expiresAt,
+    maxRedemptions,
+    maxUsesPerUser,
+  } = req.body;
+
+  if (discountType === "PERCENTAGE" && discountValue > 100) {
+    return next(
+      new AppError("El descuento porcentual no puede exceder el 100%", 400),
+    );
+  }
+
+  if (new Date(expiresAt) <= new Date()) {
+    return next(
+      new AppError("La fecha de expiración debe ser en el futuro", 400),
+    );
+  }
+
+  const owner = await Patient.findById(ownerId);
+  if (!owner) return next(new AppError("Paciente dueño no encontrado", 404));
+
+  const existing = await Coupon.findOne({ code: code.toUpperCase() });
+  if (existing) {
+    return next(new AppError("Ya existe un cupón con ese código", 400));
+  }
+
+  const coupon = await Coupon.create({
+    code,
+    name,
+    description,
+    origin: "MANUAL",
+    type: "REFERRAL",
+    discountType,
+    discountValue,
+    expiresAt,
+    maxRedemptions,
+    maxUsesPerUser,
+    referralConfig: { ownerId },
+  });
+
+  sendResponse(res, 201, coupon, "Cupón de referido creado");
+});
+
+/**
  * 2. OBTENER CUPONES
  */
 const getCoupons = asyncHandler(async (req, res, next) => {
-  const { status, type } = req.query;
+  const { status, type, origin, category } = req.query;
   const query = {};
   const now = new Date();
 
@@ -157,8 +217,12 @@ const getCoupons = asyncHandler(async (req, res, next) => {
   }
 
   if (type) query.type = type;
+  if (origin) query.origin = origin;
+  if (category) query.applicableCategory = category.toUpperCase();
 
-  const coupons = await Coupon.find(query).sort({ createdAt: -1 });
+  const coupons = await Coupon.find(query)
+    .populate({ path: "referralConfig.ownerId", select: "name phone" })
+    .sort({ createdAt: -1 });
   sendResponse(res, 200, coupons);
 });
 
@@ -366,6 +430,7 @@ const deleteCoupon = asyncHandler(async (req, res, next) => {
 export {
   createCoupon,
   createManualCoupon,
+  createReferralCoupon,
   getCoupons,
   getCouponById,
   updateCoupon,

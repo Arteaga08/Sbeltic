@@ -78,9 +78,17 @@ const updateCouponSchema = createCouponSchema.partial().strict();
 export const createManualCouponSchema = z
   .object({
     patientId: objectIdSchema.optional(),
-    referrerId: objectIdSchema.optional(), // quien refirió (cupón de referido)
     code: z.string().trim().min(3).toUpperCase(),
     name: z.string().trim().min(1, "El nombre del cupón es obligatorio"),
+    description: z
+      .string()
+      .trim()
+      .min(1, "La descripción corta es obligatoria"),
+    applicableCategory: z
+      .string()
+      .trim()
+      .min(1, "La categoría es obligatoria")
+      .toUpperCase(),
     reason: z.string().trim().optional(),
     discountType: z.enum(["PERCENTAGE", "FIXED_AMOUNT"]),
     discountValue: z.number().positive(),
@@ -90,18 +98,29 @@ export const createManualCouponSchema = z
     maxRedemptions: z.number().int().positive().default(1),
     maxUsesPerUser: z.number().int().positive().default(1),
   })
-  .strict()
-  .refine((data) => !data.referrerId || !!data.patientId, {
-    message: "Un cupón de referido requiere el paciente referido",
-    path: ["patientId"],
+  .strict();
+
+// 🤝 Cupón de referido GLOBAL y compartible.
+// Se crea a nombre de un paciente "dueño" (ownerId); al canjearlo cualquier persona
+// en finanzas, appointmentController entrega automáticamente la recompensa al dueño.
+export const createReferralCouponSchema = z
+  .object({
+    ownerId: objectIdSchema, // paciente dueño del referido (recibe la recompensa)
+    code: z.string().trim().min(3).toUpperCase(),
+    name: z.string().trim().min(1, "El nombre del cupón es obligatorio"),
+    description: z
+      .string()
+      .trim()
+      .min(1, "La descripción corta es obligatoria"),
+    discountType: z.enum(["PERCENTAGE", "FIXED_AMOUNT"]),
+    discountValue: z.number().positive(),
+    expiresAt: z.coerce.date().refine((date) => date > new Date(), {
+      message: "La fecha de expiración debe ser en el futuro",
+    }),
+    maxRedemptions: z.number().int().positive().default(1),
+    maxUsesPerUser: z.number().int().positive().default(1),
   })
-  .refine(
-    (data) => !data.referrerId || data.referrerId !== data.patientId,
-    {
-      message: "El referente y el referido no pueden ser el mismo paciente",
-      path: ["referrerId"],
-    },
-  );
+  .strict();
 
 // Middleware de validación para la ruta
 export const validateCreateCoupon = (req, res, next) => {
@@ -135,6 +154,20 @@ export const validateUpdateCoupon = (req, res, next) => {
 
 export const validateCreateManualCoupon = (req, res, next) => {
   const result = createManualCouponSchema.safeParse(req.body);
+
+  if (!result.success) {
+    return res.status(400).json({
+      status: "fail",
+      message: result.error.issues.map((e) => e.message).join(", "),
+    });
+  }
+
+  req.body = result.data;
+  next();
+};
+
+export const validateCreateReferralCoupon = (req, res, next) => {
+  const result = createReferralCouponSchema.safeParse(req.body);
 
   if (!result.success) {
     return res.status(400).json({

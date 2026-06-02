@@ -35,6 +35,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
   const [couponCode, setCouponCode] = useState("");
   const [couponPreview, setCouponPreview] = useState(null);
   const [couponError, setCouponError] = useState("");
+  const [categoryCoupons, setCategoryCoupons] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [supplySearch, setSupplySearch] = useState("");
@@ -92,9 +93,21 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
       setActiveTab(0);
       setSupplyType("INSUMO");
       setFullPatient(null);
+      setCategoryCoupons([]);
 
       // Fetch paciente completo para el PDF de historial médico y la cartera de cupones
       fetchFullPatient();
+
+      // Cupones generales activos para la categoría del procedimiento de esta cita
+      const apptCategory = appointment.treatmentCategory;
+      if (apptCategory) {
+        fetchWithAuth(
+          `${API}/coupons?status=active&origin=MANUAL&category=${encodeURIComponent(apptCategory)}`,
+        )
+          .then((r) => r.json())
+          .then((data) => setCategoryCoupons(data.data || []))
+          .catch(() => setCategoryCoupons([]));
+      }
     }
   }, [appointment, isOpen]);
 
@@ -158,6 +171,12 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
   // Cupones disponibles del paciente
   const availableCoupons = (fullPatient?.walletCoupons || []).filter(
     (c) => c.isActive && new Date(c.expiresAt) > new Date() && c.usedCount < c.maxRedemptions,
+  );
+
+  // Cupones generales de la categoría del procedimiento (sin duplicar los del wallet)
+  const walletCodes = new Set(availableCoupons.map((c) => c.code));
+  const suggestedCategoryCoupons = categoryCoupons.filter(
+    (c) => !walletCodes.has(c.code),
   );
 
   // Seleccionar cupón del wallet
@@ -779,6 +798,36 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                   </div>
                 )}
 
+                {/* Cupones de la categoría del procedimiento */}
+                {!isReadOnly && suggestedCategoryCoupons.length > 0 && (
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1.5">
+                      Cupones para {appointment.treatmentCategory}
+                    </label>
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {suggestedCategoryCoupons.map((c) => (
+                        <button
+                          key={c._id}
+                          onClick={() => selectWalletCoupon(c)}
+                          className={`shrink-0 px-3 py-2 rounded-xl border-2 transition-all text-left
+                            ${couponPreview?.code === c.code
+                              ? "border-teal-500 bg-teal-50"
+                              : "border-slate-200 bg-white hover:border-teal-300"
+                            }`}
+                        >
+                          <p className="text-[10px] font-black uppercase text-slate-500">{c.name || c.description || "Cupón"}</p>
+                          <p className="text-xs font-black text-slate-800">{c.code}</p>
+                          <p className="text-[10px] font-bold text-teal-600">
+                            {c.discountType === "PERCENTAGE"
+                              ? `${c.discountValue}% desc.`
+                              : `$${c.discountValue} desc.`}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Cupón manual */}
                 {!isReadOnly && (
                 <div>
@@ -905,6 +954,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
       <ManualCouponModal
         isOpen={isManualCouponOpen}
         patient={fullPatient || patient}
+        defaultCategory={appointment.treatmentCategory}
         onClose={() => setIsManualCouponOpen(false)}
         onUpdate={fetchFullPatient}
       />

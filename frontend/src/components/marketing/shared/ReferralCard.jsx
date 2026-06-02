@@ -4,54 +4,34 @@ import {
   CalendarBlank,
   Tag,
   Trash,
-  PencilSimple,
   WhatsappLogo,
-  Clock,
   Copy,
   Check,
-  PaperPlaneTilt,
-  Ticket,
+  UserCircle,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
-const TEMPLATE_LABELS = {
-  sbeltic_bienvenida: "Bienvenida",
-  sbeltic_referidos: "Referidos",
-  sbeltic_mantenimiento: "Mantenimiento",
-  sbeltic_cumple: "Cumpleanos",
-  sbeltic_promo_mensual: "Promo Mensual",
-  sbeltic_liquidacion: "Liquidacion",
-  // 👇 Agregar aquí el nombre de la 2da plantilla mensual cuando esté lista en Meta:
-  // NOMBRE_PLANTILLA_META: "Promo Mensual 2",
-};
-
-const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
+const ReferralCard = ({ campaign, onRefresh }) => {
   const {
     _id,
     code,
     name,
     description,
-    applicableCategory,
     discountType,
     discountValue,
     usedCount,
     maxRedemptions,
     expiresAt,
     isActive,
-    whatsappTemplateName,
-    schedule,
-    type,
-    origin,
+    referralConfig,
   } = campaign;
 
-  const isManual = origin === "MANUAL";
+  const owner = referralConfig?.ownerId; // poblado con { name, phone }
 
   const [copied, setCopied] = useState(false);
-  const [sending, setSending] = useState(false);
 
   const usagePercentage = Math.min((usedCount / maxRedemptions) * 100, 100);
-
   const displayDiscount =
     discountType === "PERCENTAGE" ? `${discountValue}%` : `$${discountValue}`;
 
@@ -61,62 +41,62 @@ const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
       ? Math.ceil((expiresDate - new Date()) / (1000 * 60 * 60 * 24))
       : null;
   const daysColor =
-    daysLeft === null ? "text-slate-400" : daysLeft <= 3 ? "text-rose-500" : daysLeft <= 7 ? "text-amber-500" : "text-slate-400";
-
-  const templateLabel = TEMPLATE_LABELS[whatsappTemplateName] || whatsappTemplateName || "Sin plantilla";
+    daysLeft === null
+      ? "text-slate-400"
+      : daysLeft <= 3
+        ? "text-rose-500"
+        : daysLeft <= 7
+          ? "text-amber-500"
+          : "text-slate-400";
 
   const handleCopy = () => {
     navigator.clipboard.writeText(code);
     setCopied(true);
-    toast.success("Codigo copiado");
+    toast.success("Código copiado");
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleSendNow = async () => {
-    if (!confirm("Enviar este cupón a todos los pacientes con WhatsApp habilitado ahora?")) return;
-    setSending(true);
-    try {
-      const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/coupons/${_id}/send-now`,
-        { method: "POST" },
-      );
-      const data = await res.json();
-      if (res.ok) {
-        toast.success(`Enviado a ${data.data?.sent ?? 0} paciente(s)`);
-      } else {
-        toast.error(data.message || "Error al enviar");
-      }
-    } catch {
-      toast.error("Error de conexión");
-    } finally {
-      setSending(false);
+  const handleSendWhatsApp = () => {
+    if (!owner?.phone) {
+      toast.error("El dueño no tiene un número registrado");
+      return;
     }
+    const firstName = owner.name ? owner.name.split(" ")[0] : "Hola";
+    const message =
+      `Hola ${firstName}, este es tu cupón de referido de Sbeltic 🌿\n\n` +
+      `Código: *${code}* (${displayDiscount} de descuento)\n` +
+      `${description || ""}\n\n` +
+      `Compártelo con quien quieras. Cuando lo usen en su cita, tú recibes una recompensa.`;
+    window.open(
+      `https://wa.me/${owner.phone.replace(/[^\d]/g, "")}?text=${encodeURIComponent(message)}`,
+      "_blank",
+    );
   };
 
   const handleTrashClick = async () => {
     if (isActive) {
-      if (!confirm("Deseas pausar esta campana?")) return;
+      if (!confirm("¿Deseas pausar este referido?")) return;
       try {
         const res = await fetchWithAuth(
           `${process.env.NEXT_PUBLIC_API_URL}/coupons/${_id}/deactivate`,
           { method: "PATCH" },
         );
         if (res.ok) {
-          toast.success("Campana pausada");
+          toast.success("Referido pausado");
           if (onRefresh) onRefresh();
         }
       } catch {
         toast.error("Error al pausar");
       }
     } else {
-      if (!confirm("Eliminar esta campana permanentemente? Esta accion no se puede deshacer.")) return;
+      if (!confirm("¿Eliminar este referido permanentemente?")) return;
       try {
         const res = await fetchWithAuth(
           `${process.env.NEXT_PUBLIC_API_URL}/coupons/${_id}`,
           { method: "DELETE" },
         );
         if (res.ok) {
-          toast.success("Campana eliminada");
+          toast.success("Referido eliminado");
           if (onRefresh) onRefresh();
         }
       } catch {
@@ -140,43 +120,33 @@ const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
             className={`w-1.5 h-1.5 rounded-full animate-pulse ${isActive ? "bg-emerald-500" : "bg-rose-500"}`}
           />
           <span className="text-[8px] font-black uppercase tracking-widest">
-            {isActive ? "En Curso" : "Finalizada"}
+            {isActive ? "Activo" : "Pausado"}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
-          {isActive && onEdit && !isManual && (
+          {isActive && (
             <button
-              onClick={() => onEdit(campaign)}
-              className="text-slate-300 hover:text-indigo-500 transition-colors"
-              title="Editar campaña"
+              onClick={handleSendWhatsApp}
+              className="text-slate-300 hover:text-emerald-500 transition-colors"
+              title="Enviar al dueño por WhatsApp"
             >
-              <PencilSimple size={20} weight="bold" />
-            </button>
-          )}
-          {isActive && !isManual && (
-            <button
-              onClick={handleSendNow}
-              disabled={sending}
-              className="text-slate-300 hover:text-emerald-500 transition-colors disabled:opacity-40"
-              title="Enviar ahora a todos los pacientes"
-            >
-              <PaperPlaneTilt size={20} weight="bold" className={sending ? "animate-pulse" : ""} />
+              <WhatsappLogo size={20} weight="bold" />
             </button>
           )}
           <button
             onClick={handleTrashClick}
             className="text-slate-300 hover:text-rose-500 transition-colors"
-            title={isActive ? "Pausar campaña" : "Eliminar permanentemente"}
+            title={isActive ? "Pausar referido" : "Eliminar permanentemente"}
           >
             <Trash size={20} weight="bold" />
           </button>
         </div>
       </div>
 
-      {/* INFO DE CAMPANA */}
-      <div className="space-y-1 mb-8">
-        {isManual && name && (
+      {/* INFO */}
+      <div className="space-y-1 mb-6">
+        {name && (
           <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
             {name}
           </p>
@@ -189,45 +159,24 @@ const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
             {description}
           </p>
         )}
-        <div className="flex items-center gap-2">
-          <Tag size={14} weight="fill" className="text-indigo-600" />
-          <p className="text-indigo-600 font-black text-xs uppercase tracking-widest">
+        <div className="flex items-center gap-2 pt-1">
+          <Tag size={14} weight="fill" className="text-purple-600" />
+          <p className="text-purple-600 font-black text-xs uppercase tracking-widest">
             {displayDiscount} OFF
           </p>
         </div>
-
-        {/* Badge de plantilla / manual */}
-        {isManual ? (
+        {owner?.name && (
           <div className="flex items-center gap-1.5 mt-2">
-            <Ticket size={12} weight="fill" className="text-slate-500" />
+            <UserCircle size={12} weight="fill" className="text-slate-500" />
             <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
-              {applicableCategory
-                ? `Manual · ${applicableCategory}`
-                : "Manual (presencial)"}
-            </span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1.5 mt-2">
-            <WhatsappLogo size={12} weight="fill" className="text-emerald-500" />
-            <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">
-              {templateLabel}
-            </span>
-          </div>
-        )}
-
-        {/* Badge de proximo envio programado */}
-        {!isManual && schedule?.nextSendAt && !isNaN(new Date(schedule.nextSendAt).getTime()) && (
-          <div className="flex items-center gap-1.5 mt-1">
-            <Clock size={12} className="text-indigo-400" />
-            <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">
-              Prox. envio: {new Date(schedule.nextSendAt).toLocaleDateString()}
+              Dueño: {owner.name}
             </span>
           </div>
         )}
       </div>
 
-      {/* METRICAS DE CANJE */}
-      <div className="space-y-2.5 mb-8">
+      {/* MÉTRICAS DE CANJE */}
+      <div className="space-y-2.5 mb-6">
         <div className="flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-widest">
           <span>
             Canjes: {usedCount} / {maxRedemptions}
@@ -237,14 +186,14 @@ const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
         <div className="w-full h-2.5 bg-slate-50 rounded-full border border-slate-100 overflow-hidden">
           <div
             className={`h-full transition-all duration-700 ${
-              usagePercentage > 85 ? "bg-amber-500" : "bg-indigo-600"
+              usagePercentage > 85 ? "bg-amber-500" : "bg-purple-600"
             }`}
             style={{ width: `${usagePercentage}%` }}
           />
         </div>
       </div>
 
-      {/* PIE: VIGENCIA + COPIAR CODIGO */}
+      {/* PIE: VIGENCIA + COPIAR */}
       <div className="flex items-center justify-between pt-5 border-t border-slate-50">
         <div className="flex items-center gap-2">
           <CalendarBlank size={16} weight="bold" className="text-slate-300" />
@@ -262,11 +211,11 @@ const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
           }`}
         >
           {copied ? <Check size={14} weight="bold" /> : <Copy size={14} weight="bold" />}
-          {copied ? "Copiado" : "Codigo"}
+          {copied ? "Copiado" : "Código"}
         </button>
       </div>
     </div>
   );
 };
 
-export default CampaignCard;
+export default ReferralCard;

@@ -24,8 +24,9 @@ const couponSchema = new mongoose.Schema(
     },
 
     // 🪪 Identidad (usado principalmente por cupones manuales)
-    name: { type: String, trim: true },     // nombre amigable del cupón
-    reason: { type: String, trim: true },   // motivo de entrega
+    name: { type: String, trim: true },        // nombre amigable del cupón
+    description: { type: String, trim: true }, // descripción corta visible al usuario
+    reason: { type: String, trim: true },      // motivo de entrega
     discountType: {
       type: String,
       enum: ["PERCENTAGE", "FIXED_AMOUNT"],
