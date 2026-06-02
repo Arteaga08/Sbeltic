@@ -68,7 +68,7 @@ const ReferralCard = ({ campaign, onRefresh }) => {
     }
     const firstName = owner.name ? owner.name.split(" ")[0] : "Hola";
     const message =
-      `Hola ${firstName}, este es tu cupón de referido de Sbeltic 🌿\n\n` +
+      `Hola ${firstName}, este es tu cupón de referido de Sbeltic \n\n` +
       `Código: *${code}* (${displayDiscount} de descuento)\n` +
       `${description || ""}\n\n` +
       `Compártelo con quien quieras. Cuando lo usen en su cita, tú recibes una recompensa\n` +

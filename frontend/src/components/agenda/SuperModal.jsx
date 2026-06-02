@@ -451,6 +451,14 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                 </div>
               </div>
 
+              {/* Quién agendó la cita */}
+              <div className="bg-slate-50 rounded-2xl p-3">
+                <p className="text-[9px] font-black uppercase text-slate-400 mb-1">Agendado por</p>
+                <p className="font-bold text-slate-800 text-sm">
+                  {appointment.createdBy?.name || "—"}
+                </p>
+              </div>
+
               {/* Selector de estado */}
               <div>
                 <p className="text-[10px] font-black uppercase text-slate-400 mb-2">Estado de la cita</p>
