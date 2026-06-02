@@ -73,10 +73,12 @@ export const createCouponSchema = z
 
 const updateCouponSchema = createCouponSchema.partial().strict();
 
-// 🏷️ Cupón manual creado desde el expediente clínico (uso presencial, sin WhatsApp)
+// 🏷️ Cupón manual (uso presencial, sin WhatsApp).
+// Se crea desde Marketing (sin paciente), el expediente o la agenda (con paciente).
 export const createManualCouponSchema = z
   .object({
-    patientId: objectIdSchema,
+    patientId: objectIdSchema.optional(),
+    referrerId: objectIdSchema.optional(), // quien refirió (cupón de referido)
     code: z.string().trim().min(3).toUpperCase(),
     name: z.string().trim().min(1, "El nombre del cupón es obligatorio"),
     reason: z.string().trim().optional(),
@@ -88,7 +90,18 @@ export const createManualCouponSchema = z
     maxRedemptions: z.number().int().positive().default(1),
     maxUsesPerUser: z.number().int().positive().default(1),
   })
-  .strict();
+  .strict()
+  .refine((data) => !data.referrerId || !!data.patientId, {
+    message: "Un cupón de referido requiere el paciente referido",
+    path: ["patientId"],
+  })
+  .refine(
+    (data) => !data.referrerId || data.referrerId !== data.patientId,
+    {
+      message: "El referente y el referido no pueden ser el mismo paciente",
+      path: ["referrerId"],
+    },
+  );
 
 // Middleware de validación para la ruta
 export const validateCreateCoupon = (req, res, next) => {

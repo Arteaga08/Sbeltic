@@ -8,6 +8,7 @@ import AppointmentPDF from "./AppointmentPDF";
 import MedicalHistoryPDF from "../patients/PatientFile/Tabs/MedicalHistoryPDF";
 import WhatsAppSignatureButton from "../patients/shared/WhatsAppSignatureButton";
 import RescheduleModal from "./RescheduleModal";
+import ManualCouponModal from "../marketing/modals/ManualCouponModal";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
@@ -46,6 +47,35 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
   const [categoryProducts, setCategoryProducts] = useState([]);
   const [fullPatient, setFullPatient] = useState(null);
   const [loadingPatient, setLoadingPatient] = useState(false);
+  const [isManualCouponOpen, setIsManualCouponOpen] = useState(false);
+  const [userRole, setUserRole] = useState("GUEST");
+
+  // Rol del usuario (para permitir crear cupones manuales)
+  useEffect(() => {
+    const saved = localStorage.getItem("sbeltic_user");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed?.role) setUserRole(parsed.role);
+      } catch {
+        /* deja GUEST */
+      }
+    }
+  }, []);
+
+  const canCreateCoupon = ["ADMIN", "RECEPTIONIST"].includes(userRole);
+
+  // Carga (o recarga) el paciente completo — usado para refrescar la cartera tras crear un cupón
+  const fetchFullPatient = () => {
+    const pid = appointment?.patientId?._id || appointment?.patientId;
+    if (!pid) return;
+    setLoadingPatient(true);
+    fetchWithAuth(`${API}/patients/${pid}`)
+      .then((res) => res.json())
+      .then((data) => { if (data.success) setFullPatient(data.data); })
+      .catch(() => {})
+      .finally(() => setLoadingPatient(false));
+  };
 
   // Inicializar form cuando abre
   useEffect(() => {
@@ -63,16 +93,8 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
       setSupplyType("INSUMO");
       setFullPatient(null);
 
-      // Fetch paciente completo para el PDF de historial médico
-      const patientId = appointment.patientId?._id || appointment.patientId;
-      if (patientId) {
-        setLoadingPatient(true);
-        fetchWithAuth(`${API}/patients/${patientId}`)
-          .then((res) => res.json())
-          .then((data) => { if (data.success) setFullPatient(data.data); })
-          .catch(() => {})
-          .finally(() => setLoadingPatient(false));
-      }
+      // Fetch paciente completo para el PDF de historial médico y la cartera de cupones
+      fetchFullPatient();
     }
   }, [appointment, isOpen]);
 
@@ -760,9 +782,20 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                 {/* Cupón manual */}
                 {!isReadOnly && (
                 <div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 block mb-1.5">
-                    Código de cupón
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-400 block">
+                      Código de cupón
+                    </label>
+                    {canCreateCoupon && (
+                      <button
+                        type="button"
+                        onClick={() => setIsManualCouponOpen(true)}
+                        className="text-[10px] font-black uppercase text-teal-600 tracking-widest hover:text-teal-700"
+                      >
+                        + Crear cupón
+                      </button>
+                    )}
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     <input
                       type="text"
@@ -866,6 +899,14 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
           setShowReschedule(false);
           onClose();
         }}
+      />
+
+      {/* Crear cupón manual para el paciente de la cita */}
+      <ManualCouponModal
+        isOpen={isManualCouponOpen}
+        patient={fullPatient || patient}
+        onClose={() => setIsManualCouponOpen(false)}
+        onUpdate={fetchFullPatient}
       />
     </div>
   );

@@ -15,7 +15,7 @@ import {
   Hand,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
-import ManualCouponModal from "./ManualCouponModal";
+import ManualCouponModal from "@/components/marketing/modals/ManualCouponModal";
 
 const TYPE_CONFIG = {
   WELCOME: { label: "Bienvenida", icon: Gift, color: "bg-indigo-50 text-indigo-600" },

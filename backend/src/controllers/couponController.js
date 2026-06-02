@@ -63,12 +63,15 @@ const createCoupon = asyncHandler(async (req, res, next) => {
 });
 
 /**
- * 1.b CREAR CUPÓN MANUAL (desde el expediente clínico)
- * Crea un cupón de uso presencial y lo asigna a la cartera del paciente.
+ * 1.b CREAR CUPÓN MANUAL (uso presencial, sin WhatsApp).
+ * Creable desde Marketing (sin paciente), el expediente o la agenda (con paciente).
+ * Si trae referrerId se crea como cupón de referido (type REFERRAL): al canjearlo el
+ * referido, appointmentController entrega automáticamente la recompensa al referente.
  */
 const createManualCoupon = asyncHandler(async (req, res, next) => {
   const {
     patientId,
+    referrerId,
     code,
     name,
     reason,
@@ -78,9 +81,6 @@ const createManualCoupon = asyncHandler(async (req, res, next) => {
     maxRedemptions,
     maxUsesPerUser,
   } = req.body;
-
-  const patient = await Patient.findById(patientId);
-  if (!patient) return next(new AppError("Paciente no encontrado", 404));
 
   if (discountType === "PERCENTAGE" && discountValue > 100) {
     return next(
@@ -94,6 +94,18 @@ const createManualCoupon = asyncHandler(async (req, res, next) => {
     );
   }
 
+  // Validar paciente referido (si aplica)
+  if (patientId) {
+    const patient = await Patient.findById(patientId);
+    if (!patient) return next(new AppError("Paciente no encontrado", 404));
+  }
+
+  // Validar referente (si es cupón de referido)
+  if (referrerId) {
+    const referrer = await Patient.findById(referrerId);
+    if (!referrer) return next(new AppError("Referente no encontrado", 404));
+  }
+
   const existing = await Coupon.findOne({ code: code.toUpperCase() });
   if (existing) {
     return next(new AppError("Ya existe un cupón con ese código", 400));
@@ -104,20 +116,28 @@ const createManualCoupon = asyncHandler(async (req, res, next) => {
     name,
     reason,
     origin: "MANUAL",
-    type: "MANUAL",
+    type: referrerId ? "REFERRAL" : "MANUAL",
     discountType,
     discountValue,
     expiresAt,
     maxRedemptions,
     maxUsesPerUser,
+    ...(referrerId && { referralConfig: { ownerId: referrerId } }),
   });
 
-  await Patient.updateOne(
-    { _id: patientId },
-    { $addToSet: { walletCoupons: coupon._id } },
-  );
+  if (patientId) {
+    await Patient.updateOne(
+      { _id: patientId },
+      { $addToSet: { walletCoupons: coupon._id } },
+    );
+  }
 
-  sendResponse(res, 201, coupon, "Cupón creado y asignado al paciente");
+  sendResponse(
+    res,
+    201,
+    coupon,
+    patientId ? "Cupón creado y asignado al paciente" : "Cupón manual creado",
+  );
 });
 
 /**

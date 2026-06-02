@@ -10,6 +10,7 @@ import {
   Copy,
   Check,
   PaperPlaneTilt,
+  Ticket,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
@@ -29,6 +30,7 @@ const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
   const {
     _id,
     code,
+    name,
     discountType,
     discountValue,
     usedCount,
@@ -38,7 +40,10 @@ const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
     whatsappTemplateName,
     schedule,
     type,
+    origin,
   } = campaign;
+
+  const isManual = origin === "MANUAL";
 
   const [copied, setCopied] = useState(false);
   const [sending, setSending] = useState(false);
@@ -138,7 +143,7 @@ const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
         </div>
 
         <div className="flex items-center gap-2">
-          {isActive && onEdit && (
+          {isActive && onEdit && !isManual && (
             <button
               onClick={() => onEdit(campaign)}
               className="text-slate-300 hover:text-indigo-500 transition-colors"
@@ -147,7 +152,7 @@ const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
               <PencilSimple size={20} weight="bold" />
             </button>
           )}
-          {isActive && (
+          {isActive && !isManual && (
             <button
               onClick={handleSendNow}
               disabled={sending}
@@ -169,6 +174,11 @@ const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
 
       {/* INFO DE CAMPANA */}
       <div className="space-y-1 mb-8">
+        {isManual && name && (
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+            {name}
+          </p>
+        )}
         <h4 className="text-3xl font-black italic uppercase text-slate-900 tracking-tighter leading-none">
           {code}
         </h4>
@@ -179,16 +189,25 @@ const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
           </p>
         </div>
 
-        {/* Badge de plantilla */}
-        <div className="flex items-center gap-1.5 mt-2">
-          <WhatsappLogo size={12} weight="fill" className="text-emerald-500" />
-          <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">
-            {templateLabel}
-          </span>
-        </div>
+        {/* Badge de plantilla / manual */}
+        {isManual ? (
+          <div className="flex items-center gap-1.5 mt-2">
+            <Ticket size={12} weight="fill" className="text-slate-500" />
+            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+              Manual (presencial)
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 mt-2">
+            <WhatsappLogo size={12} weight="fill" className="text-emerald-500" />
+            <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">
+              {templateLabel}
+            </span>
+          </div>
+        )}
 
         {/* Badge de proximo envio programado */}
-        {schedule?.nextSendAt && !isNaN(new Date(schedule.nextSendAt).getTime()) && (
+        {!isManual && schedule?.nextSendAt && !isNaN(new Date(schedule.nextSendAt).getTime()) && (
           <div className="flex items-center gap-1.5 mt-1">
             <Clock size={12} className="text-indigo-400" />
             <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">

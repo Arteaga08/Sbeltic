@@ -12,11 +12,13 @@ import {
   CaretLeft,
   Cake,
   FirstAid,
+  Ticket,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
 // Modales y Componentes
 import CouponBuilderModal from "@/components/marketing/modals/CouponBuilderModal";
+import ManualCouponModal from "@/components/marketing/modals/ManualCouponModal";
 import CampaignCard from "@/components/marketing/shared/CampaignCard";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import HelpButton from "@/components/help/HelpButton";
@@ -27,6 +29,7 @@ export default function MarketingPage() {
   const [currentView, setCurrentView] = useState("DASHBOARD");
   const [selectedCategory, setSelectedCategory] = useState("WELCOME");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isManualOpen, setIsManualOpen] = useState(false);
   const [couponToEdit, setCouponToEdit] = useState(null);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
@@ -141,6 +144,14 @@ export default function MarketingPage() {
       color: "text-teal-600",
       bg: "bg-teal-50",
     },
+    {
+      id: "MANUAL",
+      label: "Cupones Manuales",
+      description: "Entrega presencial (sin WhatsApp)",
+      icon: Ticket,
+      color: "text-slate-600",
+      bg: "bg-slate-100",
+    },
   ];
 
   const handleCategoryClick = (categoryId) => {
@@ -186,12 +197,20 @@ export default function MarketingPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="w-full md:w-auto px-10 py-5 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 transition-all text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-indigo-200 active:scale-95 shrink-0"
-        >
-          <Plus size={20} weight="bold" /> NUEVA CAMPAÑA
-        </button>
+        <div className="w-full md:w-auto flex flex-col gap-3 shrink-0">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="w-full md:w-auto px-10 py-5 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 transition-all text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-indigo-200 active:scale-95"
+          >
+            <Plus size={20} weight="bold" /> NUEVA CAMPAÑA
+          </button>
+          <button
+            onClick={() => setIsManualOpen(true)}
+            className="w-full md:w-auto px-8 py-5 bg-white border-2 border-slate-200 text-slate-700 font-black rounded-2xl hover:border-indigo-300 hover:text-indigo-600 transition-all text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95"
+          >
+            <Ticket size={20} weight="bold" /> CUPÓN MANUAL
+          </button>
+        </div>
       </header>
 
       {currentView === "DASHBOARD" ? (
@@ -303,7 +322,11 @@ export default function MarketingPage() {
                     No hay campañas activas de {activeCategoryData.label}
                   </p>
                   <button
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={() =>
+                      selectedCategory === "MANUAL"
+                        ? setIsManualOpen(true)
+                        : setIsModalOpen(true)
+                    }
                     className="mt-8 px-8 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all"
                   >
                     Crear la primera
@@ -332,6 +355,12 @@ export default function MarketingPage() {
         }}
         onRefresh={fetchCampaigns}
         coupon={couponToEdit}
+      />
+
+      <ManualCouponModal
+        isOpen={isManualOpen}
+        onClose={() => setIsManualOpen(false)}
+        onUpdate={fetchCampaigns}
       />
 
       <HelpModal
