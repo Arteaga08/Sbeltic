@@ -25,6 +25,8 @@ const INITIAL_STATE = {
   description: "",
   discountType: "PERCENTAGE",
   discountValue: "",
+  rewardType: "PERCENTAGE",
+  rewardValue: "",
   expiresAt: "",
   maxRedemptions: 1,
   maxUsesPerUser: 1,
@@ -96,6 +98,8 @@ const ReferralCouponModal = ({ isOpen, onClose, onUpdate }) => {
           description: formData.description.trim(),
           discountType: formData.discountType,
           discountValue: Number(formData.discountValue),
+          rewardType: formData.rewardType,
+          rewardValue: Number(formData.rewardValue),
           expiresAt: formData.expiresAt,
           maxRedemptions: Number(formData.maxRedemptions),
           maxUsesPerUser: Number(formData.maxUsesPerUser),
@@ -332,9 +336,59 @@ const ReferralCouponModal = ({ isOpen, onClose, onUpdate }) => {
             </div>
           </div>
 
-          {/* 4. LÍMITES */}
+          {/* 4. RECOMPENSA PARA EL DUEÑO */}
           <h3 className="text-xs font-black uppercase text-purple-600 tracking-widest border-b border-purple-100 pb-2 pt-4">
-            4. Límites de Uso
+            4. Recompensa para el dueño
+          </h3>
+          <div className="bg-purple-50/50 border border-purple-100 rounded-2xl p-4 space-y-4">
+            <p className="text-[10px] font-medium text-slate-500">
+              Lo que recibe el dueño en su cartera cada vez que alguien canjea su
+              cupón. Es independiente del descuento que recibe quien lo usa.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  Tipo de recompensa
+                </label>
+                <select
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none font-medium"
+                  value={formData.rewardType}
+                  onChange={(e) =>
+                    setFormData({ ...formData, rewardType: e.target.value })
+                  }
+                >
+                  <option value="PERCENTAGE">Porcentaje (%)</option>
+                  <option value="FIXED_AMOUNT">Monto fijo ($)</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  {formData.rewardType === "PERCENTAGE" ? (
+                    <Percent size={14} />
+                  ) : (
+                    <CurrencyDollar size={14} />
+                  )}
+                  Valor de la recompensa
+                </label>
+                <input
+                  required
+                  type="number"
+                  min="1"
+                  max={formData.rewardType === "PERCENTAGE" ? 100 : undefined}
+                  placeholder={formData.rewardType === "PERCENTAGE" ? "10" : "150"}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none font-bold text-purple-600"
+                  value={formData.rewardValue}
+                  onChange={(e) =>
+                    setFormData({ ...formData, rewardValue: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 5. LÍMITES */}
+          <h3 className="text-xs font-black uppercase text-purple-600 tracking-widest border-b border-purple-100 pb-2 pt-4">
+            5. Límites de Uso
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">

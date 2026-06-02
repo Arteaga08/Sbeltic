@@ -73,6 +73,13 @@ const couponSchema = new mongoose.Schema(
     referralConfig: {
       ownerId: { type: mongoose.Schema.Types.ObjectId, ref: "Patient" },
       maxShares: { type: Number, default: 0 },
+      // Recompensa que recibe el dueño cuando alguien canjea su cupón
+      rewardType: {
+        type: String,
+        enum: ["PERCENTAGE", "FIXED_AMOUNT"],
+        default: "PERCENTAGE",
+      },
+      rewardValue: { type: Number, default: 10 },
     },
     clearanceConfig: {
       applicableProducts: [

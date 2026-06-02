@@ -392,16 +392,20 @@ const updateAppointment = asyncHandler(async (req, res, next) => {
             coupon.isActive = false;
           await coupon.save({ session });
 
-          // Recompensa por referido si aplica
+          // Recompensa por referido si aplica (se entrega al dueño del cupón).
+          // Usa la recompensa configurada al crear el referido; tipo MANUAL para que
+          // el dueño (paciente existente) pueda canjearla sin la restricción de 1ra visita.
           if (coupon.type === "REFERRAL" && coupon.referralConfig?.ownerId) {
             const rewardCoupon = new Coupon({
               code: `REWARD-${Math.random().toString(36).substring(7).toUpperCase()}`,
-              type: "WELCOME",
-              discountType: "PERCENTAGE",
-              discountValue: 10,
+              name: "Recompensa por referido",
+              description: "Gracias por recomendarnos",
+              type: "MANUAL",
+              origin: "MANUAL",
+              discountType: coupon.referralConfig.rewardType || "PERCENTAGE",
+              discountValue: coupon.referralConfig.rewardValue ?? 10,
               expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
               maxRedemptions: 1,
-              whatsappTemplateName: "sbeltic_bienvenida",
             });
             await rewardCoupon.save({ session });
             await Patient.findByIdAndUpdate(

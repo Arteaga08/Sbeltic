@@ -158,6 +158,8 @@ const createReferralCoupon = asyncHandler(async (req, res, next) => {
     description,
     discountType,
     discountValue,
+    rewardType,
+    rewardValue,
     expiresAt,
     maxRedemptions,
     maxUsesPerUser,
@@ -166,6 +168,12 @@ const createReferralCoupon = asyncHandler(async (req, res, next) => {
   if (discountType === "PERCENTAGE" && discountValue > 100) {
     return next(
       new AppError("El descuento porcentual no puede exceder el 100%", 400),
+    );
+  }
+
+  if (rewardType === "PERCENTAGE" && rewardValue > 100) {
+    return next(
+      new AppError("La recompensa porcentual no puede exceder el 100%", 400),
     );
   }
 
@@ -194,7 +202,7 @@ const createReferralCoupon = asyncHandler(async (req, res, next) => {
     expiresAt,
     maxRedemptions,
     maxUsesPerUser,
-    referralConfig: { ownerId },
+    referralConfig: { ownerId, rewardType, rewardValue },
   });
 
   sendResponse(res, 201, coupon, "Cupón de referido creado");

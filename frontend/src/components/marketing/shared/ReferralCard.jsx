@@ -8,6 +8,7 @@ import {
   Copy,
   Check,
   UserCircle,
+  HandCoins,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
@@ -34,6 +35,10 @@ const ReferralCard = ({ campaign, onRefresh }) => {
   const usagePercentage = Math.min((usedCount / maxRedemptions) * 100, 100);
   const displayDiscount =
     discountType === "PERCENTAGE" ? `${discountValue}%` : `$${discountValue}`;
+  const displayReward =
+    referralConfig?.rewardType === "FIXED_AMOUNT"
+      ? `$${referralConfig?.rewardValue}`
+      : `${referralConfig?.rewardValue ?? 10}%`;
 
   const expiresDate = expiresAt ? new Date(expiresAt) : null;
   const daysLeft =
@@ -66,7 +71,8 @@ const ReferralCard = ({ campaign, onRefresh }) => {
       `Hola ${firstName}, este es tu cupón de referido de Sbeltic 🌿\n\n` +
       `Código: *${code}* (${displayDiscount} de descuento)\n` +
       `${description || ""}\n\n` +
-      `Compártelo con quien quieras. Cuando lo usen en su cita, tú recibes una recompensa.`;
+      `Compártelo con quien quieras. Cuando lo usen en su cita, tú recibes una recompensa\n` +
+      `(Cupon valido al momento de pagar en caja)`;
     window.open(
       `https://wa.me/${owner.phone.replace(/[^\d]/g, "")}?text=${encodeURIComponent(message)}`,
       "_blank",
@@ -165,8 +171,14 @@ const ReferralCard = ({ campaign, onRefresh }) => {
             {displayDiscount} OFF
           </p>
         </div>
+        <div className="flex items-center gap-1.5 mt-2">
+          <HandCoins size={12} weight="fill" className="text-emerald-500" />
+          <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">
+            Premio dueño: {displayReward}
+          </span>
+        </div>
         {owner?.name && (
-          <div className="flex items-center gap-1.5 mt-2">
+          <div className="flex items-center gap-1.5 mt-1">
             <UserCircle size={12} weight="fill" className="text-slate-500" />
             <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
               Dueño: {owner.name}

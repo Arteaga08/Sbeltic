@@ -163,22 +163,23 @@ export default function MarketingPage() {
   ];
 
   // Sub-módulos manuales: Referidos (global) + una entrada por categoría de procedimiento (BD)
+  // Cada categoría usa su color real de la base de datos (gridBg), igual que en la agenda.
   const manualCategories = [
     {
       id: REFERRALS_ID,
       label: "Referidos",
       description: "Cupones globales compartibles",
       icon: UsersThree,
-      color: "text-purple-600",
-      bg: "bg-purple-50",
+      color: "text-white",
+      bg: "bg-purple-500",
     },
     ...treatmentCategories.map((cat) => ({
       id: cat.id,
       label: cat.label,
       description: "Cupones presenciales",
       icon: Ticket,
-      color: "text-slate-600",
-      bg: "bg-slate-100",
+      color: "text-white",
+      bg: cat.gridBg || "bg-slate-500",
     })),
   ];
 
