@@ -52,7 +52,9 @@ export const errorHandler = (err, req, res, next) => {
 
   // 🔹 Zod Validation Error
   if (err.errors && Array.isArray(err.errors)) {
-    error.message = err.errors.map((e) => e.message).join(". ");
+    error.message = err.errors
+      .map((e) => (typeof e === "string" ? e : e.message))
+      .join(". ");
     error.statusCode = 400;
     error.isOperational = true;
   }

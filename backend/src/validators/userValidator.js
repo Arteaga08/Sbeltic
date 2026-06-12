@@ -39,6 +39,15 @@ const createUserSchema = z
       .regex(phoneRegex, "El número debe tener exactamente 10 dígitos") // 👈 Mensaje claro
       .optional()
       .or(z.literal("")),
+    schedule: z
+      .array(
+        z.object({
+          day: z.number().int().min(0).max(6),
+          startTime: z.string(),
+          endTime: z.string(),
+        }),
+      )
+      .optional(),
   })
   .strict();
 

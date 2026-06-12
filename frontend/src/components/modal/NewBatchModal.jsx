@@ -10,12 +10,15 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { CONNECTION_ERROR } from "@/lib/apiError";
+import FormError from "@/components/ui/FormError";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
 const NewBatchModal = ({ isOpen, onClose, productId, onRefresh }) => {
   useScrollLock(isOpen);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingNumber, setIsLoadingNumber] = useState(false);
+  const [formError, setFormError] = useState("");
   const [formData, setFormData] = useState({
     batchNumber: "",
     initialQuantity: "",
@@ -47,6 +50,7 @@ const NewBatchModal = ({ isOpen, onClose, productId, onRefresh }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError("");
     setIsSubmitting(true);
 
     try {
@@ -68,10 +72,12 @@ const NewBatchModal = ({ isOpen, onClose, productId, onRefresh }) => {
         onClose();
         setFormData({ batchNumber: "", initialQuantity: "", expiryDate: "" });
       } else {
-        toast.error(data.message || "Error al registrar el lote");
+        setFormError(
+          data.message || "No se pudo registrar el lote. Revisa los datos.",
+        );
       }
     } catch (error) {
-      toast.error("Error de conexión");
+      setFormError(CONNECTION_ERROR);
     } finally {
       setIsSubmitting(false);
     }
@@ -103,7 +109,11 @@ const NewBatchModal = ({ isOpen, onClose, productId, onRefresh }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form
+          onSubmit={handleSubmit}
+          onInput={() => formError && setFormError("")}
+          className="p-6 space-y-5"
+        >
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1.5 tracking-widest">
               <Archive size={14} /> Cantidad (Piezas/Unidades)
@@ -153,6 +163,8 @@ const NewBatchModal = ({ isOpen, onClose, productId, onRefresh }) => {
               }
             />
           </div>
+
+          <FormError message={formError} />
 
           <button
             disabled={isSubmitting}

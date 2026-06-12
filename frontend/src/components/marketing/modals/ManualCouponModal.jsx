@@ -12,6 +12,8 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { CONNECTION_ERROR } from "@/lib/apiError";
+import FormError from "@/components/ui/FormError";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { useTreatmentCategories } from "@/context/TreatmentCategoriesContext";
 
@@ -42,6 +44,7 @@ const ManualCouponModal = ({
   const hasPatient = !!patient?._id;
   const [formData, setFormData] = useState(INITIAL_STATE);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
 
   // Pre-cargar la categoría activa al abrir
   useEffect(() => {
@@ -64,13 +67,14 @@ const ManualCouponModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError("");
 
     if (new Date(formData.expiresAt) <= new Date()) {
-      toast.error("La vigencia debe ser una fecha futura");
+      setFormError("La vigencia debe ser una fecha futura.");
       return;
     }
     if (!formData.applicableCategory) {
-      toast.error("Selecciona una categoría");
+      setFormError("Selecciona una categoría.");
       return;
     }
 
@@ -100,10 +104,10 @@ const ManualCouponModal = ({
         onUpdate?.();
         handleClose();
       } else {
-        toast.error(data.message || "Error al crear el cupón");
+        setFormError(data.message || "No se pudo crear el cupón.");
       }
     } catch (error) {
-      toast.error("Error de conexión");
+      setFormError(CONNECTION_ERROR);
     } finally {
       setIsSubmitting(false);
     }
@@ -139,6 +143,7 @@ const ManualCouponModal = ({
 
         <form
           onSubmit={handleSubmit}
+          onInput={() => formError && setFormError("")}
           className="p-8 space-y-6 overflow-y-auto max-h-[75vh] scrollbar-hide"
         >
           {/* 1. IDENTIDAD */}
@@ -333,6 +338,8 @@ const ManualCouponModal = ({
               />
             </div>
           </div>
+
+          <FormError message={formError} />
 
           <button
             disabled={isSubmitting}

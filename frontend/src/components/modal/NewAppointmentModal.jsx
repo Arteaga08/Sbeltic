@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import FormError from "@/components/ui/FormError";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
 import { useTreatmentCategories } from "@/context/TreatmentCategoriesContext";
@@ -42,6 +43,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
     durationMinutes: 30,
     isPriority: false,
     isUrgent: false,
+    notes: "",
   });
 
   const [patients, setPatients] = useState([]);
@@ -50,6 +52,8 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
   const [loadingData, setLoadingData] = useState(false);
   const [patientSearch, setPatientSearch] = useState("");
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -57,6 +61,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
       setSelectedCategory(categories[0]?.id ?? null);
       setPatientSearch("");
       setShowPatientDropdown(false);
+      setFormError("");
       setFormData({
         patientId: "",
         newPatientName: "",
@@ -72,6 +77,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
         durationMinutes: 30,
         isPriority: false,
         isUrgent: false,
+        notes: "",
       });
       fetchRealData();
     }
@@ -181,27 +187,34 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
   const durationTotal =
     Number(formData.durationHours) * 60 + Number(formData.durationMinutes);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError("");
+
+    if (isNewPatient && !formData.newPatientName.trim())
+      return setFormError("Escribe el nombre del paciente nuevo.");
     if (!isNewPatient && !formData.patientId)
-      return toast.error("Selecciona un paciente de la lista.");
+      return setFormError("Selecciona un paciente de la lista.");
     if (!formData.doctorId)
-      return toast.error("Selecciona el personal que atiende.");
+      return setFormError("Selecciona el personal que atiende.");
     if (!formData.treatmentName)
-      return toast.error("Selecciona un tratamiento de la lista.");
+      return setFormError("Selecciona un tratamiento de la lista.");
     if (durationTotal < 15)
-      return toast.error("La duración mínima es 15 minutos.");
+      return setFormError("La duración mínima es 15 minutos.");
 
     const appointmentDate = new Date(
       `${formData.date}T${formData.time}:00`,
     ).toISOString();
 
     if (new Date(appointmentDate) <= new Date())
-      return toast.error("La fecha y hora deben ser en el futuro.");
+      return setFormError("La fecha y hora deben ser en el futuro.");
     if (new Date(appointmentDate).getDay() === 0)
-      return toast.error("La clínica cierra los domingos.");
+      return setFormError("La clínica cierra los domingos.");
 
-    onSave({
+    setIsSaving(true);
+    // onSave (en la página) devuelve un mensaje de error si algo falla, o
+    // nada si la cita se guardó correctamente.
+    const errMsg = await onSave({
       isNewPatient,
       patientData: {
         name: formData.newPatientName,
@@ -219,8 +232,11 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
         duration: durationTotal,
         isPriority: formData.isPriority,
         isUrgent: formData.isPriority ? formData.isUrgent : false,
+        notes: formData.notes.trim() || undefined,
       },
     });
+    setIsSaving(false);
+    if (errMsg) setFormError(errMsg);
   };
 
   return (
@@ -239,7 +255,11 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-6">
+        <form
+          onSubmit={handleSubmit}
+          onInput={() => formError && setFormError("")}
+          className="p-6 overflow-y-auto space-y-6"
+        >
           {loadingData ? (
             <div className="text-center py-10 text-slate-500 font-bold animate-pulse">
               Descargando perfiles desde Sbeltic Studio...
@@ -529,6 +549,22 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
                   </div>
                 </div>
               </div>
+
+              {/* 4. NOTA */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase">
+                  Nota <span className="normal-case font-medium text-slate-400">(opcional)</span>
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Indicaciones, recordatorios, preferencias del paciente..."
+                  className="w-full p-3 rounded-xl border border-slate-200 outline-none text-sm resize-none focus:border-teal-400"
+                  value={formData.notes}
+                  onChange={(e) =>
+                    setFormData({ ...formData, notes: e.target.value })
+                  }
+                />
+              </div>
             </div>
           )}
 
@@ -596,21 +632,23 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
             </button>
           )}
 
+          <FormError message={formError} />
+
           <div className="flex gap-3 pt-4 border-t border-slate-100 shrink-0">
             <button
               type="button"
               onClick={onClose}
-              disabled={loadingData}
-              className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors"
+              disabled={loadingData || isSaving}
+              className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={loadingData}
-              className="flex-1 py-3 bg-slate-900 text-white font-black rounded-xl hover:bg-slate-800 transition-all"
+              disabled={loadingData || isSaving}
+              className="flex-1 py-3 bg-slate-900 text-white font-black rounded-xl hover:bg-slate-800 transition-all disabled:opacity-50"
             >
-              Guardar Cita Sbeltic
+              {isSaving ? "Guardando..." : "Guardar Cita Sbeltic"}
             </button>
           </div>
         </form>

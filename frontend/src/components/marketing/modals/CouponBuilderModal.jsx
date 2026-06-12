@@ -10,6 +10,8 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { CONNECTION_ERROR } from "@/lib/apiError";
+import FormError from "@/components/ui/FormError";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -93,6 +95,7 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh, coupon }) => {
   const isEditMode = !!coupon;
   const [formData, setFormData] = useState(INITIAL_STATE);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
   const [mobileTab, setMobileTab] = useState("RULES");
   const [treatments, setTreatments] = useState([]);
   const [products, setProducts] = useState([]);
@@ -196,6 +199,7 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh, coupon }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError("");
     setIsSubmitting(true);
     try {
       const templateName = formData.whatsappTemplateName || TEMPLATES_CONFIG[formData.type]?.[0]?.name;
@@ -275,11 +279,16 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh, coupon }) => {
         setFormData(INITIAL_STATE);
         onClose();
       } else {
-        toast.error(data.message || (isEditMode ? "Error al actualizar la campana" : "Error al crear la campana"));
+        setFormError(
+          data.message ||
+            (isEditMode
+              ? "No se pudo actualizar la campaña."
+              : "No se pudo crear la campaña."),
+        );
       }
     } catch (error) {
       console.error(`Error en ${isEditMode ? "PUT" : "POST"} Coupon:`, error);
-      toast.error("No se pudo conectar con el servidor");
+      setFormError(CONNECTION_ERROR);
     } finally {
       setIsSubmitting(false);
     }
@@ -348,7 +357,12 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh, coupon }) => {
 
         {/* BODY */}
         <div className="flex-1 overflow-y-auto scrollbar-hide bg-slate-50/30 p-5 md:p-10">
-          <form id="couponForm" onSubmit={handleSubmit} className="space-y-8">
+          <form
+            id="couponForm"
+            onSubmit={handleSubmit}
+            onInput={() => formError && setFormError("")}
+            className="space-y-8"
+          >
             {/* FILA 1: Parametros + Plantilla/Config (2 columnas en desktop) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12">
               {/* COLUMNA IZQUIERDA: Parametros */}
@@ -861,6 +875,12 @@ const CouponBuilderModal = ({ isOpen, onClose, onRefresh, coupon }) => {
             </div>
           </form>
         </div>
+
+        {formError && (
+          <div className="px-5 md:px-10 pt-3 shrink-0">
+            <FormError message={formError} />
+          </div>
+        )}
 
         {/* FOOTER */}
         <footer className="px-5 py-4 md:px-10 md:py-6 border-t border-slate-100 bg-white flex flex-col sm:flex-row justify-end gap-3 shrink-0">

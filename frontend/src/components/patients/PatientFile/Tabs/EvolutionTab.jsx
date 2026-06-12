@@ -12,6 +12,8 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { CONNECTION_ERROR } from "@/lib/apiError";
+import FormError from "@/components/ui/FormError";
 import SignaturePad from "../SignaturePad";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import EvolutionPDF from "./EvolutionPDF";
@@ -20,6 +22,7 @@ import WhatsAppSignatureButton from "../../shared/WhatsAppSignatureButton";
 const EvolutionTab = ({ patient, userRole, onUpdate }) => {
   const [view, setView] = useState("LIST"); // LIST o FORM
   const [isSaving, setIsSaving] = useState(false);
+  const [formError, setFormError] = useState("");
 
   // Estado inicial del formulario de evolución
   const [evolutionData, setEvolutionData] = useState({
@@ -47,8 +50,9 @@ const EvolutionTab = ({ patient, userRole, onUpdate }) => {
   const canCreate = userRole === "DOCTOR";
 
   const handleSave = async () => {
+    setFormError("");
     if (!evolutionData.diagnosis || !evolutionData.indications) {
-      return toast.error("El diagnóstico e indicaciones son obligatorios");
+      return setFormError("El diagnóstico y las indicaciones son obligatorios.");
     }
 
     setIsSaving(true);
@@ -67,9 +71,11 @@ const EvolutionTab = ({ patient, userRole, onUpdate }) => {
         toast.success("Evolución guardada correctamente");
         setView("LIST");
         onUpdate(); // Refresca el expediente
+      } else {
+        setFormError(data.message || "No se pudo guardar la evolución.");
       }
     } catch (error) {
-      toast.error("Error al guardar la evolución");
+      setFormError(CONNECTION_ERROR);
     } finally {
       setIsSaving(false);
     }
@@ -263,6 +269,8 @@ const EvolutionTab = ({ patient, userRole, onUpdate }) => {
             />
           </div>
         </section>
+
+        <FormError message={formError} />
 
         <button
           onClick={handleSave}

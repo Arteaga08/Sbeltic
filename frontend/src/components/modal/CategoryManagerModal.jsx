@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from "react";
 import { X, Tag, Plus, Trash, CircleNotch } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { CONNECTION_ERROR } from "@/lib/apiError";
+import FormError from "@/components/ui/FormError";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
 const CategoryManagerModal = ({ isOpen, onClose, type }) => {
@@ -11,6 +13,7 @@ const CategoryManagerModal = ({ isOpen, onClose, type }) => {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
 
   // Colores dinámicos según el tipo de vista
   const isMedical = type === "INSUMO";
@@ -57,13 +60,18 @@ const CategoryManagerModal = ({ isOpen, onClose, type }) => {
     if (isOpen) {
       fetchCategories();
       setNewCategoryName(""); // Limpiar el input al abrir
+      setFormError("");
     }
   }, [isOpen, fetchCategories]);
 
   // 2. Crear nueva categoría
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!newCategoryName.trim()) return;
+    setFormError("");
+    if (!newCategoryName.trim()) {
+      setFormError("Escribe un nombre para la categoría.");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -80,10 +88,10 @@ const CategoryManagerModal = ({ isOpen, onClose, type }) => {
         setNewCategoryName("");
         fetchCategories(); // Refrescar la lista
       } else {
-        toast.error(data.message || "Error al crear la categoría");
+        setFormError(data.message || "No se pudo crear la categoría.");
       }
     } catch (error) {
-      toast.error("Error de conexión");
+      setFormError(CONNECTION_ERROR);
     } finally {
       setIsSubmitting(false);
     }
@@ -153,7 +161,11 @@ const CategoryManagerModal = ({ isOpen, onClose, type }) => {
 
         <div className="p-6 space-y-6">
           {/* Formulario de Creación */}
-          <form onSubmit={handleCreate} className="flex gap-2">
+          <form
+            onSubmit={handleCreate}
+            onInput={() => formError && setFormError("")}
+            className="flex gap-2"
+          >
             <input
               type="text"
               placeholder="Ej: Inyectables, Cremas, Toxinas..."
@@ -178,6 +190,8 @@ const CategoryManagerModal = ({ isOpen, onClose, type }) => {
               )}
             </button>
           </form>
+
+          <FormError message={formError} />
 
           {/* Lista de Categorías Existentes */}
           <div className="space-y-3">

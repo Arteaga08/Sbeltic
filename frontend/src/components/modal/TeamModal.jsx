@@ -1,5 +1,6 @@
 "use client";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import FormError from "@/components/ui/FormError";
 
 const DAYS = [
   { day: 1, label: "Lun" },
@@ -18,6 +19,8 @@ export default function TeamModal({
   setNewUser,
   onSubmit,
   isEditing,
+  formError,
+  setFormError,
 }) {
   useScrollLock(isOpen);
   if (!isOpen) return null;
@@ -69,7 +72,11 @@ export default function TeamModal({
           </button>
         </div>
 
-        <form onSubmit={onSubmit} className="p-8 pt-4 space-y-6">
+        <form
+          onSubmit={onSubmit}
+          onInput={() => formError && setFormError?.("")}
+          className="p-8 pt-4 space-y-6"
+        >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Nombre */}
             <div className="space-y-1">
@@ -216,7 +223,8 @@ export default function TeamModal({
             )}
           </div>
 
-          <div className="pt-4">
+          <div className="pt-4 space-y-3">
+            <FormError message={formError} />
             <button
               type="submit"
               className="w-full py-5 bg-slate-900 text-white font-black rounded-2xl hover:bg-rose-500 transition-all text-[10px] tracking-label uppercase shadow-xl shadow-slate-900/10"

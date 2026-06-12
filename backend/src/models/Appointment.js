@@ -86,6 +86,7 @@ const appointmentSchema = new mongoose.Schema(
     },
 
     // --- 5. METADATOS ---
+    notes: { type: String, trim: true },
     isPriority: { type: Boolean, default: false },
     isUrgent: { type: Boolean, default: false },
     isReminderSent: { type: Boolean, default: false },

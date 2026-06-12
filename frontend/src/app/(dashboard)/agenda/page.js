@@ -194,6 +194,8 @@ export default function AgendaPage() {
   };
 
   // ── Guardar nueva cita (desde NewAppointmentModal) ──
+  // Devuelve un string con el mensaje de error si algo falla (para mostrarlo
+  // inline dentro del modal), o nada si la cita se guardó correctamente.
   const handleSaveNewAppointment = async (payloadFromModal) => {
     try {
       const currentUser = JSON.parse(localStorage.getItem("sbeltic_user") || "{}");
@@ -210,7 +212,9 @@ export default function AgendaPage() {
         });
         const patientResult = await patientRes.json();
         if (!patientRes.ok) {
-          return toast.error(patientResult.message || "Error al registrar el paciente.");
+          return (
+            patientResult.message || "No se pudo registrar el paciente nuevo."
+          );
         }
         finalPatientId = patientResult.data._id || patientResult.patient._id;
         toast.success("Paciente nuevo registrado.");
@@ -227,15 +231,16 @@ export default function AgendaPage() {
         toast.success("¡Cita agendada con éxito!");
         setIsNewModalOpen(false);
         fetchWeekAppointments(weekStart);
-      } else {
-        const errMsg =
-          apptResult.message ||
-          apptResult.errors?.[0]?.message ||
-          "No se pudo agendar la cita.";
-        toast.error(errMsg);
+        return;
       }
+
+      return (
+        apptResult.message ||
+        apptResult.errors?.[0]?.message ||
+        "No se pudo agendar la cita."
+      );
     } catch {
-      toast.error("Error de conexión con el servidor.");
+      return "No se pudo conectar. Revisa tu conexión e intenta de nuevo.";
     }
   };
 

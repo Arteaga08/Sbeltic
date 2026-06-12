@@ -18,6 +18,8 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { CONNECTION_ERROR } from "@/lib/apiError";
+import FormError from "@/components/ui/FormError";
 import { QRCodeCanvas } from "qrcode.react";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
@@ -55,6 +57,7 @@ const NewProductModal = ({ isOpen, onClose, onRefresh }) => {
   const qrRef = useRef();
   const [formData, setFormData] = useState(INITIAL_STATE);
   const [isSkuTouched, setIsSkuTouched] = useState(false);
+  const [formError, setFormError] = useState("");
 
   useEffect(() => {
     if (isOpen) {
@@ -77,6 +80,7 @@ const NewProductModal = ({ isOpen, onClose, onRefresh }) => {
     setFormData(INITIAL_STATE);
     setCreatedProduct(null);
     setIsSkuTouched(false);
+    setFormError("");
     onClose();
   };
 
@@ -97,6 +101,7 @@ const NewProductModal = ({ isOpen, onClose, onRefresh }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError("");
     setIsSubmitting(true);
     const finalSku =
       formData.sku ||
@@ -125,10 +130,12 @@ const NewProductModal = ({ isOpen, onClose, onRefresh }) => {
         onRefresh();
         setCreatedProduct({ name: formData.name, sku: finalSku });
       } else {
-        toast.error(data.message || "Error al guardar");
+        setFormError(
+          data.message || "No se pudo guardar el producto. Revisa los datos.",
+        );
       }
     } catch (error) {
-      toast.error("Error de conexión");
+      setFormError(CONNECTION_ERROR);
     } finally {
       setIsSubmitting(false);
     }
@@ -196,6 +203,7 @@ const NewProductModal = ({ isOpen, onClose, onRefresh }) => {
         ) : (
           <form
             onSubmit={handleSubmit}
+            onInput={() => formError && setFormError("")}
             className="p-8 space-y-6 overflow-y-auto max-h-[75vh] scrollbar-hide"
           >
             {/* 1. IDENTIFICACIÓN */}
@@ -387,6 +395,8 @@ const NewProductModal = ({ isOpen, onClose, onRefresh }) => {
                 />
               </div>
             </div>
+
+            <FormError message={formError} />
 
             <button
               disabled={isSubmitting}

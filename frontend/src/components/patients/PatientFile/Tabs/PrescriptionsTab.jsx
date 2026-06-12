@@ -12,6 +12,8 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { CONNECTION_ERROR } from "@/lib/apiError";
+import FormError from "@/components/ui/FormError";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import PrescriptionPDF from "./PrescriptionPDF";
 import TemplateManagerModal from "../TemplateManagerModal";
@@ -37,6 +39,7 @@ const PrescriptionsTab = ({ patient, userRole, onUpdate }) => {
   const [form, setForm] = useState(emptyForm());
   const [isSaving, setIsSaving] = useState(false);
   const [showManager, setShowManager] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const canCreate = ["DOCTOR", "ADMIN"].includes(userRole);
 
@@ -86,9 +89,10 @@ const PrescriptionsTab = ({ patient, userRole, onUpdate }) => {
   };
 
   const handleSave = async () => {
-    if (!form.title.trim()) return toast.error("El título es obligatorio");
+    setFormError("");
+    if (!form.title.trim()) return setFormError("El título es obligatorio.");
     if (!form.medications.some((m) => m.name.trim()))
-      return toast.error("Agrega al menos un medicamento con nombre");
+      return setFormError("Agrega al menos un medicamento con nombre.");
 
     setIsSaving(true);
     try {
@@ -105,10 +109,10 @@ const PrescriptionsTab = ({ patient, userRole, onUpdate }) => {
         setSelectedTemplate("");
         onUpdate();
       } else {
-        toast.error(data.message || "Error al guardar");
+        setFormError(data.message || "No se pudo guardar la receta.");
       }
     } catch {
-      toast.error("Error de conexión");
+      setFormError(CONNECTION_ERROR);
     } finally {
       setIsSaving(false);
     }
@@ -263,6 +267,8 @@ const PrescriptionsTab = ({ patient, userRole, onUpdate }) => {
             </div>
           </div>
         </section>
+
+        <FormError message={formError} />
 
         <button
           onClick={handleSave}

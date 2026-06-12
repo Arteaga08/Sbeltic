@@ -12,6 +12,7 @@ import {
   ClipboardText, // 🌟 Nuevo icono
 } from "@phosphor-icons/react";
 
+import FormError from "@/components/ui/FormError";
 import IdentificationSection from "./IdentificationSection";
 import SystemsSection from "./SystemsSection";
 import FamilyHistorySection from "./FamilyHistorySection";
@@ -25,6 +26,7 @@ const ClinicalForm = ({
   setFormData,
   handleSubmit,
   isSubmitting,
+  formError,
 }) => {
   const [activeSubStep, setActiveSubStep] = useState("IDENTIFICACION");
 
@@ -146,7 +148,8 @@ const ClinicalForm = ({
         )}
       </div>
 
-      <div className="pt-8 border-t border-slate-100">
+      <div className="pt-8 border-t border-slate-100 space-y-4">
+        {activeSubStep === "VIDA" && <FormError message={formError} />}
         <button
           onClick={handleNextSubStep}
           disabled={isSubmitting}

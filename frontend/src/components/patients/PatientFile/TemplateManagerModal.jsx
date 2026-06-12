@@ -11,6 +11,8 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { CONNECTION_ERROR } from "@/lib/apiError";
+import FormError from "@/components/ui/FormError";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -53,6 +55,7 @@ const TemplateManagerModal = ({ isOpen, onClose, type }) => {
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(null); // null | "new" | template object
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const emptyForm = isPostOp
     ? EMPTY_POST_OP
@@ -80,10 +83,12 @@ const TemplateManagerModal = ({ isOpen, onClose, type }) => {
 
   const openNew = () => {
     setForm(emptyForm);
+    setFormError("");
     setEditing("new");
   };
 
   const openEdit = (t) => {
+    setFormError("");
     setForm(
       isPostOp
         ? { title: t.title, body: t.body, procedureTag: t.procedureTag || "" }
@@ -109,16 +114,14 @@ const TemplateManagerModal = ({ isOpen, onClose, type }) => {
   };
 
   const handleSave = async () => {
-    if (!form.title?.trim()) return toast.error("El título es obligatorio");
+    setFormError("");
+    if (!form.title?.trim()) return setFormError("El título es obligatorio.");
     if (isPostOp && !form.body?.trim())
-      return toast.error("El contenido es obligatorio");
-    if (
-      isSoap &&
-      !SOAP_SECTIONS.some((s) => form[s.key]?.trim())
-    )
-      return toast.error("Completa al menos una sección de la nota SOAP");
+      return setFormError("El contenido es obligatorio.");
+    if (isSoap && !SOAP_SECTIONS.some((s) => form[s.key]?.trim()))
+      return setFormError("Completa al menos una sección de la nota SOAP.");
     if (!isPostOp && !isSoap && !form.medications?.some((m) => m.name?.trim()))
-      return toast.error("Agrega al menos un medicamento con nombre");
+      return setFormError("Agrega al menos un medicamento con nombre.");
 
     setSaving(true);
     try {
@@ -138,10 +141,10 @@ const TemplateManagerModal = ({ isOpen, onClose, type }) => {
         setEditing(null);
         fetchTemplates();
       } else {
-        toast.error(data.message || "Error al guardar");
+        setFormError(data.message || "No se pudo guardar la plantilla.");
       }
     } catch {
-      toast.error("Error de conexión");
+      setFormError(CONNECTION_ERROR);
     } finally {
       setSaving(false);
     }
@@ -339,6 +342,8 @@ const TemplateManagerModal = ({ isOpen, onClose, type }) => {
                     </div>
                   </>
                 )}
+
+                <FormError message={formError} />
 
                 <div className="flex gap-3 pt-2">
                   <button

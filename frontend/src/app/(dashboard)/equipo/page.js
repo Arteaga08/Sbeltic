@@ -11,6 +11,7 @@ import {
 } from "@/components/help/content/equipoHelpSteps";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { getApiError, CONNECTION_ERROR } from "@/lib/apiError";
 
 // ICONOS SELECCIONADOS
 import {
@@ -63,11 +64,13 @@ export default function TeamPage() {
   };
 
   const [newUser, setNewUser] = useState(initialUserState);
+  const [formError, setFormError] = useState("");
 
   const closeAndReset = () => {
     setIsModalOpen(false);
     setEditingId(null);
     setNewUser(initialUserState);
+    setFormError("");
   };
 
   const roleConfig = {
@@ -142,6 +145,7 @@ export default function TeamPage() {
 
   const handleSubmitUser = async (e) => {
     e.preventDefault();
+    setFormError("");
     const url = editingId
       ? `${process.env.NEXT_PUBLIC_API_URL}/users/${editingId}`
       : `${process.env.NEXT_PUBLIC_API_URL}/users`;
@@ -162,15 +166,20 @@ export default function TeamPage() {
         closeAndReset();
         fetchStaff();
       } else {
-        const result = await res.json();
-        toast.error(result.message || "Error en la operación");
+        setFormError(
+          await getApiError(
+            res,
+            "No se pudo guardar el perfil. Revisa los datos e intenta de nuevo.",
+          ),
+        );
       }
     } catch (err) {
-      toast.error("Error de conexión");
+      setFormError(CONNECTION_ERROR);
     }
   };
 
   const handleEditClick = (user) => {
+    setFormError("");
     setEditingId(user._id);
     setNewUser({
       name: user.name,
@@ -249,6 +258,7 @@ export default function TeamPage() {
         {currentUserRole === "ADMIN" && (
           <button
             onClick={() => {
+              setFormError("");
               setEditingId(null);
               setNewUser(initialUserState);
               setIsModalOpen(true);
@@ -300,6 +310,8 @@ export default function TeamPage() {
         setNewUser={setNewUser}
         onSubmit={handleSubmitUser}
         isEditing={!!editingId}
+        formError={formError}
+        setFormError={setFormError}
       />
       <DeleteModal
         isOpen={isDeleteModalOpen}

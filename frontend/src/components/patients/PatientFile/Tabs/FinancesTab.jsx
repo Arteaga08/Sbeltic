@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Plus, Trash, CurrencyDollar, Receipt } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { CONNECTION_ERROR } from "@/lib/apiError";
+import FormError from "@/components/ui/FormError";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -40,9 +42,11 @@ export default function FinancesTab({ patient, userRole }) {
   const [showNewDeuda, setShowNewDeuda] = useState(false);
   const [newDeuda, setNewDeuda] = useState({ concept: "", totalAmount: "" });
   const [savingDeuda, setSavingDeuda] = useState(false);
+  const [deudaError, setDeudaError] = useState("");
   const [openPaymentId, setOpenPaymentId] = useState(null);
   const [newPayment, setNewPayment] = useState({ amount: "", note: "" });
   const [savingPayment, setSavingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
 
   const fetchDeudas = useCallback(async () => {
     if (!patient?._id) return;
@@ -65,8 +69,9 @@ export default function FinancesTab({ patient, userRole }) {
   const totalBalance = deudas.reduce((s, d) => s + (d.balance || 0), 0);
 
   async function handleCreateDeuda() {
+    setDeudaError("");
     if (!newDeuda.concept.trim() || !newDeuda.totalAmount) {
-      return toast.error("Concepto y monto son requeridos");
+      return setDeudaError("Escribe el concepto y el monto de la deuda.");
     }
     setSavingDeuda(true);
     try {
@@ -76,21 +81,25 @@ export default function FinancesTab({ patient, userRole }) {
         body: JSON.stringify({ concept: newDeuda.concept.trim(), totalAmount: Number(newDeuda.totalAmount) }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Error al crear deuda");
+      if (!res.ok) {
+        setDeudaError(data.message || "No se pudo registrar la deuda.");
+        return;
+      }
       setDeudas((prev) => [data.data, ...prev]);
       setNewDeuda({ concept: "", totalAmount: "" });
       setShowNewDeuda(false);
       toast.success("Deuda registrada");
     } catch (err) {
-      toast.error(err.message);
+      setDeudaError(CONNECTION_ERROR);
     } finally {
       setSavingDeuda(false);
     }
   }
 
   async function handleAddPayment(deudaId) {
+    setPaymentError("");
     if (!newPayment.amount || Number(newPayment.amount) <= 0) {
-      return toast.error("El monto del abono debe ser mayor a 0");
+      return setPaymentError("El monto del abono debe ser mayor a 0.");
     }
     setSavingPayment(true);
     try {
@@ -100,13 +109,16 @@ export default function FinancesTab({ patient, userRole }) {
         body: JSON.stringify({ amount: Number(newPayment.amount), note: newPayment.note }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Error al registrar abono");
+      if (!res.ok) {
+        setPaymentError(data.message || "No se pudo registrar el abono.");
+        return;
+      }
       setDeudas((prev) => prev.map((d) => (d._id === deudaId ? data.data : d)));
       setNewPayment({ amount: "", note: "" });
       setOpenPaymentId(null);
       toast.success("Abono registrado");
     } catch (err) {
-      toast.error(err.message);
+      setPaymentError(CONNECTION_ERROR);
     } finally {
       setSavingPayment(false);
     }
@@ -153,7 +165,7 @@ export default function FinancesTab({ patient, userRole }) {
       {/* Nueva deuda */}
       {!showNewDeuda ? (
         <button
-          onClick={() => setShowNewDeuda(true)}
+          onClick={() => { setShowNewDeuda(true); setDeudaError(""); }}
           className="w-full py-3 border-2 border-dashed border-slate-200 rounded-2xl text-xs font-black uppercase text-slate-400 hover:border-indigo-300 hover:text-indigo-500 transition-colors flex items-center justify-center gap-2"
         >
           <Plus size={16} weight="bold" /> Nueva deuda / facilidad de pago
@@ -176,6 +188,7 @@ export default function FinancesTab({ patient, userRole }) {
             onChange={(e) => setNewDeuda((p) => ({ ...p, totalAmount: e.target.value }))}
             className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 placeholder:text-slate-300 focus:outline-none focus:border-indigo-400"
           />
+          <FormError message={deudaError} />
           <div className="flex gap-2">
             <button
               onClick={handleCreateDeuda}
@@ -185,7 +198,7 @@ export default function FinancesTab({ patient, userRole }) {
               {savingDeuda ? "Guardando..." : "Registrar"}
             </button>
             <button
-              onClick={() => { setShowNewDeuda(false); setNewDeuda({ concept: "", totalAmount: "" }); }}
+              onClick={() => { setShowNewDeuda(false); setNewDeuda({ concept: "", totalAmount: "" }); setDeudaError(""); }}
               className="px-4 py-2.5 bg-slate-200 text-slate-600 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-300 transition-colors"
             >
               Cancelar
@@ -271,6 +284,7 @@ export default function FinancesTab({ patient, userRole }) {
                         onChange={(e) => setNewPayment((p) => ({ ...p, note: e.target.value }))}
                         className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 placeholder:text-slate-300 focus:outline-none focus:border-emerald-400"
                       />
+                      <FormError message={paymentError} />
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleAddPayment(deuda._id)}
@@ -280,7 +294,7 @@ export default function FinancesTab({ patient, userRole }) {
                           {savingPayment ? "Guardando..." : "Registrar abono"}
                         </button>
                         <button
-                          onClick={() => { setOpenPaymentId(null); setNewPayment({ amount: "", note: "" }); }}
+                          onClick={() => { setOpenPaymentId(null); setNewPayment({ amount: "", note: "" }); setPaymentError(""); }}
                           className="px-3 py-2 bg-slate-100 text-slate-500 rounded-xl text-xs font-black uppercase hover:bg-slate-200 transition-colors"
                         >
                           Cancelar
@@ -289,7 +303,7 @@ export default function FinancesTab({ patient, userRole }) {
                     </div>
                   ) : (
                     <button
-                      onClick={() => { setOpenPaymentId(deuda._id); setNewPayment({ amount: "", note: "" }); }}
+                      onClick={() => { setOpenPaymentId(deuda._id); setNewPayment({ amount: "", note: "" }); setPaymentError(""); }}
                       className="w-full py-2 border-2 border-dashed border-emerald-200 rounded-xl text-xs font-black uppercase text-emerald-400 hover:border-emerald-400 hover:text-emerald-600 transition-colors flex items-center justify-center gap-1.5"
                     >
                       <Plus size={13} weight="bold" /> Registrar abono

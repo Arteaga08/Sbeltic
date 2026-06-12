@@ -312,6 +312,7 @@ const updateAppointment = asyncHandler(async (req, res, next) => {
       "touchUpDate",
       "isPriority",
       "isUrgent",
+      "notes",
     ];
 
     allowedFields.forEach((field) => {

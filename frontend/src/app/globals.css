@@ -1,5 +1,24 @@
 @import "tailwindcss";
 
+@layer base {
+  button,
+  select,
+  summary,
+  [role="button"],
+  label:has(> input[type="checkbox"]),
+  label:has(> input[type="radio"]),
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="file"] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
 html {
   overflow-x: hidden;
 }

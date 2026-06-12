@@ -29,6 +29,7 @@ const createAppointmentSchema = z
     duration: z.number().int().min(15).max(480).default(30),
     isPriority: z.boolean().optional(),
     isUrgent: z.boolean().optional(),
+    notes: optionalString,
     appointmentDate: z.coerce
       .date()
       .refine((date) => date > new Date(), {

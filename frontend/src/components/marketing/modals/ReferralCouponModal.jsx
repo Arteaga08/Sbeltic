@@ -15,6 +15,8 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { CONNECTION_ERROR } from "@/lib/apiError";
+import FormError from "@/components/ui/FormError";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -36,6 +38,7 @@ const ReferralCouponModal = ({ isOpen, onClose, onUpdate }) => {
   useScrollLock(isOpen);
   const [formData, setFormData] = useState(INITIAL_STATE);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
 
   // Dueño del referido (recibe la recompensa)
   const [ownerSearch, setOwnerSearch] = useState("");
@@ -76,13 +79,14 @@ const ReferralCouponModal = ({ isOpen, onClose, onUpdate }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError("");
 
     if (!owner) {
-      toast.error("Selecciona el paciente dueño del referido");
+      setFormError("Selecciona el paciente dueño del referido.");
       return;
     }
     if (new Date(formData.expiresAt) <= new Date()) {
-      toast.error("La vigencia debe ser una fecha futura");
+      setFormError("La vigencia debe ser una fecha futura.");
       return;
     }
 
@@ -112,10 +116,10 @@ const ReferralCouponModal = ({ isOpen, onClose, onUpdate }) => {
         onUpdate?.();
         handleClose();
       } else {
-        toast.error(data.message || "Error al crear el referido");
+        setFormError(data.message || "No se pudo crear el referido.");
       }
     } catch {
-      toast.error("Error de conexión");
+      setFormError(CONNECTION_ERROR);
     } finally {
       setIsSubmitting(false);
     }
@@ -151,6 +155,7 @@ const ReferralCouponModal = ({ isOpen, onClose, onUpdate }) => {
 
         <form
           onSubmit={handleSubmit}
+          onInput={() => formError && setFormError("")}
           className="p-8 space-y-6 overflow-y-auto max-h-[75vh] scrollbar-hide"
         >
           {/* 1. DUEÑO */}
@@ -422,6 +427,8 @@ const ReferralCouponModal = ({ isOpen, onClose, onUpdate }) => {
               />
             </div>
           </div>
+
+          <FormError message={formError} />
 
           <button
             disabled={isSubmitting}

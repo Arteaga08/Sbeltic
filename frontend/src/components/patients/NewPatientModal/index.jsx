@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from "react";
 import { X, CaretLeft, CaretRight, CheckCircle } from "@phosphor-icons/react"; // 🌟 Importamos CheckCircle
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { CONNECTION_ERROR } from "@/lib/apiError";
+import FormError from "@/components/ui/FormError";
 
 import TypeSelector from "./steps/TypeSelector";
 import BasicInfoForm from "./steps/BasicInfoForm";
@@ -121,6 +123,7 @@ const NewPatientModal = ({ isOpen, onClose, onRefresh }) => {
   const [step, setStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState(INITIAL_STATE);
+  const [formError, setFormError] = useState("");
 
   // 🌟 ESTADO NUEVO PARA PANTALLA DE ÉXITO
   const [createdPatient, setCreatedPatient] = useState(null);
@@ -130,6 +133,7 @@ const NewPatientModal = ({ isOpen, onClose, onRefresh }) => {
       setStep(0);
       setFormData(INITIAL_STATE);
       setCreatedPatient(null); // Limpiamos la pantalla de éxito al cerrar
+      setFormError("");
     }
   }, [isOpen]);
 
@@ -147,6 +151,7 @@ const NewPatientModal = ({ isOpen, onClose, onRefresh }) => {
   }, [step, formData]);
 
   const handleSubmit = async () => {
+    setFormError("");
     setIsSubmitting(true);
     try {
       const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/patients`, {
@@ -163,10 +168,12 @@ const NewPatientModal = ({ isOpen, onClose, onRefresh }) => {
         // 🌟 En lugar de cerrar el modal directo, mostramos la pantalla de éxito
         setCreatedPatient(data.data);
       } else {
-        toast.error(data.message || "Error al registrar");
+        setFormError(
+          data.message || "No se pudo registrar el paciente. Revisa los datos.",
+        );
       }
     } catch (error) {
-      toast.error("Error de conexión");
+      setFormError(CONNECTION_ERROR);
     } finally {
       setIsSubmitting(false);
     }
@@ -273,23 +280,27 @@ const NewPatientModal = ({ isOpen, onClose, onRefresh }) => {
               setFormData={setFormData}
               handleSubmit={handleSubmit}
               isSubmitting={isSubmitting}
+              formError={formError}
             />
           )}
         </div>
 
         {step === 1 && (
-          <div className="p-6 md:p-8 bg-slate-50/80 border-t border-slate-100 flex justify-end">
-            <button
-              onClick={isDeepProfile ? () => setStep(2) : handleSubmit}
-              disabled={isSubmitting || !isStepValid()}
-              className={`w-full md:w-auto px-10 py-5 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl transition-all ${!isStepValid() ? "bg-slate-100 text-slate-300" : "bg-indigo-600 text-white shadow-indigo-200"}`}
-            >
-              {isSubmitting
-                ? "Registrando..."
-                : isDeepProfile
-                  ? "Ir a Clínica"
-                  : "Finalizar Registro"}
-            </button>
+          <div className="p-6 md:p-8 bg-slate-50/80 border-t border-slate-100 flex flex-col gap-4">
+            <FormError message={formError} />
+            <div className="flex justify-end">
+              <button
+                onClick={isDeepProfile ? () => setStep(2) : handleSubmit}
+                disabled={isSubmitting || !isStepValid()}
+                className={`w-full md:w-auto px-10 py-5 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl transition-all ${!isStepValid() ? "bg-slate-100 text-slate-300" : "bg-indigo-600 text-white shadow-indigo-200"}`}
+              >
+                {isSubmitting
+                  ? "Registrando..."
+                  : isDeepProfile
+                    ? "Ir a Clínica"
+                    : "Finalizar Registro"}
+              </button>
+            </div>
           </div>
         )}
       </div>

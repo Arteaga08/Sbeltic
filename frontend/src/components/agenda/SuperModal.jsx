@@ -86,6 +86,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
         originalQuote: appointment.originalQuote || 0,
         consumedSupplies: appointment.consumedSupplies || [],
         consultationRecord: appointment.consultationRecord || {},
+        notes: appointment.notes || "",
       });
       setCouponCode("");
       setCouponPreview(null);
@@ -263,6 +264,7 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
         originalQuote: form.originalQuote,
         consumedSupplies: form.consumedSupplies,
         consultationRecord: form.consultationRecord,
+        notes: form.notes,
         ...(couponPreview && { couponCode: couponPreview.code }),
       };
 
@@ -457,6 +459,21 @@ export default function SuperModal({ appointment, isOpen, onClose, onSave, onCan
                 <p className="font-bold text-slate-800 text-sm">
                   {appointment.createdBy?.name || "—"}
                 </p>
+              </div>
+
+              {/* Nota de la cita */}
+              <div>
+                <p className="text-[10px] font-black uppercase text-slate-400 mb-2">Nota</p>
+                <textarea
+                  rows={3}
+                  readOnly={isReadOnly}
+                  value={form.notes || ""}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, notes: e.target.value }))
+                  }
+                  placeholder="Indicaciones, recordatorios, preferencias del paciente..."
+                  className={`w-full px-4 py-3 border border-slate-200 rounded-2xl text-sm resize-none focus:outline-none focus:border-teal-400 ${isReadOnly ? "bg-slate-50 cursor-default" : ""}`}
+                />
               </div>
 
               {/* Selector de estado */}

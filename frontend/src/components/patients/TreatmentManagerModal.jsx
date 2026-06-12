@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { CONNECTION_ERROR } from "@/lib/apiError";
+import FormError from "@/components/ui/FormError";
 import { Pill } from "@phosphor-icons/react";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
@@ -142,6 +144,8 @@ export default function TreatmentManagerModal({ isOpen, onClose }) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [showForm, setShowForm] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [catError, setCatError] = useState("");
 
   const [userRole, setUserRole] = useState("");
   const [showCatManager, setShowCatManager] = useState(false);
@@ -192,10 +196,11 @@ export default function TreatmentManagerModal({ isOpen, onClose }) {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!form.name.trim()) return toast.error("El nombre es obligatorio");
+    setFormError("");
+    if (!form.name.trim()) return setFormError("El nombre es obligatorio.");
     const duration =
       Number(form.durationHours) * 60 + Number(form.durationMinutes);
-    if (duration < 15) return toast.error("La duración mínima es 15 minutos");
+    if (duration < 15) return setFormError("La duración mínima es 15 minutos.");
 
     setSaving(true);
     try {
@@ -223,10 +228,10 @@ export default function TreatmentManagerModal({ isOpen, onClose }) {
         setShowForm(false);
         fetchTreatments();
       } else {
-        toast.error(data.message || "Error al guardar");
+        setFormError(data.message || "No se pudo guardar el tratamiento.");
       }
     } catch {
-      toast.error("Error de conexión");
+      setFormError(CONNECTION_ERROR);
     } finally {
       setSaving(false);
     }
@@ -265,8 +270,9 @@ export default function TreatmentManagerModal({ isOpen, onClose }) {
 
   const handleSaveCat = async (e) => {
     e.preventDefault();
-    if (!catForm.name.trim()) return toast.error("El nombre es obligatorio");
-    if (!catForm.slug.trim()) return toast.error("El slug es obligatorio");
+    setCatError("");
+    if (!catForm.name.trim()) return setCatError("El nombre es obligatorio.");
+    if (!catForm.slug.trim()) return setCatError("El slug es obligatorio.");
 
     setSavingCat(true);
     try {
@@ -302,10 +308,10 @@ export default function TreatmentManagerModal({ isOpen, onClose }) {
         setEditingCat(null);
         await fetchCategories();
       } else {
-        toast.error(data.message || "Error al guardar");
+        setCatError(data.message || "No se pudo guardar la categoría.");
       }
     } catch {
-      toast.error("Error de conexión");
+      setCatError(CONNECTION_ERROR);
     } finally {
       setSavingCat(false);
     }
@@ -437,6 +443,7 @@ export default function TreatmentManagerModal({ isOpen, onClose }) {
             (showForm ? (
               <form
                 onSubmit={handleSave}
+                onInput={() => formError && setFormError("")}
                 className="bg-slate-50/50 rounded-2xl p-4 space-y-3 border border-slate-200"
               >
                 <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
@@ -545,12 +552,15 @@ export default function TreatmentManagerModal({ isOpen, onClose }) {
                   />
                 </div>
 
+                <FormError message={formError} />
+
                 <div className="flex gap-2 pt-2">
                   <button
                     type="button"
                     onClick={() => {
                       setShowForm(false);
                       setForm(emptyForm);
+                      setFormError("");
                     }}
                     className="flex-1 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-[11px] uppercase tracking-wide transition-colors"
                   >
@@ -626,6 +636,7 @@ export default function TreatmentManagerModal({ isOpen, onClose }) {
                   {showCatForm ? (
                     <form
                       onSubmit={handleSaveCat}
+                      onInput={() => catError && setCatError("")}
                       className="bg-white rounded-xl p-4 border border-slate-200 space-y-4 shadow-sm mt-3"
                     >
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -762,6 +773,8 @@ export default function TreatmentManagerModal({ isOpen, onClose }) {
                         </div>
                       </div>
 
+                      <FormError message={catError} />
+
                       <div className="flex gap-2 pt-2">
                         <button
                           type="button"
@@ -769,6 +782,7 @@ export default function TreatmentManagerModal({ isOpen, onClose }) {
                             setShowCatForm(false);
                             setEditingCat(null);
                             setCatForm(emptyCatForm);
+                            setCatError("");
                           }}
                           className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-lg text-[10px] uppercase tracking-wider"
                         >

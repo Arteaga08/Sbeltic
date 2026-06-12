@@ -9,12 +9,15 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { CONNECTION_ERROR } from "@/lib/apiError";
+import FormError from "@/components/ui/FormError";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
 const EditProductModal = ({ isOpen, onClose, onRefresh, product }) => {
   useScrollLock(isOpen);
   const [categories, setCategories] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -60,6 +63,7 @@ const EditProductModal = ({ isOpen, onClose, onRefresh, product }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError("");
     setIsSubmitting(true);
 
     try {
@@ -82,10 +86,12 @@ const EditProductModal = ({ isOpen, onClose, onRefresh, product }) => {
         onRefresh();
         onClose();
       } else {
-        toast.error(data.message || "Error al actualizar");
+        setFormError(
+          data.message || "No se pudo actualizar el producto. Revisa los datos.",
+        );
       }
     } catch (error) {
-      toast.error("Error de conexión");
+      setFormError(CONNECTION_ERROR);
     } finally {
       setIsSubmitting(false);
     }
@@ -116,6 +122,7 @@ const EditProductModal = ({ isOpen, onClose, onRefresh, product }) => {
 
         <form
           onSubmit={handleSubmit}
+          onInput={() => formError && setFormError("")}
           className="p-8 space-y-6 overflow-y-auto max-h-[75vh] scrollbar-hide"
         >
           {/* 1. IDENTIFICACIÓN */}
@@ -230,6 +237,8 @@ const EditProductModal = ({ isOpen, onClose, onRefresh, product }) => {
               />
             </div>
           </div>
+
+          <FormError message={formError} className="mt-4" />
 
           <button
             disabled={isSubmitting}

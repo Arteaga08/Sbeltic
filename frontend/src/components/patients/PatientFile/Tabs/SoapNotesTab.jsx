@@ -10,6 +10,8 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { CONNECTION_ERROR } from "@/lib/apiError";
+import FormError from "@/components/ui/FormError";
 import TemplateManagerModal from "../TemplateManagerModal";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -65,6 +67,7 @@ const SoapNotesTab = ({ patient, userRole, onUpdate }) => {
   const [form, setForm] = useState(EMPTY_FORM);
   const [isSaving, setIsSaving] = useState(false);
   const [showManager, setShowManager] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const canCreate = ["DOCTOR", "ADMIN"].includes(userRole);
 
@@ -100,9 +103,10 @@ const SoapNotesTab = ({ patient, userRole, onUpdate }) => {
   };
 
   const handleSave = async () => {
+    setFormError("");
     const hasContent = SOAP_SECTIONS.some((s) => form[s.key]?.trim());
     if (!hasContent)
-      return toast.error("Completa al menos una sección de la nota SOAP");
+      return setFormError("Completa al menos una sección de la nota SOAP.");
 
     setIsSaving(true);
     try {
@@ -122,10 +126,10 @@ const SoapNotesTab = ({ patient, userRole, onUpdate }) => {
         setSelectedTemplate("");
         onUpdate();
       } else {
-        toast.error(data.message || "Error al guardar");
+        setFormError(data.message || "No se pudo guardar la nota SOAP.");
       }
     } catch {
-      toast.error("Error de conexión");
+      setFormError(CONNECTION_ERROR);
     } finally {
       setIsSaving(false);
     }
@@ -212,6 +216,8 @@ const SoapNotesTab = ({ patient, userRole, onUpdate }) => {
             </div>
           ))}
         </section>
+
+        <FormError message={formError} />
 
         <button
           onClick={handleSave}
