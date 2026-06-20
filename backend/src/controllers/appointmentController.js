@@ -12,6 +12,7 @@ import { sendResponse } from "../utils/responseHandler.js";
 import { deductInventoryFEFO } from "../services/inventoryService.js";
 import { processTriggerCoupons, notifyNextWaitlistCandidate } from "../services/automationService.js";
 import { checkFullSchedule, findNextAvailableSlot, RECEPTIONIST_ROOMS } from "../services/availabilityService.js";
+import { transactionsSupported } from "../config/db.js";
 
 // --- HELPERS DE COLISIÓN (Internos) ---
 
@@ -280,18 +281,11 @@ const updateAppointment = asyncHandler(async (req, res, next) => {
   let isFirstVisit = false;
 
   try {
-    // Intentamos iniciar sesión si vamos a completar la cita (Checkout)
-    if (isCompletingNow) {
-      try {
-        session = await mongoose.startSession();
-        session.startTransaction();
-      } catch (sessionErr) {
-        // Si falla por falta de Replica Set, trabajamos sin sesión (Modo Local)
-        console.warn(
-          "⚠️ Ejecutando sin transacciones (Entorno Local detectado).",
-        );
-        session = null;
-      }
+    // Iniciamos transacción solo si el despliegue la soporta (replica set / mongos).
+    // En standalone, session queda null y las escrituras persisten sin transacción.
+    if (isCompletingNow && transactionsSupported()) {
+      session = await mongoose.startSession();
+      session.startTransaction();
     }
 
     // 3. Mapeo de campos permitidos
@@ -380,6 +374,21 @@ const updateAppointment = asyncHandler(async (req, res, next) => {
             return next(new AppError("Este cupón ya fue usado el máximo de veces por este paciente.", 400));
           }
 
+          // 🎯 División por servicio: si el cupón está atado a una categoría,
+          // el tratamiento de la cita debe coincidir. Los cupones sin categoría
+          // (efectivo) aplican a cualquier servicio.
+          if (
+            coupon.applicableCategory &&
+            treatment?.category !== coupon.applicableCategory
+          ) {
+            return next(
+              new AppError(
+                `Este cupón solo aplica para ${coupon.applicableCategory}.`,
+                400,
+              ),
+            );
+          }
+
           totalDiscount =
             coupon.discountType === "PERCENTAGE"
               ? dictatedAmount * (coupon.discountValue / 100)
@@ -398,16 +407,29 @@ const updateAppointment = asyncHandler(async (req, res, next) => {
           // Usa la recompensa configurada al crear el referido; tipo MANUAL para que
           // el dueño (paciente existente) pueda canjearla sin la restricción de 1ra visita.
           if (coupon.type === "REFERRAL" && coupon.referralConfig?.ownerId) {
+            // El admin define al crear el referido si la recompensa queda atada a un
+            // servicio (rewardCategory) o es efectivo (sin categoría).
+            const rewardCategory = coupon.referralConfig.rewardCategory || undefined;
             const rewardCoupon = new Coupon({
               code: `REWARD-${Math.random().toString(36).substring(7).toUpperCase()}`,
-              name: "Recompensa por referido",
-              description: "Gracias por recomendarnos",
+              name: rewardCategory
+                ? `Recompensa por referido — ${rewardCategory}`
+                : "Crédito por referido",
+              description: rewardCategory
+                ? `Gracias por recomendarnos · válido en ${rewardCategory}`
+                : "Gracias por recomendarnos · crédito en efectivo",
               type: "MANUAL",
               origin: "MANUAL",
               discountType: coupon.referralConfig.rewardType || "PERCENTAGE",
               discountValue: coupon.referralConfig.rewardValue ?? 10,
+              ...(rewardCategory && { applicableCategory: rewardCategory }),
               expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
               maxRedemptions: 1,
+              rewardMeta: {
+                fromReferralCouponId: coupon._id,
+                referredPatientId: appointment.patientId,
+                serviceCategory: treatment?.category,
+              },
             });
             await rewardCoupon.save({ session });
             await Patient.findByIdAndUpdate(

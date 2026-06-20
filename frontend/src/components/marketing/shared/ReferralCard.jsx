@@ -9,9 +9,11 @@ import {
   Check,
   UserCircle,
   HandCoins,
+  ChartLineUp,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import CouponStatsModal from "../modals/CouponStatsModal";
 
 const ReferralCard = ({ campaign, onRefresh }) => {
   const {
@@ -31,6 +33,7 @@ const ReferralCard = ({ campaign, onRefresh }) => {
   const owner = referralConfig?.ownerId; // poblado con { name, phone }
 
   const [copied, setCopied] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
 
   const usagePercentage = Math.min((usedCount / maxRedemptions) * 100, 100);
   const displayDiscount =
@@ -131,6 +134,13 @@ const ReferralCard = ({ campaign, onRefresh }) => {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setStatsOpen(true)}
+            className="text-slate-300 hover:text-indigo-500 transition-colors"
+            title="Ver estadísticas"
+          >
+            <ChartLineUp size={20} weight="bold" />
+          </button>
           {isActive && (
             <button
               onClick={handleSendWhatsApp}
@@ -226,6 +236,12 @@ const ReferralCard = ({ campaign, onRefresh }) => {
           {copied ? "Copiado" : "Código"}
         </button>
       </div>
+
+      <CouponStatsModal
+        isOpen={statsOpen}
+        coupon={campaign}
+        onClose={() => setStatsOpen(false)}
+      />
     </div>
   );
 };

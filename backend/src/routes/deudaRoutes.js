@@ -3,6 +3,7 @@ import {
   getDeudas,
   createDeuda,
   addPayment,
+  applyCouponToDeuda,
   deleteDeuda,
 } from "../controllers/deudaController.js";
 import checkAuth from "../middlewares/checkAuth.js";
@@ -21,6 +22,12 @@ router.post(
   "/:deudaId/payments",
   authorizeRole("ADMIN", "RECEPTIONIST"),
   addPayment,
+);
+
+router.post(
+  "/:deudaId/apply-coupon",
+  authorizeRole("ADMIN", "RECEPTIONIST"),
+  applyCouponToDeuda,
 );
 
 router.delete(

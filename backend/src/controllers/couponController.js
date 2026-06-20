@@ -160,6 +160,7 @@ const createReferralCoupon = asyncHandler(async (req, res, next) => {
     discountValue,
     rewardType,
     rewardValue,
+    rewardCategory,
     expiresAt,
     maxRedemptions,
     maxUsesPerUser,
@@ -202,10 +203,29 @@ const createReferralCoupon = asyncHandler(async (req, res, next) => {
     expiresAt,
     maxRedemptions,
     maxUsesPerUser,
-    referralConfig: { ownerId, rewardType, rewardValue },
+    referralConfig: {
+      ownerId,
+      rewardType,
+      rewardValue,
+      ...(rewardCategory && { rewardCategory }),
+    },
   });
 
   sendResponse(res, 201, coupon, "Cupón de referido creado");
+});
+
+/**
+ * 1.d OBTENER REFERIDOS DE UN PACIENTE (los que él es dueño).
+ * Sirve para reflejar en el expediente del dueño sus cupones de referido activos
+ * y su actividad (canjes / recompensa configurada).
+ */
+const getPatientReferrals = asyncHandler(async (req, res) => {
+  const { ownerId } = req.params;
+  const referrals = await Coupon.find({
+    type: "REFERRAL",
+    "referralConfig.ownerId": ownerId,
+  }).sort({ createdAt: -1 });
+  sendResponse(res, 200, referrals);
 });
 
 /**
@@ -360,7 +380,10 @@ const getCouponStats = asyncHandler(async (req, res) => {
  * 6. OBTENER CUPÓN POR ID
  */
 const getCouponById = asyncHandler(async (req, res, next) => {
-  const coupon = await Coupon.findById(req.params.id);
+  const coupon = await Coupon.findById(req.params.id)
+    .populate({ path: "usedBy.patientId", select: "name phone" })
+    .populate({ path: "sentTo.patientId", select: "name phone" })
+    .populate({ path: "referralConfig.ownerId", select: "name phone" });
   if (!coupon) return next(new AppError("Cupón no encontrado", 404));
   sendResponse(res, 200, coupon);
 });
@@ -439,6 +462,7 @@ export {
   createCoupon,
   createManualCoupon,
   createReferralCoupon,
+  getPatientReferrals,
   getCoupons,
   getCouponById,
   updateCoupon,

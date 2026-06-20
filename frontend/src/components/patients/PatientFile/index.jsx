@@ -145,6 +145,7 @@ const PatientFileModal = ({ isOpen, patientId, onClose, onUpdate }) => {
                   <FinancesTab
                     patient={patient}
                     userRole={currentUserRole}
+                    onUpdate={fetchPatientData}
                   />
                 )}
                 {activeTab === "photos" && currentUserRole === "ADMIN" && (

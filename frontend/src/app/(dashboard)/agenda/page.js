@@ -170,7 +170,7 @@ export default function AgendaPage() {
       confirmed: active.filter((a) => ["CONFIRMED", "IN_PROGRESS"].includes(a.status)).length,
       revenue: active
         .filter((a) => a.status === "COMPLETED")
-        .reduce((s, a) => s + (a.originalQuote || 0), 0),
+        .reduce((s, a) => s + (a.finalAmount || 0), 0),
     };
   }, [visibleAppointments]);
 

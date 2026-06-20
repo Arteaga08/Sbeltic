@@ -80,6 +80,16 @@ const couponSchema = new mongoose.Schema(
         default: "PERCENTAGE",
       },
       rewardValue: { type: Number, default: 10 },
+      // Servicio al que queda atada la recompensa del dueño.
+      // Vacío ⇒ recompensa en efectivo (cualquier servicio o abono a deuda).
+      rewardCategory: { type: String, uppercase: true },
+    },
+
+    // 🎁 Trazabilidad de cupones de recompensa generados por un referido
+    rewardMeta: {
+      fromReferralCouponId: { type: mongoose.Schema.Types.ObjectId, ref: "Coupon" },
+      referredPatientId: { type: mongoose.Schema.Types.ObjectId, ref: "Patient" },
+      serviceCategory: { type: String, uppercase: true },
     },
     clearanceConfig: {
       applicableProducts: [

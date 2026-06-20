@@ -1,12 +1,24 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Trash, CurrencyDollar, Receipt } from "@phosphor-icons/react";
+import { Plus, Trash, CurrencyDollar, Receipt, Ticket, Wallet } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { CONNECTION_ERROR } from "@/lib/apiError";
 import FormError from "@/components/ui/FormError";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
+
+// Cupones de dinero disponibles en la cartera (aplicables a deuda).
+function getCashCoupons(patient) {
+  const now = new Date();
+  return (patient?.walletCoupons || []).filter(
+    (c) =>
+      c.discountType === "FIXED_AMOUNT" &&
+      c.isActive &&
+      new Date(c.expiresAt) > now &&
+      c.usedCount < c.maxRedemptions,
+  );
+}
 
 const STATUS_LABEL = {
   PENDING: "Pendiente",
@@ -36,7 +48,7 @@ function ProgressBar({ paid, total }) {
   );
 }
 
-export default function FinancesTab({ patient, userRole }) {
+export default function FinancesTab({ patient, userRole, onUpdate }) {
   const [deudas, setDeudas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNewDeuda, setShowNewDeuda] = useState(false);
@@ -47,6 +59,12 @@ export default function FinancesTab({ patient, userRole }) {
   const [newPayment, setNewPayment] = useState({ amount: "", note: "" });
   const [savingPayment, setSavingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState("");
+  const [openCouponId, setOpenCouponId] = useState(null);
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+
+  const canManage = ["ADMIN", "RECEPTIONIST"].includes(userRole);
+  const cashCoupons = getCashCoupons(patient);
+  const cashBalance = cashCoupons.reduce((s, c) => s + (c.discountValue || 0), 0);
 
   const fetchDeudas = useCallback(async () => {
     if (!patient?._id) return;
@@ -124,6 +142,33 @@ export default function FinancesTab({ patient, userRole }) {
     }
   }
 
+  async function handleApplyCoupon(deudaId, couponId) {
+    setApplyingCoupon(true);
+    try {
+      const res = await fetchWithAuth(
+        `${API}/patients/${patient._id}/deudas/${deudaId}/apply-coupon`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ couponId }),
+        },
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.message || "No se pudo aplicar el cupón.");
+        return;
+      }
+      setDeudas((prev) => prev.map((d) => (d._id === deudaId ? data.data : d)));
+      setOpenCouponId(null);
+      toast.success("Cupón aplicado a la deuda");
+      onUpdate?.(); // refresca la cartera del paciente (cupón consumido)
+    } catch {
+      toast.error(CONNECTION_ERROR);
+    } finally {
+      setApplyingCoupon(false);
+    }
+  }
+
   async function handleDeleteDeuda(deudaId) {
     if (!confirm("¿Eliminar esta deuda y todos sus abonos?")) return;
     try {
@@ -161,6 +206,22 @@ export default function FinancesTab({ patient, userRole }) {
           <p className="text-lg font-black text-emerald-600">{formatMXN(totalBalance)}</p>
         </div>
       </div>
+
+      {/* Crédito en cartera */}
+      {cashCoupons.length > 0 && (
+        <div className="flex items-center gap-3 bg-indigo-50 border border-indigo-100 rounded-2xl px-4 py-3">
+          <Wallet size={18} weight="fill" className="text-indigo-500 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[9px] font-black uppercase tracking-widest text-indigo-400">Crédito en cartera</p>
+            <p className="text-sm font-black text-indigo-700">
+              {formatMXN(cashBalance)} en {cashCoupons.length} {cashCoupons.length === 1 ? "cupón" : "cupones"} de dinero
+            </p>
+          </div>
+          <span className="text-[9px] font-bold text-indigo-400 text-right shrink-0">
+            Aplícalos como abono ↓
+          </span>
+        </div>
+      )}
 
       {/* Nueva deuda */}
       {!showNewDeuda ? (
@@ -226,6 +287,9 @@ export default function FinancesTab({ patient, userRole }) {
                       {STATUS_LABEL[deuda.status]}
                     </span>
                   </div>
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    Creada el {new Date(deuda.createdAt).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" })}
+                  </p>
                   <div className="flex items-center gap-3 mt-1 flex-wrap">
                     <p className="text-xs text-slate-500">Total: <span className="font-black text-slate-700">{formatMXN(deuda.totalAmount)}</span></p>
                     <p className="text-xs text-slate-500">Abonado: <span className="font-black text-amber-600">{formatMXN(deuda.paidAmount)}</span></p>
@@ -250,9 +314,20 @@ export default function FinancesTab({ patient, userRole }) {
                   {(deuda.payments ?? []).map((pmt) => (
                     <div key={pmt._id} className="flex items-center justify-between gap-2 bg-slate-50 rounded-xl px-3 py-2">
                       <div className="flex items-center gap-2">
-                        <Receipt size={13} weight="bold" className="text-slate-400 shrink-0" />
+                        {pmt.method === "COUPON" ? (
+                          <Ticket size={13} weight="bold" className="text-indigo-400 shrink-0" />
+                        ) : (
+                          <Receipt size={13} weight="bold" className="text-slate-400 shrink-0" />
+                        )}
                         <div>
-                          <p className="text-xs font-black text-emerald-600">{formatMXN(pmt.amount)}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-black text-emerald-600">{formatMXN(pmt.amount)}</p>
+                            {pmt.method === "COUPON" && (
+                              <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-600">
+                                Cupón
+                              </span>
+                            )}
+                          </div>
                           {pmt.note && <p className="text-[10px] text-slate-400">{pmt.note}</p>}
                         </div>
                       </div>
@@ -301,13 +376,55 @@ export default function FinancesTab({ patient, userRole }) {
                         </button>
                       </div>
                     </div>
+                  ) : openCouponId === deuda._id ? (
+                    <div className="space-y-2">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-indigo-400">
+                        Elige un cupón de dinero para abonar
+                      </p>
+                      {cashCoupons.length === 0 ? (
+                        <p className="text-xs text-slate-400">Sin cupones de dinero disponibles.</p>
+                      ) : (
+                        cashCoupons.map((c) => (
+                          <button
+                            key={c._id}
+                            disabled={applyingCoupon}
+                            onClick={() => handleApplyCoupon(deuda._id, c._id)}
+                            className="w-full flex items-center justify-between gap-2 bg-white border border-indigo-200 rounded-xl px-3 py-2 hover:border-indigo-400 transition-colors disabled:opacity-50"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Ticket size={14} weight="fill" className="text-indigo-500 shrink-0" />
+                              <span className="text-xs font-black uppercase text-slate-700 truncate">{c.code}</span>
+                            </div>
+                            <span className="text-xs font-black text-emerald-600 shrink-0">
+                              {formatMXN(c.discountValue)}
+                            </span>
+                          </button>
+                        ))
+                      )}
+                      <button
+                        onClick={() => setOpenCouponId(null)}
+                        className="w-full py-2 bg-slate-100 text-slate-500 rounded-xl text-xs font-black uppercase hover:bg-slate-200 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
                   ) : (
-                    <button
-                      onClick={() => { setOpenPaymentId(deuda._id); setNewPayment({ amount: "", note: "" }); setPaymentError(""); }}
-                      className="w-full py-2 border-2 border-dashed border-emerald-200 rounded-xl text-xs font-black uppercase text-emerald-400 hover:border-emerald-400 hover:text-emerald-600 transition-colors flex items-center justify-center gap-1.5"
-                    >
-                      <Plus size={13} weight="bold" /> Registrar abono
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setOpenPaymentId(deuda._id); setNewPayment({ amount: "", note: "" }); setPaymentError(""); }}
+                        className="flex-1 py-2 border-2 border-dashed border-emerald-200 rounded-xl text-xs font-black uppercase text-emerald-400 hover:border-emerald-400 hover:text-emerald-600 transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <Plus size={13} weight="bold" /> Registrar abono
+                      </button>
+                      {canManage && cashCoupons.length > 0 && (
+                        <button
+                          onClick={() => { setOpenCouponId(deuda._id); setOpenPaymentId(null); }}
+                          className="flex-1 py-2 border-2 border-dashed border-indigo-200 rounded-xl text-xs font-black uppercase text-indigo-400 hover:border-indigo-400 hover:text-indigo-600 transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          <Ticket size={13} weight="bold" /> Pagar con cupón
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               )}

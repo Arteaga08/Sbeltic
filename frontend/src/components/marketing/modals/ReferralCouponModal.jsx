@@ -18,6 +18,7 @@ import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { CONNECTION_ERROR } from "@/lib/apiError";
 import FormError from "@/components/ui/FormError";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { useTreatmentCategories } from "@/context/TreatmentCategoriesContext";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -29,6 +30,7 @@ const INITIAL_STATE = {
   discountValue: "",
   rewardType: "PERCENTAGE",
   rewardValue: "",
+  rewardCategory: "", // vacío = recompensa en efectivo
   expiresAt: "",
   maxRedemptions: 1,
   maxUsesPerUser: 1,
@@ -36,6 +38,7 @@ const INITIAL_STATE = {
 
 const ReferralCouponModal = ({ isOpen, onClose, onUpdate }) => {
   useScrollLock(isOpen);
+  const categories = useTreatmentCategories();
   const [formData, setFormData] = useState(INITIAL_STATE);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
@@ -104,6 +107,7 @@ const ReferralCouponModal = ({ isOpen, onClose, onUpdate }) => {
           discountValue: Number(formData.discountValue),
           rewardType: formData.rewardType,
           rewardValue: Number(formData.rewardValue),
+          ...(formData.rewardCategory && { rewardCategory: formData.rewardCategory }),
           expiresAt: formData.expiresAt,
           maxRedemptions: Number(formData.maxRedemptions),
           maxUsesPerUser: Number(formData.maxUsesPerUser),
@@ -388,6 +392,32 @@ const ReferralCouponModal = ({ isOpen, onClose, onUpdate }) => {
                   }
                 />
               </div>
+            </div>
+
+            {/* Servicio al que aplica la recompensa */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <Tag size={14} /> Aplica a
+              </label>
+              <select
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none font-medium"
+                value={formData.rewardCategory}
+                onChange={(e) =>
+                  setFormData({ ...formData, rewardCategory: e.target.value })
+                }
+              >
+                <option value="">Efectivo / cualquier servicio (o deuda)</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    Solo {cat.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] font-medium text-slate-400">
+                {formData.rewardCategory
+                  ? "La recompensa solo podrá usarse en ese servicio."
+                  : "La recompensa será crédito en efectivo: cualquier servicio o abono a deuda."}
+              </p>
             </div>
           </div>
 

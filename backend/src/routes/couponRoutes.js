@@ -3,6 +3,7 @@ import {
   createCoupon,
   createManualCoupon,
   createReferralCoupon,
+  getPatientReferrals,
   getCoupons,
   getCouponById,
   updateCoupon,
@@ -52,6 +53,13 @@ router.post(
   authorizeRole("ADMIN", "RECEPTIONIST", "MARKETING"),
   validateCreateReferralCoupon,
   createReferralCoupon,
+);
+
+// 📋 Referidos de un paciente dueño (para reflejarlos en su expediente)
+router.get(
+  "/referrals/:ownerId",
+  authorizeRole("ADMIN", "RECEPTIONIST", "MARKETING", "DOCTOR"),
+  getPatientReferrals,
 );
 
 /**

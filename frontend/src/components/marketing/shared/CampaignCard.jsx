@@ -11,9 +11,11 @@ import {
   Check,
   PaperPlaneTilt,
   Ticket,
+  ChartLineUp,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import CouponStatsModal from "../modals/CouponStatsModal";
 
 const TEMPLATE_LABELS = {
   sbeltic_bienvenida: "Bienvenida",
@@ -49,6 +51,7 @@ const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
 
   const [copied, setCopied] = useState(false);
   const [sending, setSending] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
 
   const usagePercentage = Math.min((usedCount / maxRedemptions) * 100, 100);
 
@@ -145,6 +148,15 @@ const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
         </div>
 
         <div className="flex items-center gap-2">
+          {isManual && (
+            <button
+              onClick={() => setStatsOpen(true)}
+              className="text-slate-300 hover:text-indigo-500 transition-colors"
+              title="Ver estadísticas"
+            >
+              <ChartLineUp size={20} weight="bold" />
+            </button>
+          )}
           {isActive && onEdit && !isManual && (
             <button
               onClick={() => onEdit(campaign)}
@@ -265,6 +277,12 @@ const CampaignCard = ({ campaign, onRefresh, onEdit }) => {
           {copied ? "Copiado" : "Codigo"}
         </button>
       </div>
+
+      <CouponStatsModal
+        isOpen={statsOpen}
+        coupon={campaign}
+        onClose={() => setStatsOpen(false)}
+      />
     </div>
   );
 };

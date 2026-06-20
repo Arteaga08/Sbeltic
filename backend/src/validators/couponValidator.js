@@ -117,6 +117,8 @@ export const createReferralCouponSchema = z
     // Recompensa para el dueño cuando alguien canjea su cupón
     rewardType: z.enum(["PERCENTAGE", "FIXED_AMOUNT"]),
     rewardValue: z.number().positive(),
+    // Servicio al que queda atada la recompensa (vacío ⇒ efectivo)
+    rewardCategory: z.string().trim().toUpperCase().optional(),
     expiresAt: z.coerce.date().refine((date) => date > new Date(), {
       message: "La fecha de expiración debe ser en el futuro",
     }),

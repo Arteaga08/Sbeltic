@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Tag,
   CalendarBlank,
@@ -13,9 +13,31 @@ import {
   Wrench,
   Plus,
   Hand,
+  Wallet,
+  UsersThree,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import ManualCouponModal from "@/components/marketing/modals/ManualCouponModal";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
+
+const API = process.env.NEXT_PUBLIC_API_URL;
+
+function formatMXN(n) {
+  return new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency: "MXN",
+    minimumFractionDigits: 0,
+  }).format(n ?? 0);
+}
+
+// Un cupón es "efectivo" si es de monto fijo y no está atado a un servicio.
+const isCashCoupon = (c) =>
+  c.discountType === "FIXED_AMOUNT" && !c.applicableCategory;
+
+const isCouponAvailable = (c) => {
+  const now = new Date();
+  return c.isActive && new Date(c.expiresAt) > now && c.usedCount < c.maxRedemptions;
+};
 
 const TYPE_CONFIG = {
   WELCOME: { label: "Bienvenida", icon: Gift, color: "bg-indigo-50 text-indigo-600" },
@@ -184,16 +206,73 @@ const CouponCard = ({ coupon }) => {
   );
 };
 
+const ReferralRow = ({ coupon }) => {
+  const { code, name, usedCount = 0, maxRedemptions = 1, referralConfig = {} } = coupon;
+  const { rewardType, rewardValue, rewardCategory } = referralConfig;
+  const rewardLabel =
+    rewardType === "PERCENTAGE" ? `${rewardValue}%` : `$${rewardValue}`;
+  const pct = Math.round(Math.min((usedCount / maxRedemptions) * 100, 100));
+
+  return (
+    <div className="bg-white border border-purple-100 rounded-2xl p-4 flex items-center justify-between gap-4">
+      <div className="min-w-0">
+        <p className="text-sm font-black italic uppercase text-slate-900 tracking-tight truncate">
+          {code}
+        </p>
+        {name && (
+          <p className="text-[10px] font-medium text-slate-400 truncate">{name}</p>
+        )}
+        <p className="text-[9px] font-black text-purple-600 uppercase tracking-widest mt-1">
+          Gana {rewardLabel} {rewardCategory ? `en ${rewardCategory}` : "en efectivo"} por referido
+        </p>
+      </div>
+      <div className="text-right shrink-0">
+        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+          {usedCount} / {maxRedemptions} canjes
+        </p>
+        <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1.5">
+          <div className="h-full bg-purple-500" style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const CouponsTab = ({ patient, userRole, onUpdate }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [referrals, setReferrals] = useState([]);
   const coupons = patient?.walletCoupons || [];
   const canCreate = ["ADMIN", "RECEPTIONIST"].includes(userRole);
 
-  const activeCoupons = coupons.filter((c) => {
-    const now = new Date();
-    return c.isActive && new Date(c.expiresAt) > now && c.usedCount < c.maxRedemptions;
-  });
+  useEffect(() => {
+    if (!patient?._id) return;
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetchWithAuth(`${API}/coupons/referrals/${patient._id}`);
+        const data = await res.json();
+        const list = data.data ?? data;
+        if (active) setReferrals(Array.isArray(list) ? list : []);
+      } catch {
+        if (active) setReferrals([]);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [patient?._id]);
+
+  const activeCoupons = coupons.filter(isCouponAvailable);
   const inactiveCoupons = coupons.filter((c) => !activeCoupons.includes(c));
+
+  // Híbrido: separar crédito efectivo de cupones por servicio
+  const cashCoupons = activeCoupons.filter(isCashCoupon);
+  const serviceCoupons = activeCoupons.filter((c) => !isCashCoupon(c));
+  const cashBalance = cashCoupons.reduce((s, c) => s + (c.discountValue || 0), 0);
+
+  const activeReferrals = referrals.filter(isCouponAvailable);
+
+  const isEmpty = coupons.length === 0 && referrals.length === 0;
 
   return (
     <div className="animate-in fade-in duration-500 space-y-8">
@@ -230,7 +309,22 @@ const CouponsTab = ({ patient, userRole, onUpdate }) => {
         </div>
       </div>
 
-      {coupons.length === 0 ? (
+      {/* CRÉDITO EFECTIVO (resumen) */}
+      <div className="bg-linear-to-br from-emerald-500 to-teal-600 rounded-3xl p-6 text-white shadow-lg">
+        <div className="flex items-center gap-2 mb-2">
+          <Wallet size={18} weight="fill" />
+          <span className="text-[9px] font-black uppercase tracking-widest opacity-90">
+            Crédito efectivo
+          </span>
+        </div>
+        <p className="text-3xl font-black tracking-tight">{formatMXN(cashBalance)}</p>
+        <p className="text-[10px] font-medium opacity-80 mt-1">
+          {cashCoupons.length} {cashCoupons.length === 1 ? "cupón" : "cupones"} de
+          dinero · aplica a cualquier servicio o a deuda
+        </p>
+      </div>
+
+      {isEmpty ? (
         <div className="py-20 text-center bg-slate-50/50 rounded-modal border-2 border-dashed border-slate-100">
           <Tag size={32} weight="thin" className="text-slate-200 mx-auto mb-3" />
           <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
@@ -239,14 +333,42 @@ const CouponsTab = ({ patient, userRole, onUpdate }) => {
         </div>
       ) : (
         <div className="space-y-8">
-          {/* CUPONES DISPONIBLES */}
-          {activeCoupons.length > 0 && (
+          {/* MIS REFERIDOS */}
+          {activeReferrals.length > 0 && (
+            <div className="space-y-4">
+              <p className="text-[9px] font-black text-purple-600 uppercase tracking-widest flex items-center gap-2">
+                <UsersThree size={13} weight="fill" /> Mis referidos ({activeReferrals.length})
+              </p>
+              <div className="space-y-3">
+                {activeReferrals.map((coupon) => (
+                  <ReferralRow key={coupon._id} coupon={coupon} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* CUPONES DE DINERO (EFECTIVO) */}
+          {cashCoupons.length > 0 && (
             <div className="space-y-4">
               <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">
-                Disponibles ({activeCoupons.length})
+                Crédito efectivo ({cashCoupons.length})
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {activeCoupons.map((coupon) => (
+                {cashCoupons.map((coupon) => (
+                  <CouponCard key={coupon._id} coupon={coupon} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* CUPONES POR SERVICIO */}
+          {serviceCoupons.length > 0 && (
+            <div className="space-y-4">
+              <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">
+                Cupones por servicio ({serviceCoupons.length})
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {serviceCoupons.map((coupon) => (
                   <CouponCard key={coupon._id} coupon={coupon} />
                 ))}
               </div>

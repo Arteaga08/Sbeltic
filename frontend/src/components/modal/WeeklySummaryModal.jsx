@@ -67,7 +67,7 @@ export default function WeeklySummaryModal({ isOpen, onClose, weeklySummary = nu
               <p className="text-2xl font-black text-emerald-600 leading-none">
                 ${revenue.toLocaleString("es-MX", { minimumFractionDigits: 0 })}
               </p>
-              <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wide mt-1">Ingresos estimados</p>
+              <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wide mt-1">Ingresos cobrados</p>
             </div>
             <div className="bg-rose-50 rounded-2xl p-4 border border-rose-100">
               <p className="text-3xl font-black text-rose-500 leading-none">{cancelled}</p>
