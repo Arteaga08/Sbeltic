@@ -13,6 +13,7 @@ import SoapNotesTab from "./Tabs/SoapNotesTab";
 import PrescriptionsTab from "./Tabs/PrescriptionsTab";
 import PhotosTab from "./Tabs/PhotosTab";
 import FinancesTab from "./Tabs/FinancesTab";
+import AppointmentHistoryTab from "./Tabs/AppointmentHistoryTab";
 import { toast } from "sonner";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
@@ -140,6 +141,9 @@ const PatientFileModal = ({ isOpen, patientId, onClose, onUpdate }) => {
                     userRole={currentUserRole}
                     onUpdate={fetchPatientData}
                   />
+                )}
+                {activeTab === "appointments" && (
+                  <AppointmentHistoryTab patient={patient} />
                 )}
                 {activeTab === "finances" && (
                   <FinancesTab

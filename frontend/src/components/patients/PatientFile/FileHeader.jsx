@@ -1,5 +1,5 @@
 "use client";
-import { X, IdentificationCard, ActivityIcon, PenNib, Tag, NotePencil, Stethoscope, Pill, Image as ImageIcon, CurrencyDollar } from "@phosphor-icons/react";
+import { X, IdentificationCard, ActivityIcon, PenNib, Tag, NotePencil, Stethoscope, Pill, Image as ImageIcon, CurrencyDollar, CalendarCheck } from "@phosphor-icons/react";
 
 const FileHeader = ({ patient, activeTab, setActiveTab, onClose, userRole }) => {
   const tabs = [
@@ -12,6 +12,7 @@ const FileHeader = ({ patient, activeTab, setActiveTab, onClose, userRole }) => 
     { id: "prescriptions", label: "Recetas", icon: Pill },
     { id: "signatures", label: "Firmas", icon: PenNib },
     { id: "coupons", label: "Cupones", icon: Tag },
+    { id: "appointments", label: "Visitas", icon: CalendarCheck },
     { id: "finances", label: "Finanzas", icon: CurrencyDollar },
     ...(userRole === "ADMIN"
       ? [{ id: "photos", label: "Fotos", icon: ImageIcon }]

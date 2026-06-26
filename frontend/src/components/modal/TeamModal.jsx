@@ -47,6 +47,11 @@ export default function TeamModal({
     });
   };
 
+  // La comisión solo aplica a colaboradores (DOCTOR / PHYSIOTHERAPIST)
+  const isCollaborator =
+    newUser.role === "DOCTOR" || newUser.role === "PHYSIOTHERAPIST";
+  const commissionType = newUser.commissionType || "PERCENTAGE";
+
   return (
    <div className="fixed inset-0 w-full h-dvh z-999 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300 overflow-y-auto">
       <div className="bg-white w-full max-w-2xl rounded-modal border-2 border-slate-900 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
@@ -167,6 +172,87 @@ export default function TeamModal({
               <option value="PHYSIOTHERAPIST">FISIOTERAPIA</option>
             </select>
           </div>
+
+          {/* Comisión — solo para colaboradores (DOCTOR / PHYSIOTHERAPIST) */}
+          {isCollaborator && (
+            <div className="space-y-3 bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4">
+              <label className="text-[10px] font-black text-emerald-600 uppercase ml-1 block">
+                Comisión para el administrador
+                <span className="ml-2 text-[8px] font-bold text-emerald-400 normal-case tracking-normal">
+                  (por cada paciente atendido)
+                </span>
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setNewUser({ ...newUser, commissionType: "PERCENTAGE" })
+                  }
+                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                    commissionType === "PERCENTAGE"
+                      ? "bg-emerald-600 text-white shadow-md"
+                      : "bg-white text-slate-400 hover:bg-slate-50"
+                  }`}
+                >
+                  Porcentaje (%)
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setNewUser({ ...newUser, commissionType: "FIXED" })
+                  }
+                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                    commissionType === "FIXED"
+                      ? "bg-emerald-600 text-white shadow-md"
+                      : "bg-white text-slate-400 hover:bg-slate-50"
+                  }`}
+                >
+                  Monto fijo ($)
+                </button>
+              </div>
+
+              {/* Input de porcentaje — solo visible cuando type=PERCENTAGE */}
+              {commissionType === "PERCENTAGE" && (
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">
+                    %
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    className="w-full pl-9 pr-4 py-4 rounded-2xl bg-white border border-emerald-100 outline-none focus:border-emerald-500 font-bold text-sm"
+                    placeholder="Ej. 30"
+                    value={newUser.commissionPercentage ?? ""}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, commissionPercentage: e.target.value })
+                    }
+                  />
+                </div>
+              )}
+
+              {/* Input de monto fijo — solo visible cuando type=FIXED */}
+              {commissionType === "FIXED" && (
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="w-full pl-9 pr-4 py-4 rounded-2xl bg-white border border-emerald-100 outline-none focus:border-emerald-500 font-bold text-sm"
+                    placeholder="Ej. 200"
+                    value={newUser.commissionFixed ?? ""}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, commissionFixed: e.target.value })
+                    }
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Horario de Trabajo */}
           <div className="space-y-3">

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { CONNECTION_ERROR } from "@/lib/apiError";
 import FormError from "@/components/ui/FormError";
+import { formatMXN } from "@/lib/formatCurrency";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -31,10 +32,6 @@ const STATUS_STYLES = {
   PARTIAL: "bg-amber-100 text-amber-600",
   PAID: "bg-emerald-100 text-emerald-600",
 };
-
-function formatMXN(n) {
-  return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 0 }).format(n ?? 0);
-}
 
 function ProgressBar({ paid, total }) {
   const pct = total > 0 ? Math.min(100, (paid / total) * 100) : 0;

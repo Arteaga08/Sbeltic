@@ -1,4 +1,5 @@
 import Patient from "../models/clinical/Patient.js";
+import Appointment from "../models/Appointment.js";
 import AppError from "../utils/appError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendResponse } from "../utils/responseHandler.js";
@@ -362,6 +363,15 @@ const streamPatientPhoto = asyncHandler(async (req, res, next) => {
   });
 });
 
+const getPatientAppointments = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const appointments = await Appointment.find({ patientId: id, isActive: true })
+    .populate("doctorId", "name")
+    .sort({ appointmentDate: -1 })
+    .lean();
+  return res.json({ success: true, data: appointments });
+});
+
 // --- EXPORTACIÓN AGRUPADA AL FINAL ---
 export {
   createPatient,
@@ -378,4 +388,5 @@ export {
   uploadPatientPhoto,
   deletePatientPhoto,
   streamPatientPhoto,
+  getPatientAppointments,
 };

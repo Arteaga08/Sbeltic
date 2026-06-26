@@ -25,6 +25,15 @@ const userSchema = new mongoose.Schema(
         endTime: { type: String },              // "18:00"
       },
     ],
+    // --- COMISIÓN (solo aplica a colaboradores: DOCTOR / PHYSIOTHERAPIST) ---
+    // Comisión que el admin recibe por cada paciente atendido por el colaborador.
+    commissionType: {
+      type: String,
+      enum: ["PERCENTAGE", "FIXED"],
+      default: "PERCENTAGE",
+    },
+    // Si PERCENTAGE => porcentaje sobre lo ganado. Si FIXED => monto en MXN por paciente.
+    commissionValue: { type: Number, default: 0, min: 0 },
     isActive: { type: Boolean, default: true },
     lastLogin: Date,
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // 👈 Solo uno

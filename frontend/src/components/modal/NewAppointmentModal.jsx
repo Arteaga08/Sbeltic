@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { WhatsappLogo } from "@phosphor-icons/react";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import FormError from "@/components/ui/FormError";
 import { useScrollLock } from "@/hooks/useScrollLock";
@@ -9,6 +10,23 @@ import { useTreatmentCategories } from "@/context/TreatmentCategoriesContext";
 import { getCategoryById } from "@/lib/treatmentCategories";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
+
+const ROOM_LABELS = {
+  CABINA_1: "Cabina 1",
+  CABINA_2: "Cabina 2",
+  CABINA_3: "Cabina 3",
+  SPA: "Spa",
+  CONSULTORIO: "Consultorio",
+  QUIROFANO: "Quirófano",
+};
+
+// Normaliza un teléfono para wa.me: solo dígitos y, si son 10 (México sin lada),
+// antepone la lada 52.
+function toWhatsAppPhone(phone) {
+  const digits = (phone || "").replace(/\D/g, "");
+  if (digits.length === 10) return `52${digits}`;
+  return digits;
+}
 
 const normalize = (s) =>
   (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -30,6 +48,8 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
 
   const [formData, setFormData] = useState({
     patientId: "",
+    patientName: "",
+    patientPhone: "",
     newPatientName: "",
     newPatientPhone: "",
     newPatientEmail: "",
@@ -44,6 +64,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
     isPriority: false,
     isUrgent: false,
     notes: "",
+    sendWhatsAppConfirmation: true,
   });
 
   const [patients, setPatients] = useState([]);
@@ -64,6 +85,8 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
       setFormError("");
       setFormData({
         patientId: "",
+        patientName: "",
+        patientPhone: "",
         newPatientName: "",
         newPatientPhone: "",
         newPatientEmail: "",
@@ -78,6 +101,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
         isPriority: false,
         isUrgent: false,
         notes: "",
+        sendWhatsAppConfirmation: true,
       });
       fetchRealData();
     }
@@ -187,6 +211,28 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
   const durationTotal =
     Number(formData.durationHours) * 60 + Number(formData.durationMinutes);
 
+  // Arma el mensaje de confirmación pre-armado con los datos de la cita.
+  const buildConfirmationMessage = () => {
+    const fullName = isNewPatient ? formData.newPatientName : formData.patientName;
+    const firstName = (fullName || "").trim().split(" ")[0] || "Paciente";
+    const readableDate = new Date(`${formData.date}T${formData.time}:00`).toLocaleDateString(
+      "es-MX",
+      { weekday: "long", day: "numeric", month: "long" },
+    );
+    const doctorName =
+      staff.find((u) => u._id === formData.doctorId)?.name || "nuestro equipo";
+    const roomLabel = ROOM_LABELS[formData.roomId] || formData.roomId;
+
+    return (
+      `Hola ${firstName}, te confirmamos tu cita en Sbeltic:\n` +
+      `📅 ${readableDate} a las ${formData.time}\n` +
+      `💆 ${formData.treatmentName}\n` +
+      `👩‍⚕️ Te atiende: ${doctorName}\n` +
+      `📍 ${roomLabel}\n` +
+      `¡Te esperamos!`
+    );
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError("");
@@ -236,7 +282,22 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
       },
     });
     setIsSaving(false);
-    if (errMsg) setFormError(errMsg);
+    if (errMsg) return setFormError(errMsg);
+
+    // Cita guardada con éxito: abrir WhatsApp con la confirmación pre-armada.
+    if (formData.sendWhatsAppConfirmation) {
+      const phone = toWhatsAppPhone(
+        isNewPatient ? formData.newPatientPhone : formData.patientPhone,
+      );
+      if (phone) {
+        window.open(
+          `https://wa.me/${phone}?text=${encodeURIComponent(buildConfirmationMessage())}`,
+          "_blank",
+        );
+      } else {
+        toast.info("La cita se guardó, pero el paciente no tiene teléfono para enviar la confirmación.");
+      }
+    }
   };
 
   return (
@@ -323,7 +384,12 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
                             setPatientSearch(e.target.value);
                             setShowPatientDropdown(true);
                             if (!e.target.value.trim()) {
-                              setFormData({ ...formData, patientId: "" });
+                              setFormData({
+                                ...formData,
+                                patientId: "",
+                                patientName: "",
+                                patientPhone: "",
+                              });
                             }
                           }}
                           onFocus={() => setShowPatientDropdown(true)}
@@ -333,7 +399,12 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
                             type="button"
                             onClick={() => {
                               setPatientSearch("");
-                              setFormData({ ...formData, patientId: "" });
+                              setFormData({
+                                ...formData,
+                                patientId: "",
+                                patientName: "",
+                                patientPhone: "",
+                              });
                               setShowPatientDropdown(false);
                             }}
                             className="ml-2 text-slate-400 hover:text-slate-600 text-lg leading-none"
@@ -349,7 +420,12 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
                               key={p._id}
                               type="button"
                               onClick={() => {
-                                setFormData({ ...formData, patientId: p._id });
+                                setFormData({
+                                  ...formData,
+                                  patientId: p._id,
+                                  patientName: p.name,
+                                  patientPhone: p.phone,
+                                });
                                 setPatientSearch(`${p.name} (${p.phone})`);
                                 setShowPatientDropdown(false);
                               }}
@@ -565,6 +641,51 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave }) {
                   }
                 />
               </div>
+
+              {/* 5. CONFIRMACIÓN POR WHATSAPP */}
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData((f) => ({
+                    ...f,
+                    sendWhatsAppConfirmation: !f.sendWhatsAppConfirmation,
+                  }))
+                }
+                className={`w-full flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left ${
+                  formData.sendWhatsAppConfirmation
+                    ? "border-emerald-400 bg-emerald-50"
+                    : "border-slate-200 bg-white hover:border-slate-300"
+                }`}
+              >
+                <div
+                  className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${
+                    formData.sendWhatsAppConfirmation
+                      ? "border-emerald-500 bg-emerald-500"
+                      : "border-slate-300"
+                  }`}
+                >
+                  {formData.sendWhatsAppConfirmation && (
+                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <WhatsappLogo
+                    size={20}
+                    weight="fill"
+                    className={formData.sendWhatsAppConfirmation ? "text-emerald-600" : "text-slate-400"}
+                  />
+                  <div>
+                    <p className={`text-sm font-black uppercase tracking-wide ${formData.sendWhatsAppConfirmation ? "text-emerald-700" : "text-slate-500"}`}>
+                      Enviar confirmación por WhatsApp
+                    </p>
+                    <p className="text-xs text-slate-400 font-medium">
+                      Al guardar se abrirá WhatsApp con los datos de la cita listos para enviar
+                    </p>
+                  </div>
+                </div>
+              </button>
             </div>
           )}
 

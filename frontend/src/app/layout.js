@@ -27,7 +27,7 @@ const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"] });
 export default function RootLayout({ children }) {
   return (
     <html lang="es">
-      <body className={`${jakarta.className} antialiased`}>
+      <body className={`${jakarta.className} antialiased`} suppressHydrationWarning>
         {children}
 
         {/* 2. Agregamos el Toaster aquí. Aparecerá en TODAS las páginas */}

@@ -24,12 +24,14 @@ import productRoutes from "./routes/productRoutes.js";
 import batchRoutes from "./routes/batchRoutes.js";
 import supplierRoutes from "./routes/supplierRoutes.js";
 import couponRoutes from "./routes/couponRoutes.js";
+import broadcastRoutes from "./routes/broadcastRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import publicRoutes from "./routes/publicRoutes.js"; // 🌟 NUEVA: Rutas para firmas remotas
 import medicalHistoryRoutes from "./routes/medicalHistoryRoutes.js"; // 📋 Historial médico vía WhatsApp
 import webhookRoutes from "./routes/webhookRoutes.js"; // 🤖 Webhooks de WhatsApp
 import templateRoutes from "./routes/templateRoutes.js"; // 📝💊 Plantillas de notas post-op y recetas
 import deudaRoutes from "./routes/deudaRoutes.js";
+import financeRoutes from "./routes/financeRoutes.js"; // 💰 Finanzas y comisiones por colaborador
 
 const app = express();
 const PORT = process.env.PORT || 5009;
@@ -90,6 +92,10 @@ app.use("/api/suppliers", supplierRoutes);
 
 // Módulo de Marketing y Recompensas
 app.use("/api/coupons", couponRoutes);
+app.use("/api/broadcasts", broadcastRoutes);
+
+// Módulo de Finanzas (comisiones por colaborador)
+app.use("/api/finance", financeRoutes);
 
 // 🤖 Webhooks (WhatsApp — sin auth, validado por HMAC)
 app.use("/api/webhooks", webhookRoutes);

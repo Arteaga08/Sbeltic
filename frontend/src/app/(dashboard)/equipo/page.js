@@ -61,6 +61,9 @@ export default function TeamPage() {
     role: "RECEPTIONIST",
     phone: "",
     schedule: [],
+    commissionType: "PERCENTAGE",
+    commissionPercentage: "",
+    commissionFixed: "",
   };
 
   const [newUser, setNewUser] = useState(initialUserState);
@@ -153,6 +156,14 @@ export default function TeamPage() {
     const payload = { ...newUser };
     if (payload.phone) payload.phone = payload.phone.trim().replace(/\D/g, "");
     if (editingId && !payload.password) delete payload.password;
+    // Mapear el valor del campo activo a commissionValue para el backend
+    const rawValue =
+      payload.commissionType === "FIXED"
+        ? payload.commissionFixed
+        : payload.commissionPercentage;
+    payload.commissionValue = rawValue !== "" && rawValue != null ? Number(rawValue) : 0;
+    delete payload.commissionPercentage;
+    delete payload.commissionFixed;
     try {
       const res = await fetchWithAuth(url, {
         method,
@@ -181,6 +192,7 @@ export default function TeamPage() {
   const handleEditClick = (user) => {
     setFormError("");
     setEditingId(user._id);
+    const savedType = user.commissionType || "PERCENTAGE";
     setNewUser({
       name: user.name,
       email: user.email,
@@ -188,6 +200,10 @@ export default function TeamPage() {
       role: user.role,
       phone: user.phone || "",
       schedule: user.schedule || [],
+      commissionType: savedType,
+      // El valor guardado se restaura en el campo correcto según su tipo
+      commissionPercentage: savedType === "PERCENTAGE" ? (user.commissionValue ?? "") : "",
+      commissionFixed: savedType === "FIXED" ? (user.commissionValue ?? "") : "",
     });
     setIsModalOpen(true);
   };

@@ -52,6 +52,7 @@ export default function AgendaPage() {
   }, []);
 
   const isReadOnly = userRole === "MARKETING";
+  const isAdmin = userRole === "ADMIN";
 
   // ── Fetches ──
   const fetchWeekAppointments = async (start) => {
@@ -299,6 +300,7 @@ export default function AgendaPage() {
           onAppointmentClick={handleAppointmentClick}
           mobileOpen={isPanelOpen}
           onClose={() => setIsPanelOpen(false)}
+          isAdmin={isAdmin}
         />
 
         {/* FAB — solo móvil */}

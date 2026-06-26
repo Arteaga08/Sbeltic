@@ -20,6 +20,7 @@ import {
   uploadPatientPhoto,
   deletePatientPhoto,
   streamPatientPhoto,
+  getPatientAppointments,
 } from "../controllers/patientController.js";
 import {
   createPatientSchema,
@@ -83,6 +84,13 @@ router.post(
   authorizeRole("DOCTOR", "ADMIN"),
   validateSchema({ params: paramsIdSchema, body: createPrescriptionSchema }),
   addPrescription,
+);
+
+// 📋 Historial de citas del paciente — todos los roles
+router.get(
+  "/:id/appointments",
+  validateSchema({ params: paramsIdSchema }),
+  getPatientAppointments,
 );
 
 // 📸 Fotos antes/después — SOLO ADMIN puede subir, ver archivos y eliminar

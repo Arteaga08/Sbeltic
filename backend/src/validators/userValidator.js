@@ -48,6 +48,9 @@ const createUserSchema = z
         }),
       )
       .optional(),
+    // Comisión del colaborador (DOCTOR / PHYSIOTHERAPIST)
+    commissionType: z.enum(["PERCENTAGE", "FIXED"]).optional(),
+    commissionValue: z.coerce.number().min(0).optional(),
   })
   .strict();
 

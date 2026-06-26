@@ -20,8 +20,10 @@ import { toast } from "sonner";
 import CouponBuilderModal from "@/components/marketing/modals/CouponBuilderModal";
 import ManualCouponModal from "@/components/marketing/modals/ManualCouponModal";
 import ReferralCouponModal from "@/components/marketing/modals/ReferralCouponModal";
+import BroadcastModal from "@/components/marketing/modals/BroadcastModal";
 import CampaignCard from "@/components/marketing/shared/CampaignCard";
 import ReferralCard from "@/components/marketing/shared/ReferralCard";
+import BroadcastCard from "@/components/marketing/shared/BroadcastCard";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useTreatmentCategories } from "@/context/TreatmentCategoriesContext";
 import HelpButton from "@/components/help/HelpButton";
@@ -44,6 +46,12 @@ export default function MarketingPage() {
 
   const [campaigns, setCampaigns] = useState([]);
   const [loadingCampaigns, setLoadingCampaigns] = useState(false);
+
+  // 📣 Campañas de difusión por WhatsApp
+  const [broadcasts, setBroadcasts] = useState([]);
+  const [loadingBroadcasts, setLoadingBroadcasts] = useState(false);
+  const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
+  const [broadcastToContinue, setBroadcastToContinue] = useState(null);
 
   const [stats, setStats] = useState({
     conversion: "0%",
@@ -109,6 +117,40 @@ export default function MarketingPage() {
       fetchCampaigns();
     }
   }, [currentView, selectedCategory]);
+
+  const fetchBroadcasts = async () => {
+    setLoadingBroadcasts(true);
+    try {
+      const res = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API_URL}/broadcasts`,
+        { cache: "no-store" },
+      );
+      const data = await res.json();
+      if (data.success || res.ok) {
+        setBroadcasts(data.data || []);
+      }
+    } catch (error) {
+      toast.error("Error al cargar las difusiones");
+    } finally {
+      setLoadingBroadcasts(false);
+    }
+  };
+
+  useEffect(() => {
+    if (mode === "BROADCAST") {
+      fetchBroadcasts();
+    }
+  }, [mode]);
+
+  const handleNewBroadcast = () => {
+    setBroadcastToContinue(null);
+    setIsBroadcastOpen(true);
+  };
+
+  const handleOpenBroadcast = (broadcast) => {
+    setBroadcastToContinue(broadcast);
+    setIsBroadcastOpen(true);
+  };
 
   // Módulos automáticos (campañas con plantilla de WhatsApp)
   const autoCategories = [
@@ -228,11 +270,13 @@ export default function MarketingPage() {
             <h2 className="text-4xl md:text-6xl font-extrabold italic uppercase text-slate-900 leading-none">
               {mode === null
                 ? "Marketing"
-                : currentView === "LIST"
-                  ? activeCategoryData?.label
-                  : mode === "MANUAL"
-                    ? "Cupones Manuales"
-                    : "Campañas"}
+                : mode === "BROADCAST"
+                  ? "Difusión"
+                  : currentView === "LIST"
+                    ? activeCategoryData?.label
+                    : mode === "MANUAL"
+                      ? "Cupones Manuales"
+                      : "Campañas"}
             </h2>
             <HelpButton
               onClick={() => setIsHelpOpen(true)}
@@ -243,17 +287,26 @@ export default function MarketingPage() {
           <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-label">
             {mode === null
               ? "Gestión de Lealtad y Campañas"
-              : currentView === "LIST"
-                ? activeCategoryData?.description
-                : mode === "MANUAL"
-                  ? "Entrega presencial por categoría"
-                  : "Campañas automáticas por WhatsApp"}
+              : mode === "BROADCAST"
+                ? "Mensajes masivos por WhatsApp"
+                : currentView === "LIST"
+                  ? activeCategoryData?.description
+                  : mode === "MANUAL"
+                    ? "Entrega presencial por categoría"
+                    : "Campañas automáticas por WhatsApp"}
           </p>
         </div>
 
         {mode !== null && (
           <div className="w-full md:w-auto flex flex-col gap-3 shrink-0">
-            {mode === "AUTO" ? (
+            {mode === "BROADCAST" ? (
+              <button
+                onClick={handleNewBroadcast}
+                className="w-full md:w-auto px-10 py-5 bg-emerald-600 text-white font-black rounded-2xl hover:bg-emerald-700 transition-all text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-emerald-200 active:scale-95"
+              >
+                <Megaphone size={20} weight="bold" /> NUEVA DIFUSIÓN
+              </button>
+            ) : mode === "AUTO" ? (
               <button
                 onClick={() => setIsModalOpen(true)}
                 className="w-full md:w-auto px-10 py-5 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 transition-all text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-indigo-200 active:scale-95"
@@ -285,7 +338,7 @@ export default function MarketingPage() {
             <h3 className="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-6 ml-2">
               Selecciona un Modo
             </h3>
-            <section className="grid grid-cols-2 gap-4 md:gap-8">
+            <section className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
               {[
                 {
                   id: "MANUAL",
@@ -302,6 +355,14 @@ export default function MarketingPage() {
                   icon: RocketLaunch,
                   color: "text-blue-600",
                   bg: "bg-blue-50",
+                },
+                {
+                  id: "BROADCAST",
+                  label: "Difusión",
+                  description: "Mensajes masivos por WhatsApp",
+                  icon: Megaphone,
+                  color: "text-emerald-600",
+                  bg: "bg-emerald-50",
                 },
               ].map((m) => (
                 <button
@@ -381,6 +442,44 @@ export default function MarketingPage() {
                 </div>
               ))}
             </section>
+          </div>
+        </div>
+      ) : mode === "BROADCAST" ? (
+        <div className="animate-in fade-in slide-in-from-right-8 duration-300">
+          <div className="bg-slate-50/50 rounded-modal border-2 border-slate-50 p-6 md:p-12 min-h-120">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {loadingBroadcasts ? (
+                <div className="col-span-full text-center py-32">
+                  <p className="text-slate-400 font-bold uppercase tracking-widest text-xs animate-pulse">
+                    Cargando difusiones...
+                  </p>
+                </div>
+              ) : broadcasts.length === 0 ? (
+                <div className="text-center py-32 col-span-full border-2 border-dashed border-slate-200 rounded-4xl bg-white">
+                  <div className="inline-flex p-6 rounded-3xl bg-emerald-50 text-emerald-600 mb-6">
+                    <Megaphone size={48} weight="bold" />
+                  </div>
+                  <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">
+                    No hay campañas de difusión
+                  </p>
+                  <button
+                    onClick={handleNewBroadcast}
+                    className="mt-8 px-8 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all"
+                  >
+                    Crear la primera
+                  </button>
+                </div>
+              ) : (
+                broadcasts.map((b) => (
+                  <BroadcastCard
+                    key={b._id}
+                    broadcast={b}
+                    onOpen={handleOpenBroadcast}
+                    onRefresh={fetchBroadcasts}
+                  />
+                ))
+              )}
+            </div>
           </div>
         </div>
       ) : currentView === "DASHBOARD" ? (
@@ -503,6 +602,16 @@ export default function MarketingPage() {
         isOpen={isReferralOpen}
         onClose={() => setIsReferralOpen(false)}
         onUpdate={fetchCampaigns}
+      />
+
+      <BroadcastModal
+        isOpen={isBroadcastOpen}
+        broadcast={broadcastToContinue}
+        onClose={() => {
+          setIsBroadcastOpen(false);
+          setBroadcastToContinue(null);
+        }}
+        onUpdate={fetchBroadcasts}
       />
 
       <HelpModal

@@ -302,7 +302,7 @@ function WaitlistPanel({ waitlist, onClick }) {
   );
 }
 
-function SummaryPanel({ weeklySummary, onClick }) {
+function SummaryPanel({ weeklySummary, onClick, isAdmin = false }) {
   return (
     <PanelCard onClick={onClick}>
       <div className="bg-slate-900 rounded-3xl p-5 space-y-4">
@@ -326,14 +326,16 @@ function SummaryPanel({ weeklySummary, onClick }) {
               {weeklySummary?.confirmed ?? "—"}
             </span>
           </div>
-          <div className="border-t border-slate-700 pt-3">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-slate-400">Ingresos de la semana</span>
-              <span className="text-lg font-black text-emerald-400 leading-none">
-                ${(weeklySummary?.revenue ?? 0).toLocaleString("es-MX", { minimumFractionDigits: 0 })}
-              </span>
+          {isAdmin && (
+            <div className="border-t border-slate-700 pt-3">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-slate-400">Ingresos de la semana</span>
+                <span className="text-lg font-black text-emerald-400 leading-none">
+                  ${(weeklySummary?.revenue ?? 0).toLocaleString("es-MX", { minimumFractionDigits: 0 })}
+                </span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </PanelCard>
@@ -350,6 +352,7 @@ export default function SidePanels({
   onAppointmentClick,
   mobileOpen = false,
   onClose = () => {},
+  isAdmin = false,
 }) {
   useScrollLock(mobileOpen);
   const [openModal, setOpenModal] = useState(null);
@@ -360,7 +363,7 @@ export default function SidePanels({
       <PriorityPanel priorityAppointments={priorityAppointments} onClick={() => setOpenModal("priorities")} />
       <DayPanel todayAppointments={todayAppointments} onClick={() => setOpenModal("day")} />
       <WaitlistPanel waitlist={waitlist} onClick={() => setOpenModal("waitlist")} />
-      <SummaryPanel weeklySummary={weeklySummary} onClick={() => setOpenModal("summary")} />
+      <SummaryPanel weeklySummary={weeklySummary} onClick={() => setOpenModal("summary")} isAdmin={isAdmin} />
     </>
   );
 
@@ -420,6 +423,7 @@ export default function SidePanels({
         onClose={() => setOpenModal(null)}
         weeklySummary={weeklySummary}
         appointments={appointments}
+        isAdmin={isAdmin}
       />
       <DayAppointmentsModal
         isOpen={openModal === "day"}
