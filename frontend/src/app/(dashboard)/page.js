@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
+import Link from "next/link";
+import { Gear } from "@phosphor-icons/react";
 import { getCategoryFromTreatment } from "@/lib/treatmentCategories";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import AgendaStatusWidget from "@/components/dashboard/AgendaStatusWidget";
@@ -173,6 +175,28 @@ export default function DashboardHome() {
 
         {/* Row 3 */}
         <MarketingMetricWidget stats={couponStats} />
+
+        {/* Equipo — solo ADMIN, solo móvil */}
+        {user?.role === "ADMIN" && (
+          <Link
+            href="/equipo"
+            className="md:hidden bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col gap-4 active:scale-[0.98] transition-transform"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full" />
+              <h3 className="text-[9px] font-black uppercase tracking-widest text-blue-500">
+                Equipo
+              </h3>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold text-slate-700">Gestión de personal</p>
+                <p className="text-xs text-slate-400 mt-0.5">Alta, edición y roles del equipo</p>
+              </div>
+              <Gear size={36} weight="duotone" className="text-slate-200 shrink-0" />
+            </div>
+          </Link>
+        )}
       </div>
     </div>
   );

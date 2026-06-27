@@ -67,6 +67,7 @@ const MENU_ITEMS = [
     icon: <Gear size={24} weight="duotone" />,
     roles: ["ADMIN"],
     activeColor: "text-blue-600",
+    mobileHidden: true,
   },
 ];
 
@@ -87,6 +88,18 @@ export default function Sidebar() {
   useEffect(() => {
     const savedUser = localStorage.getItem("sbeltic_user");
     if (savedUser) setUser(JSON.parse(savedUser));
+  }, []);
+
+  useEffect(() => {
+    fetchWithAuth(`${API}/users/profile`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.data) {
+          localStorage.setItem("sbeltic_user", JSON.stringify(d.data));
+          setUser(d.data);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const userRole = user?.role || "GUEST";
@@ -181,7 +194,7 @@ export default function Sidebar() {
       </aside>
 
       {/* MOBILE NAV */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-2xl border-t border-slate-200 flex justify-around items-center p-3 z-50 h-20 shadow-nav pb-safe">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-2xl border-t border-slate-200 flex justify-around items-center p-3 z-50 h-22 shadow-nav pb-safe">
         {mobileItems.map((item) => {
           const isActive = pathname === item.path;
           const showBadge = item.path === "/finanzas" && financePending > 0;
@@ -207,7 +220,7 @@ export default function Sidebar() {
                 )}
               </span>
               <span
-                className={`text-[9px] font-black uppercase tracking-tighter transition-colors ${
+                className={`text-[10px] font-black uppercase tracking-tight transition-colors ${
                   isActive ? "text-slate-900" : "text-slate-400"
                 }`}
               >
